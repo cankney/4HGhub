@@ -1,4 +1,22 @@
 // 4HGS Application Hub - Core Logic & State Management
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDUo8yzIcUAxNL8rMuSAaBhZBVhyYvkYm8",
+  authDomain: "hghub-20865.firebaseapp.com",
+  projectId: "hghub-20865",
+  storageBucket: "hghub-20865.firebasestorage.app",
+  messagingSenderId: "258182779688",
+  appId: "1:258182779688:web:69c2a7c111c0b1ae9df61d",
+  measurementId: "G-HTBWW8C0QD"
+};
+
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const googleProvider = new GoogleAuthProvider();
 
 // Icon SVGs library
 const SVG_ICONS = {
@@ -36,17 +54,15 @@ const DEFAULT_APPS = [
 ];
 
 const DEFAULT_USERS = [
-  { id: 'user-admin', name: 'Cole Ankney', role: 'Admin' },
-  { id: 'user-sales', name: 'John Smith', role: 'Sales' },
-  { id: 'user-tech', name: 'Dave Miller', role: 'Technician' },
-  { id: 'user-guest', name: 'Guest Visitor', role: 'Guest' }
+  { id: 'user-admin', name: 'Cole Ankney', role: 'Admin', email: 'coleankney@gmail.com' },
+  { id: 'user-sales', name: 'John Smith', role: 'Sales', email: 'john@4hgs.com' },
+  { id: 'user-tech', name: 'Dave Miller', role: 'Technician', email: 'dave@4hgs.com' }
 ];
 
 const DEFAULT_PERMISSIONS = {
   'user-admin': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops'],
   'user-sales': ['orders', 'crm', 'catalog', 'folder-ops'], 
-  'user-tech': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops'],
-  'user-guest': ['catalog', 'ai-troubleshoot']
+  'user-tech': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -61,7 +77,7 @@ let state = {
   users: [],
   permissions: {},
   broadcasts: [],
-  activeUserId: '',
+  activeUserId: null, // Null indicates no authenticated Firebase session!
   isEditing: false,
   activeFolderId: null,
   theme: 'dark' 
@@ -81,9 +97,6 @@ function initDatabase() {
   if (!localStorage.getItem('HGS_BROADCASTS')) {
     localStorage.setItem('HGS_BROADCASTS', JSON.stringify(DEFAULT_BROADCASTS));
   }
-  if (!localStorage.getItem('HGS_ACTIVE_USER')) {
-    localStorage.setItem('HGS_ACTIVE_USER', 'user-admin');
-  }
   if (!localStorage.getItem('HGS_THEME')) {
     localStorage.setItem('HGS_THEME', 'dark');
   }
@@ -93,7 +106,6 @@ function initDatabase() {
   state.users = JSON.parse(localStorage.getItem('HGS_USERS'));
   state.permissions = JSON.parse(localStorage.getItem('HGS_PERMISSIONS'));
   state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
-  state.activeUserId = localStorage.getItem('HGS_ACTIVE_USER');
   state.theme = localStorage.getItem('HGS_THEME');
   
   applyTheme();
@@ -104,7 +116,6 @@ function saveDatabase() {
   localStorage.setItem('HGS_USERS', JSON.stringify(state.users));
   localStorage.setItem('HGS_PERMISSIONS', JSON.stringify(state.permissions));
   localStorage.setItem('HGS_BROADCASTS', JSON.stringify(state.broadcasts));
-  localStorage.setItem('HGS_ACTIVE_USER', state.activeUserId);
   localStorage.setItem('HGS_THEME', state.theme);
 }
 
@@ -153,7 +164,6 @@ function showToast(message, isSuccess = true) {
 function getFaviconUrl(url) {
   try {
     const domain = new URL(url).hostname;
-    // DuckDuckGo favicon provider is extremely resilient
     return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
   } catch (e) {
     return '';
@@ -162,12 +172,14 @@ function getFaviconUrl(url) {
 
 // User Permission evaluator
 function activeUserHasAccess(appId) {
+  if (!state.activeUserId) return false;
   const permitted = state.permissions[state.activeUserId] || [];
   return permitted.includes(appId);
 }
 
 function getActiveUser() {
-  return state.users.find(u => u.id === state.activeUserId) || state.users[0];
+  if (!state.activeUserId) return null;
+  return state.users.find(u => u.id === state.activeUserId) || null;
 }
 
 // Dynamic Icon rendering helper
@@ -180,20 +192,54 @@ function getIconMarkup(item) {
 
 // --- DOM Rendering Engine ---
 
-// Populating User Switcher
-function renderUserSwitcher() {
-  const dropdown = document.getElementById('user-dropdown');
-  dropdown.innerHTML = '';
+// Render active Firebase User state in Header Controls
+function renderAuthHeader(user) {
+  const container = document.getElementById('auth-container');
+  container.innerHTML = '';
   
-  state.users.forEach(user => {
-    const opt = document.createElement('option');
-    opt.value = user.id;
-    opt.textContent = `${user.name} (${user.role})`;
-    if (user.id === state.activeUserId) {
-      opt.selected = true;
-    }
-    dropdown.appendChild(opt);
-  });
+  if (user) {
+    // Logged In: profile card + Sign Out button
+    const activeUser = getActiveUser();
+    const role = activeUser ? activeUser.role : 'Guest';
+    
+    container.innerHTML = `
+      <div class="user-profile-widget">
+        <div class="user-profile-info">
+          <span class="user-profile-name">${user.displayName || user.email}</span>
+          <span class="user-profile-role">${role}</span>
+        </div>
+        <button id="btn-logout" class="btn-ios" type="button" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">
+          Sign Out
+        </button>
+      </div>
+    `;
+    
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      signOut(auth).then(() => {
+        showToast('Successfully signed out.');
+      });
+    });
+  } else {
+    // Logged Out: standard Sign In with Google
+    container.innerHTML = `
+      <button id="btn-login-google" class="btn-ios btn-ios-accent" type="button" style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg style="width:16px; height:16px; fill:currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.12 1 1.16 5.94 1.16 12s4.96 11 11.08 11c6.39 0 10.63-4.474 10.63-10.821 0-.727-.08-1.282-.177-1.894H12.24z"/>
+        </svg>
+        Sign in
+      </button>
+    `;
+    
+    document.getElementById('btn-login-google').addEventListener('click', () => {
+      signInWithPopup(auth, googleProvider)
+        .then((result) => {
+          showToast(`Welcome back, ${result.user.displayName || 'User'}!`);
+        })
+        .catch((error) => {
+          showToast(`Authentication failed: ${error.message}`, false);
+        });
+    });
+  }
 }
 
 // Render Left Sidebar Widgets
@@ -220,9 +266,9 @@ function renderAppGrid() {
   grid.innerHTML = '';
 
   const activeUser = getActiveUser();
-  const isAdmin = activeUser.role === 'Admin';
+  const isAdmin = activeUser && activeUser.role === 'Admin';
   
-  // Show / Hide Settings trigger
+  // Show / Hide Settings trigger in header
   const btnAdmin = document.getElementById('btn-admin-portal');
   if (isAdmin) {
     btnAdmin.style.display = 'inline-flex';
@@ -230,7 +276,43 @@ function renderAppGrid() {
     btnAdmin.style.display = 'none';
   }
 
-  // Sort apps by order index
+  // Handle Logged Out State: Show a beautiful placeholder lock screen card!
+  if (!state.activeUserId) {
+    grid.style.display = 'block'; // break grid layout
+    grid.innerHTML = `
+      <section class="widget" style="text-align: center; padding: 4rem 2rem; max-width: 500px; margin: 2rem auto; background: var(--glass-bg);">
+        <svg style="width: 48px; height: 48px; color: var(--accent-green); margin-bottom: 1.5rem;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <h3 style="font-size: 1.3rem; margin-bottom: 0.75rem; font-weight: 800;">4HGS Secure App Portal</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.5;">
+          Please authenticate with your corporate Google email address to unlock your assigned applications and repair forms.
+        </p>
+        <button id="btn-grid-login" class="btn-ios btn-ios-accent" type="button" style="margin: 0 auto; display: flex; align-items: center; gap: 0.5rem; justify-content: center; width: 220px; padding: 0.8rem 1.5rem;">
+          <svg style="width:16px; height:16px; fill:currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.12 1 1.16 5.94 1.16 12s4.96 11 11.08 11c6.39 0 10.63-4.474 10.63-10.821 0-.727-.08-1.282-.177-1.894H12.24z"/>
+          </svg>
+          Google Authentication
+        </button>
+      </section>
+    `;
+    
+    document.getElementById('btn-grid-login').addEventListener('click', () => {
+      signInWithPopup(auth, googleProvider)
+        .then((result) => {
+          showToast(`Welcome back, ${result.user.displayName || 'User'}!`);
+        })
+        .catch((error) => {
+          showToast(`Authentication failed: ${error.message}`, false);
+        });
+    });
+    return;
+  }
+
+  // Restore Grid CSS Display
+  grid.style.display = 'grid';
+
   const sortedApps = [...state.apps].sort((a, b) => a.order - b.order);
   
   sortedApps.forEach(item => {
@@ -265,13 +347,6 @@ function renderAppGrid() {
               const subApp = state.apps.find(a => a.id === subId);
               if (!subApp) return '';
               
-              if (subApp.icon === 'favicon') {
-                return `
-                  <div class="folder-mini-icon">
-                    <img src="${getFaviconUrl(subApp.link)}" alt="" onerror="this.onerror=null; this.src='https://icons.duckduckgo.com/ip3/default.ico'">
-                  </div>
-                `;
-              }
               return `
                 <div class="folder-mini-icon">
                   ${getIconMarkup(subApp)}
@@ -318,17 +393,15 @@ function renderAppGrid() {
       }
     }
 
-    // Edit Mode Click handler to trigger deletes/edits using standard robust HTML buttons
+    // Edit Mode delete/edit buttons
     if (state.isEditing) {
       const wrapper = appItem.querySelector('.app-icon-wrapper');
       
-      // Inject standard buttons
       wrapper.innerHTML += `
         <button class="app-delete-btn" type="button" aria-label="Delete App">&minus;</button>
         ${item.type !== 'folder' ? `<button class="app-edit-btn" type="button" aria-label="Edit App">&#9998;</button>` : ''}
       `;
       
-      // Hook Delete
       wrapper.querySelector('.app-delete-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         if (confirm(`Are you sure you want to delete "${item.name}"?`)) {
@@ -336,7 +409,6 @@ function renderAppGrid() {
         }
       });
       
-      // Hook Edit (Applications only, folders edited via title)
       const editBtn = wrapper.querySelector('.app-edit-btn');
       if (editBtn) {
         editBtn.addEventListener('click', (e) => {
@@ -363,7 +435,7 @@ function openFolderDrawer(folderId) {
   titleInput.value = folder.name;
   
   const activeUser = getActiveUser();
-  titleInput.readOnly = activeUser.role !== 'Admin';
+  titleInput.readOnly = !activeUser || activeUser.role !== 'Admin';
 
   folderGrid.innerHTML = '';
   
@@ -372,7 +444,7 @@ function openFolderDrawer(folderId) {
     if (!app) return;
     
     const hasAccess = activeUserHasAccess(app.id);
-    if (!hasAccess && activeUser.role !== 'Admin') return; 
+    if (!hasAccess && (!activeUser || activeUser.role !== 'Admin')) return; 
 
     const appItem = document.createElement('div');
     appItem.className = 'app-item';
@@ -516,7 +588,7 @@ function toggleEditMode(forceState = null) {
     btn.classList.add('btn-ios-accent');
     
     const activeUser = getActiveUser();
-    if (activeUser.role === 'Admin') {
+    if (activeUser && activeUser.role === 'Admin') {
       btnAdd.style.display = 'block';
     }
   } else {
@@ -597,7 +669,7 @@ function resetAppCuratorForm() {
   if (firstIcon) firstIcon.classList.add('selected');
 }
 
-// Render dynamic Icon selector grid inside Curator Form (includes Favicon option!)
+// Render dynamic Icon selector grid inside Curator Form
 function renderIconSelector() {
   const grid = document.getElementById('icon-selector-grid');
   grid.innerHTML = '';
@@ -636,6 +708,7 @@ function renderUsersList() {
       <div class="user-item-info">
         <span class="user-item-name">${user.name}</span>
         <span class="user-item-role">${user.role}</span>
+        <span style="font-size:0.75rem; color:var(--text-secondary);">${user.email || 'No email registered'}</span>
       </div>
       ${user.id !== 'user-admin' ? `<button class="btn-icon-delete" data-id="${user.id}">&times; Delete</button>` : ''}
     `;
@@ -658,11 +731,10 @@ function deleteUser(userId) {
   delete state.permissions[userId];
   
   if (state.activeUserId === userId) {
-    state.activeUserId = 'user-admin';
+    state.activeUserId = null;
   }
   
   saveDatabase();
-  renderUserSwitcher();
   renderUsersList();
   renderPermissionsMatrix();
   renderAppGrid();
@@ -757,7 +829,7 @@ function handleUserSubmit(e) {
   if (!name || !role) return;
 
   const userId = `user-${Date.now()}`;
-  const newUser = { id: userId, name: name, role: role };
+  const newUser = { id: userId, name: name, role: role, email: '' }; // Admin will assign email manually
   
   state.users.push(newUser);
   
@@ -773,12 +845,11 @@ function handleUserSubmit(e) {
   state.permissions[userId] = initialPerms;
 
   saveDatabase();
-  renderUserSwitcher();
   renderUsersList();
   renderPermissionsMatrix();
   
   document.getElementById('user-creator-form').reset();
-  showToast(`Created Employee: ${name}`);
+  showToast(`Created Employee Profile: ${name}`);
 }
 
 // Permissions save matrix handler
@@ -826,12 +897,10 @@ function renderBroadcastList() {
       </div>
     `;
 
-    // Hook edit trigger
     item.querySelector('.btn-icon-edit').addEventListener('click', () => {
       loadBroadcastIntoForm(broadcast);
     });
 
-    // Hook delete trigger
     item.querySelector('.btn-icon-delete').addEventListener('click', () => {
       if (confirm(`Remove broadcast announcement "${broadcast.title}"?`)) {
         deleteBroadcast(broadcast.id);
@@ -866,7 +935,6 @@ function handleBroadcastSubmit(e) {
   if (!title || !body || !time) return;
 
   if (editId) {
-    // EDIT ANNOUNCEMENT
     const idx = state.broadcasts.findIndex(b => b.id === editId);
     if (idx !== -1) {
       state.broadcasts[idx].title = title;
@@ -875,14 +943,13 @@ function handleBroadcastSubmit(e) {
       showToast('Announcement updated');
     }
   } else {
-    // NEW ANNOUNCEMENT
     const newBroadcast = {
       id: `b-${Date.now()}`,
       title: title,
       time: time,
       body: body
     };
-    state.broadcasts.unshift(newBroadcast); // put on top
+    state.broadcasts.unshift(newBroadcast); 
     showToast('New Announcement Posted!');
   }
 
@@ -944,21 +1011,7 @@ function initClockUpdates() {
 
 // Event Bindings
 function bindEventHandlers() {
-  // Theme toggle listener
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-
-  // Switching profile
-  document.getElementById('user-dropdown').addEventListener('change', (e) => {
-    state.activeUserId = e.target.value;
-    state.isEditing = false;
-    saveDatabase();
-    
-    const currentUser = getActiveUser();
-    showToast(`Switched Profile: ${currentUser.name}`);
-    
-    toggleEditMode(false);
-    closeAdminPortal(); // Exit admin view if they swap profile
-  });
 
   // Edit Layout grid wobble toggle
   document.getElementById('btn-edit-grid').addEventListener('click', () => {
@@ -981,7 +1034,6 @@ function bindEventHandlers() {
     document.querySelector('.dialog-tab-btn[data-tab="tab-apps"]').click();
   });
 
-  // Reset curation forms triggers
   document.getElementById('btn-reset-app-form').addEventListener('click', resetAppCuratorForm);
   document.getElementById('btn-reset-broadcast-form').addEventListener('click', resetBroadcastForm);
 
@@ -1006,12 +1058,60 @@ function bindEventHandlers() {
   setupDialogTabs();
 }
 
+// --- Firebase Authentication Observer Integration ---
+function initFirebaseAuth() {
+  onAuthStateChanged(auth, (firebaseUser) => {
+    if (firebaseUser) {
+      // Find matching employee by email address
+      let localUser = state.users.find(u => u.email && u.email.toLowerCase() === firebaseUser.email.toLowerCase());
+      
+      // Auto-assign very first user (Cole) or matching name to Admin, else dynamic register as Guest
+      if (!localUser) {
+        const isCole = firebaseUser.email.toLowerCase().includes('cole') || (firebaseUser.displayName && firebaseUser.displayName.toLowerCase().includes('cole'));
+        
+        localUser = {
+          id: `user-${Date.now()}`,
+          name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+          email: firebaseUser.email.toLowerCase(),
+          role: isCole ? 'Admin' : 'Guest'
+        };
+        
+        state.users.push(localUser);
+        
+        // Seed standard permissions
+        if (localUser.role === 'Admin') {
+          state.permissions[localUser.id] = state.apps.map(a => a.id);
+        } else {
+          state.permissions[localUser.id] = ['catalog', 'ai-troubleshoot']; // Default guest privileges
+        }
+        
+        saveDatabase();
+      }
+      
+      state.activeUserId = localUser.id;
+      saveDatabase();
+      
+      // Render logged in UI
+      renderAuthHeader(firebaseUser);
+      renderAppGrid();
+      showToast(`Logged in: ${localUser.name}`);
+    } else {
+      // Logged Out State
+      state.activeUserId = null;
+      saveDatabase();
+      
+      renderAuthHeader(null);
+      renderAppGrid();
+      closeAdminPortal(); // Exit admin panel if logged out
+    }
+  });
+}
+
 // --- App Initialization Entry Point ---
 document.addEventListener('DOMContentLoaded', () => {
   initDatabase();
-  renderUserSwitcher();
   renderWidgets();
-  renderAppGrid();
   initClockUpdates();
   bindEventHandlers();
+  initFirebaseAuth(); // Dynamic Firebase login observer
 });

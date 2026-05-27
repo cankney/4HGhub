@@ -27,11 +27,9 @@
         </svg>
       </button>
 
-      <div class="user-selector-wrapper">
-        <span class="user-selector-label">Active Profile:</span>
-        <select id="user-dropdown" class="user-dropdown" aria-label="Switch User Profile">
-          <!-- Will be dynamically populated by JS -->
-        </select>
+      <!-- Dynamic Firebase Authentication Display Container -->
+      <div id="auth-container">
+        <!-- Renders Google Login button or User Profile card + Logout dynamically -->
       </div>
     </div>
   </header>
@@ -245,6 +243,7 @@
     <p>&copy; 2026 <a href="https://4hgs.com" target="_blank" rel="noopener noreferrer">4HG Source LLC</a>. All internal system apps are protected by network credentials.</p>
   </footer>
 
-  <script src="app.js"></script>
+  <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>

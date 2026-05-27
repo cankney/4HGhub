@@ -178,43 +178,35 @@ body.light-mode header {
   height: 20px;
 }
 
-.user-selector-wrapper {
+/* Real Authentication Profile Widget */
+.user-profile-widget {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.user-selector-label {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.user-dropdown {
   background: var(--bg-slate-light);
-  color: var(--text-primary);
   border: 1px solid var(--glass-border);
-  padding: 0.5rem 2rem 0.5rem 1rem;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 12px;
   transition: var(--transition-smooth);
 }
 
-body.light-mode .user-dropdown {
-  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+.user-profile-info {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
 }
 
-.user-dropdown:focus {
-  border-color: var(--accent-green);
-  box-shadow: 0 0 10px var(--accent-green-dim);
+.user-profile-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.user-profile-role {
+  font-size: 0.7rem;
+  color: var(--accent-green);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 /* Master Layout Dashboard */
@@ -515,6 +507,10 @@ body.light-mode .btn-ios:hover {
   height: 50%;
   background: linear-gradient(rgba(255, 255, 255, 0.08), transparent);
   pointer-events: none;
+}
+
+.app-item:hover .app-icon-wrapper {
+  transform: translateY(-5px) scale(1.04);
 }
 
 .app-item:hover .app-icon {
