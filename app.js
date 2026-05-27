@@ -1,6 +1,6 @@
 // 4HGS Application Hub - Core Logic & State Management
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -16,7 +16,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
-const googleProvider = new GoogleAuthProvider();
 
 // Icon SVGs library
 const SVG_ICONS = {
@@ -205,7 +204,7 @@ function renderAuthHeader(user) {
     container.innerHTML = `
       <div class="user-profile-widget">
         <div class="user-profile-info">
-          <span class="user-profile-name">${user.displayName || user.email}</span>
+          <span class="user-profile-name">${user.email}</span>
           <span class="user-profile-role">${role}</span>
         </div>
         <button id="btn-logout" class="btn-ios" type="button" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">
@@ -220,25 +219,13 @@ function renderAuthHeader(user) {
       });
     });
   } else {
-    // Logged Out: standard Sign In with Google
+    // Logged Out State indicator
     container.innerHTML = `
-      <button id="btn-login-google" class="btn-ios btn-ios-accent" type="button" style="display: flex; align-items: center; gap: 0.5rem;">
-        <svg style="width:16px; height:16px; fill:currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.12 1 1.16 5.94 1.16 12s4.96 11 11.08 11c6.39 0 10.63-4.474 10.63-10.821 0-.727-.08-1.282-.177-1.894H12.24z"/>
-        </svg>
-        Sign in
-      </button>
+      <span style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px dashed var(--glass-border);">
+        <svg style="width:12px; height:12px; color: var(--text-secondary);" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Secured Portal
+      </span>
     `;
-    
-    document.getElementById('btn-login-google').addEventListener('click', () => {
-      signInWithPopup(auth, googleProvider)
-        .then((result) => {
-          showToast(`Welcome back, ${result.user.displayName || 'User'}!`);
-        })
-        .catch((error) => {
-          showToast(`Authentication failed: ${error.message}`, false);
-        });
-    });
   }
 }
 
@@ -280,31 +267,70 @@ function renderAppGrid() {
   if (!state.activeUserId) {
     grid.style.display = 'block'; // break grid layout
     grid.innerHTML = `
-      <section class="widget" style="text-align: center; padding: 4rem 2rem; max-width: 500px; margin: 2rem auto; background: var(--glass-bg);">
-        <svg style="width: 48px; height: 48px; color: var(--accent-green); margin-bottom: 1.5rem;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-        </svg>
-        <h3 style="font-size: 1.3rem; margin-bottom: 0.75rem; font-weight: 800;">4HGS Secure App Portal</h3>
-        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.5;">
-          Please authenticate with your corporate Google email address to unlock your assigned applications and repair forms.
-        </p>
-        <button id="btn-grid-login" class="btn-ios btn-ios-accent" type="button" style="margin: 0 auto; display: flex; align-items: center; gap: 0.5rem; justify-content: center; width: 220px; padding: 0.8rem 1.5rem;">
-          <svg style="width:16px; height:16px; fill:currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.12 1 1.16 5.94 1.16 12s4.96 11 11.08 11c6.39 0 10.63-4.474 10.63-10.821 0-.727-.08-1.282-.177-1.894H12.24z"/>
+      <section class="widget" style="text-align: center; padding: 3rem 2rem; max-width: 440px; margin: 2rem auto; background: var(--glass-bg); border-radius: 16px; border: 1px solid var(--glass-border); box-shadow: var(--shadow-premium);">
+        <div style="background: rgba(141,220,4,0.08); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+          <svg style="width: 32px; height: 32px; color: var(--accent-green);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          Google Authentication
-        </button>
+        </div>
+        <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--text-primary);">4HGS Secure Portal</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.5;">
+          Authenticate with your corporate credentials to access applications and dispatches.
+        </p>
+        
+        <form id="portal-login-form" style="text-align: left; display: flex; flex-direction: column; gap: 1.25rem;">
+          <div class="form-group">
+            <label for="login-email" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Corporate Email</label>
+            <input type="email" id="login-email" class="form-control" placeholder="name@4hgs.com" required autocomplete="username">
+          </div>
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="login-password" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          
+          <div id="login-error-msg" style="color: #ff3b30; font-size: 0.85rem; font-weight: 600; display: none; text-align: center; background: rgba(255,59,48,0.08); padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,59,48,0.15);"></div>
+          
+          <button type="submit" id="btn-login-submit" class="btn-ios btn-ios-accent" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h16.5a1.5 1.5 0 001.5-1.5V9.75a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v10.5a1.5 1.5 0 001.5 1.5z"></path></svg>
+            Secure Login
+          </button>
+        </form>
       </section>
     `;
     
-    document.getElementById('btn-grid-login').addEventListener('click', () => {
-      signInWithPopup(auth, googleProvider)
+    const loginForm = document.getElementById('portal-login-form');
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorDiv = document.getElementById('login-error-msg');
+      const submitBtn = document.getElementById('btn-login-submit');
+      
+      errorDiv.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `Signing In...`;
+      
+      signInWithEmailAndPassword(auth, email, password)
         .then((result) => {
-          showToast(`Welcome back, ${result.user.displayName || 'User'}!`);
+          showToast(`Welcome back!`);
         })
         .catch((error) => {
-          showToast(`Authentication failed: ${error.message}`, false);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h16.5a1.5 1.5 0 001.5-1.5V9.75a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v10.5a1.5 1.5 0 001.5 1.5z"></path></svg> Secure Login`;
+          
+          let customError = error.message;
+          if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+            customError = 'Invalid email or password. Please try again.';
+          } else if (error.code === 'auth/invalid-email') {
+            customError = 'Please enter a valid corporate email address.';
+          } else if (error.code === 'auth/user-disabled') {
+            customError = 'This account has been disabled.';
+          }
+          
+          errorDiv.textContent = customError;
+          errorDiv.style.display = 'block';
+          showToast(`Sign in failed`, false);
         });
     });
     return;
