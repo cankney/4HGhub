@@ -53,7 +53,7 @@ const DEFAULT_APPS = [
 ];
 
 const DEFAULT_USERS = [
-  { id: 'user-admin', name: 'Cole Ankney', role: 'Admin', email: 'coleankney@gmail.com' },
+  { id: 'user-admin', name: 'Cole Ankney', role: 'Admin', email: 'rcankney@gmail.com' },
   { id: 'user-sales', name: 'John Smith', role: 'Sales', email: 'john@4hgs.com' },
   { id: 'user-tech', name: 'Dave Miller', role: 'Technician', email: 'dave@4hgs.com' }
 ];
@@ -106,6 +106,13 @@ function initDatabase() {
   state.permissions = JSON.parse(localStorage.getItem('HGS_PERMISSIONS'));
   state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
   state.theme = localStorage.getItem('HGS_THEME');
+  
+  // Migration: Update admin email if it's the old one
+  const oldAdmin = state.users.find(u => u.id === 'user-admin' || u.email === 'coleankney@gmail.com');
+  if (oldAdmin && oldAdmin.email !== 'rcankney@gmail.com') {
+    oldAdmin.email = 'rcankney@gmail.com';
+    saveDatabase();
+  }
   
   applyTheme();
 }
