@@ -96,6 +96,9 @@
           <!-- Injected dynamically by JS -->
         </div>
 
+        <!-- Subsequent Sections will be dynamically injected here -->
+        <div id="subsequent-sections-container"></div>
+
         <!-- INLINE ADMIN CONFIGURATION PANEL (Replaces Popup!) -->
         <div class="admin-panel-inline" id="admin-panel-inline" style="display: none;">
           <div class="admin-panel-header">
@@ -109,6 +112,7 @@
           <div class="dialog-tabs">
             <button class="dialog-tab-btn active" data-tab="tab-account" type="button">My Account</button>
             <button class="dialog-tab-btn" data-tab="tab-apps" id="tab-btn-apps" type="button">Applications</button>
+            <button class="dialog-tab-btn" data-tab="tab-sections" id="tab-btn-sections" type="button">Dashboard Sections</button>
             <button class="dialog-tab-btn" data-tab="tab-permissions" id="tab-btn-permissions" type="button">User Access Matrix</button>
             <button class="dialog-tab-btn" data-tab="tab-users" id="tab-btn-users" type="button">Users</button>
             <button class="dialog-tab-btn" data-tab="tab-broadcasts" id="tab-btn-broadcasts" type="button">Broadcast Manager</button>
@@ -173,9 +177,34 @@
                   <!-- Will be populated dynamically by JS -->
                 </div>
               </div>
+              <div class="form-group">
+                <label for="app-section">Dashboard Section</label>
+                <select id="app-section" class="form-control" required>
+                  <!-- Will be populated dynamically by JS -->
+                </select>
+              </div>
               <div class="form-actions">
                 <button type="button" class="btn-ios" id="btn-reset-app-form">Clear / New</button>
                 <button type="submit" class="btn-ios btn-ios-accent" id="btn-save-app">Save Application</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- TAB: Dashboard Sections Manager -->
+          <div class="dialog-tab-content" id="tab-sections">
+            <div class="user-list" id="sections-panel-list" style="max-height: 200px;">
+              <!-- Dynamic JS list of sections with Reorder and Edit/Delete controls -->
+            </div>
+            <form id="section-curator-form">
+              <input type="hidden" id="edit-section-id" value="">
+              
+              <div class="form-group">
+                <label for="section-name">Section Name</label>
+                <input type="text" id="section-name" class="form-control" placeholder="e.g. Technician Tools" required autocomplete="off">
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-ios" id="btn-reset-section-form">Clear / New</button>
+                <button type="submit" class="btn-ios btn-ios-accent" id="btn-save-section">Save Section</button>
               </div>
             </form>
           </div>

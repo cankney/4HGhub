@@ -84,12 +84,17 @@ const DEFAULT_BROADCASTS = [
   { id: 'b-3', title: 'Sunday Maintenance Window', body: 'CRM Database and billing portals offline Sunday 1:00 AM to 4:00 AM EST.', time: 'May 24' }
 ];
 
+const DEFAULT_SECTIONS = [
+  { id: 'default', name: '4HGS Apps', order: 0 }
+];
+
 // Active State
 let state = {
   apps: [],
   users: [],
   permissions: {},
   broadcasts: [],
+  sections: [],
   activeUserId: null, // Null indicates no authenticated Firebase session!
   isEditing: false,
   activeFolderId: null,
@@ -110,6 +115,9 @@ function initDatabase() {
   if (!localStorage.getItem('HGS_BROADCASTS')) {
     localStorage.setItem('HGS_BROADCASTS', JSON.stringify(DEFAULT_BROADCASTS));
   }
+  if (!localStorage.getItem('HGS_SECTIONS')) {
+    localStorage.setItem('HGS_SECTIONS', JSON.stringify(DEFAULT_SECTIONS));
+  }
   if (!localStorage.getItem('HGS_THEME')) {
     localStorage.setItem('HGS_THEME', 'dark');
   }
@@ -119,8 +127,16 @@ function initDatabase() {
   state.users = JSON.parse(localStorage.getItem('HGS_USERS'));
   state.permissions = JSON.parse(localStorage.getItem('HGS_PERMISSIONS'));
   state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
+  state.sections = JSON.parse(localStorage.getItem('HGS_SECTIONS')) || DEFAULT_SECTIONS;
   state.theme = localStorage.getItem('HGS_THEME');
   
+  // Migration: Ensure all apps have a sectionId (defaults to 'default')
+  state.apps.forEach(app => {
+    if (!app.sectionId) {
+      app.sectionId = 'default';
+    }
+  });
+
   // Migration: Remove the old seed admin 'user-admin' and establish 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2' as the sole Admin
   state.users = state.users.filter(u => u.id !== 'user-admin');
   delete state.permissions['user-admin'];
@@ -159,6 +175,7 @@ function saveDatabase() {
   localStorage.setItem('HGS_USERS', JSON.stringify(state.users));
   localStorage.setItem('HGS_PERMISSIONS', JSON.stringify(state.permissions));
   localStorage.setItem('HGS_BROADCASTS', JSON.stringify(state.broadcasts));
+  localStorage.setItem('HGS_SECTIONS', JSON.stringify(state.sections));
   localStorage.setItem('HGS_THEME', state.theme);
 }
 
@@ -331,8 +348,13 @@ function renderWidgets() {
 
 // Render main app grid based on permissions and folders
 function renderAppGrid() {
-  const grid = document.getElementById('main-app-grid');
-  grid.innerHTML = '';
+  const mainGrid = document.getElementById('main-app-grid');
+  mainGrid.innerHTML = '';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) {
+    subsequentContainer.innerHTML = '';
+  }
 
   const activeUser = getActiveUser();
   const isAdmin = activeUser && activeUser.role === 'Admin';
@@ -347,8 +369,9 @@ function renderAppGrid() {
 
   // Handle Logged Out State: Show a beautiful placeholder lock screen card!
   if (!state.activeUserId) {
-    grid.style.display = 'block'; // break grid layout
-    grid.innerHTML = `
+    mainGrid.style.display = 'block'; // break grid layout
+    if (subsequentContainer) subsequentContainer.style.display = 'none';
+    mainGrid.innerHTML = `
       <section class="widget" style="text-align: center; padding: 3rem 2rem; max-width: 440px; margin: 2rem auto; background: var(--glass-bg); border-radius: 16px; border: 1px solid var(--glass-border); box-shadow: var(--shadow-premium);">
         <div style="background: rgba(141,220,4,0.08); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
           <svg style="width: 32px; height: 32px; color: var(--accent-green);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -418,14 +441,77 @@ function renderAppGrid() {
     return;
   }
 
-  // Restore Grid CSS Display (only if Settings panel is NOT currently active!)
+  // Restore Display Styles
   const adminPanel = document.getElementById('admin-panel-inline');
-  if (adminPanel && adminPanel.style.display === 'flex') {
-    grid.style.display = 'none';
+  const isSettingsOpen = adminPanel && adminPanel.style.display === 'flex';
+  
+  if (isSettingsOpen) {
+    mainGrid.style.display = 'none';
+    if (subsequentContainer) subsequentContainer.style.display = 'none';
   } else {
-    grid.style.display = 'grid';
+    mainGrid.style.display = 'grid';
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
   }
 
+  // Prepare and create all subsequent grids and headers in DOM
+  const sortedSections = [...state.sections].sort((a, b) => a.order - b.order);
+  const gridsMap = {};
+  
+  // The first section in sortedSections belongs to the mainGrid
+  if (sortedSections.length > 0) {
+    const firstSec = sortedSections[0];
+    gridsMap[firstSec.id] = mainGrid;
+    
+    // Update the title of the first section dynamically!
+    const mainToolbarTitle = document.querySelector('#ios-toolbar .ios-view-title');
+    if (mainToolbarTitle) {
+      // Split the title on spaces for the gradient styling
+      const parts = firstSec.name.split(' ');
+      if (parts.length > 1) {
+        const lastWord = parts.pop();
+        mainToolbarTitle.innerHTML = `${parts.join(' ')} <span>${lastWord}</span>`;
+      } else {
+        mainToolbarTitle.innerHTML = `${firstSec.name}`;
+      }
+    }
+  }
+
+  // Create grid containers for subsequent sections
+  for (let i = 1; i < sortedSections.length; i++) {
+    const section = sortedSections[i];
+    
+    // Create Toolbar Header
+    const toolbar = document.createElement('div');
+    toolbar.className = 'ios-toolbar subsequent-section-header';
+    toolbar.style.marginTop = '2.5rem'; // Premium vertical spacing between sections
+    
+    const title = document.createElement('h2');
+    title.className = 'ios-view-title';
+    const parts = section.name.split(' ');
+    if (parts.length > 1) {
+      const lastWord = parts.pop();
+      title.innerHTML = `${parts.join(' ')} <span>${lastWord}</span>`;
+    } else {
+      title.innerHTML = `${section.name}`;
+    }
+    toolbar.appendChild(title);
+    
+    // Create App Grid
+    const sectionGrid = document.createElement('div');
+    sectionGrid.className = 'app-grid';
+    sectionGrid.id = `grid-section-${section.id}`;
+    sectionGrid.style.display = isSettingsOpen ? 'none' : 'grid';
+    
+    // Append to subsequent sections container
+    if (subsequentContainer) {
+      subsequentContainer.appendChild(toolbar);
+      subsequentContainer.appendChild(sectionGrid);
+    }
+    
+    gridsMap[section.id] = sectionGrid;
+  }
+
+  // Group and render applications
   const sortedApps = [...state.apps].sort((a, b) => a.order - b.order);
   
   sortedApps.forEach(item => {
@@ -531,7 +617,10 @@ function renderAppGrid() {
       }
     }
 
-    grid.appendChild(appItem);
+    // Append to the correct grid based on sectionId (falls back to the first section id if not matching)
+    const targetSectionId = item.sectionId || 'default';
+    const targetGrid = gridsMap[targetSectionId] || mainGrid;
+    targetGrid.appendChild(appItem);
   });
 }
 
@@ -736,6 +825,10 @@ function openAdminPortal() {
   // Switch display elements
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
   document.getElementById('admin-panel-inline').style.display = 'flex';
   
   // Pre-fill profile settings
@@ -745,7 +838,7 @@ function openAdminPortal() {
   const activeUser = getActiveUser();
   const isAdmin = activeUser && activeUser.role === 'Admin';
   
-  const adminTabs = ['tab-btn-apps', 'tab-btn-permissions', 'tab-btn-users', 'tab-btn-broadcasts'];
+  const adminTabs = ['tab-btn-apps', 'tab-btn-sections', 'tab-btn-permissions', 'tab-btn-users', 'tab-btn-broadcasts'];
   adminTabs.forEach(tabId => {
     const tabBtn = document.getElementById(tabId);
     if (tabBtn) {
@@ -762,6 +855,8 @@ function openAdminPortal() {
     renderUsersList();
     renderBroadcastList();
     renderAppsPanelList();
+    renderSectionsPanelList();
+    renderAppSectionSelect();
   }
 }
 
@@ -769,6 +864,9 @@ function closeAdminPortal() {
   document.getElementById('admin-panel-inline').style.display = 'none';
   document.getElementById('main-app-grid').style.display = 'grid';
   document.getElementById('ios-toolbar').style.display = 'flex';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'block';
   
   renderAppGrid();
 }
@@ -789,6 +887,9 @@ function loadAppIntoForm(app) {
     targetIcon.classList.add('selected');
   }
   
+  const select = document.getElementById('app-section');
+  if (select) select.value = app.sectionId || 'default';
+  
   document.getElementById('btn-save-app').textContent = 'Update Application';
 }
 
@@ -802,6 +903,9 @@ function resetAppCuratorForm() {
   document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
   const firstIcon = document.querySelector('.icon-option');
   if (firstIcon) firstIcon.classList.add('selected');
+  
+  const select = document.getElementById('app-section');
+  if (select) select.value = 'default';
 }
 
 // Render dynamic Icon selector grid inside Curator Form
@@ -1032,6 +1136,7 @@ function handleAppSubmit(e) {
       state.apps[appIndex].name = name;
       state.apps[appIndex].link = link;
       state.apps[appIndex].icon = icon;
+      state.apps[appIndex].sectionId = document.getElementById('app-section').value || 'default';
       showToast('Application updated successfully');
     }
   } else {
@@ -1042,7 +1147,8 @@ function handleAppSubmit(e) {
       link: link,
       icon: icon,
       order: state.apps.length,
-      type: 'app'
+      type: 'app',
+      sectionId: document.getElementById('app-section').value || 'default'
     };
     state.apps.push(newApp);
     
@@ -1235,7 +1341,146 @@ function handlePermissionsSave() {
   closeAdminPortal();
 }
 
+// --- TAB: Dashboard Sections Management Engine ---
+
+function renderSectionsPanelList() {
+  const panel = document.getElementById('sections-panel-list');
+  if (!panel) return;
+  panel.innerHTML = '';
+  const sortedSections = [...state.sections].sort((a, b) => a.order - b.order);
+  sortedSections.forEach((section, index) => {
+    const item = document.createElement('div');
+    item.className = 'user-list-item';
+    const isDefault = section.id === 'default';
+    const isFirstSubsequent = index === 1;
+    const isLastSubsequent = index === sortedSections.length - 1;
+    
+    item.innerHTML = `
+      <div class="user-item-info">
+        <span class="user-item-name" style="font-weight: 700;">
+          ${section.name}
+          ${isDefault ? '<span style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(141,220,4,0.15); color: var(--accent-green); margin-left: 0.5rem; text-transform: uppercase;">Default</span>' : ''}
+        </span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">
+          Apps assigned: ${state.apps.filter(a => a.sectionId === section.id).length}
+        </span>
+      </div>
+      <div style="display: flex; gap: 0.35rem; align-items: center;">
+        ${!isDefault ? `
+          <button class="btn-reorder-section-up" data-id="${section.id}" title="Move Up" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; ${isFirstSubsequent ? 'opacity: 0.35; cursor: not-allowed;' : ''}" ${isFirstSubsequent ? 'disabled' : ''}>▲</button>
+          <button class="btn-reorder-section-down" data-id="${section.id}" title="Move Down" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; ${isLastSubsequent ? 'opacity: 0.35; cursor: not-allowed;' : ''}" ${isLastSubsequent ? 'disabled' : ''}>▼</button>
+        ` : ''}
+        <button class="btn-icon-edit-section" data-id="${section.id}" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">Edit</button>
+        ${!isDefault ? `<button class="btn-icon-delete-section" data-id="${section.id}" style="background: rgba(255,59,48,0.1); color: #ff3b30; border: 1px solid rgba(255,59,48,0.15); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">&times;</button>` : ''}
+      </div>
+    `;
+    
+    const btnUp = item.querySelector('.btn-reorder-section-up');
+    if (btnUp && index > 1) {
+      btnUp.addEventListener('click', () => {
+        const prevSection = sortedSections[index - 1];
+        const tempOrder = section.order;
+        section.order = prevSection.order;
+        prevSection.order = tempOrder;
+        saveDatabase();
+        renderSectionsPanelList();
+        renderAppGrid();
+        showToast('Section order updated.');
+      });
+    }
+    
+    const btnDown = item.querySelector('.btn-reorder-section-down');
+    if (btnDown && index < sortedSections.length - 1 && index > 0) {
+      btnDown.addEventListener('click', () => {
+        const nextSection = sortedSections[index + 1];
+        const tempOrder = section.order;
+        section.order = nextSection.order;
+        nextSection.order = tempOrder;
+        saveDatabase();
+        renderSectionsPanelList();
+        renderAppGrid();
+        showToast('Section order updated.');
+      });
+    }
+    
+    const btnEdit = item.querySelector('.btn-icon-edit-section');
+    if (btnEdit) {
+      btnEdit.addEventListener('click', () => {
+        document.getElementById('edit-section-id').value = section.id;
+        document.getElementById('section-name').value = section.name;
+        document.getElementById('btn-save-section').textContent = 'Update Section';
+      });
+    }
+    
+    const btnDelete = item.querySelector('.btn-icon-delete-section');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', () => {
+        if (confirm(`Are you sure you want to delete "${section.name}"? All assigned apps will move to the default section.`)) {
+          deleteSection(section.id);
+        }
+      });
+    }
+    panel.appendChild(item);
+  });
+}
+
+function deleteSection(id) {
+  if (id === 'default') return;
+  state.sections = state.sections.filter(s => s.id !== id);
+  state.apps.forEach(app => {
+    if (app.sectionId === id) app.sectionId = 'default';
+  });
+  saveDatabase();
+  renderSectionsPanelList();
+  renderAppSectionSelect();
+  renderAppGrid();
+  showToast('Section deleted.');
+}
+
+function handleSectionSubmit(e) {
+  e.preventDefault();
+  const editId = document.getElementById('edit-section-id').value;
+  const name = document.getElementById('section-name').value.trim();
+  if (!name) return;
+  if (editId) {
+    const idx = state.sections.findIndex(s => s.id === editId);
+    if (idx !== -1) {
+      state.sections[idx].name = name;
+      showToast('Section updated');
+    }
+  } else {
+    const newSection = { id: `section-${Date.now()}`, name: name, order: state.sections.length };
+    state.sections.push(newSection);
+    showToast('Section created');
+  }
+  saveDatabase();
+  resetSectionForm();
+  renderSectionsPanelList();
+  renderAppSectionSelect();
+  renderAppGrid();
+}
+
+function resetSectionForm() {
+  document.getElementById('section-curator-form').reset();
+  document.getElementById('edit-section-id').value = '';
+  document.getElementById('btn-save-section').textContent = 'Save Section';
+}
+
+function renderAppSectionSelect() {
+  const select = document.getElementById('app-section');
+  if (!select) return;
+  select.innerHTML = '';
+  const sortedSections = [...state.sections].sort((a, b) => a.order - b.order);
+  sortedSections.forEach(section => {
+    const opt = document.createElement('option');
+    opt.value = section.id;
+    opt.textContent = section.name;
+    select.appendChild(opt);
+  });
+}
+
 // --- TAB: Broadcast Curation Engine (Post and Edit Announcements!) ---
+
 
 function renderBroadcastList() {
   const list = document.getElementById('broadcasts-panel-list');
@@ -1395,12 +1640,14 @@ function bindEventHandlers() {
   document.getElementById('btn-reset-app-form').addEventListener('click', resetAppCuratorForm);
   document.getElementById('btn-reset-broadcast-form').addEventListener('click', resetBroadcastForm);
   document.getElementById('btn-reset-user-form').addEventListener('click', resetUserForm);
+  document.getElementById('btn-reset-section-form').addEventListener('click', resetSectionForm);
 
   // Forms submissions hooks
   document.getElementById('app-curator-form').addEventListener('submit', handleAppSubmit);
   document.getElementById('user-creator-form').addEventListener('submit', handleUserSubmit);
   document.getElementById('profile-settings-form').addEventListener('submit', handleProfileSubmit);
   document.getElementById('broadcast-curator-form').addEventListener('submit', handleBroadcastSubmit);
+  document.getElementById('section-curator-form').addEventListener('submit', handleSectionSubmit);
   document.getElementById('btn-save-permissions').addEventListener('click', handlePermissionsSave);
 
   // Folder modal closure elements
