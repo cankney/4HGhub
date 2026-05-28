@@ -10,29 +10,29 @@
 </head>
 <body>
 
-  <!-- App Header -->
-  <header>
-    <a href="#" class="logo-container">
-      <div class="brand-text">
-        <h1>4HG SOURCE</h1>
-        <p>Application Hub</p>
-      </div>
-    </a>
-    
-    <div class="header-controls">
-      <!-- Dark/Light Theme Toggle -->
-      <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle Light/Dark Theme">
-        <svg id="theme-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path id="theme-icon-path" stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m2.828-9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-        </svg>
-      </button>
+  <!-- Navbar Header -->
+  <nav class="navbar">
+    <div class="container navbar-inner">
+      <a href="#" class="brand">
+        <img class="brand-logo" src="https://4hgs.com/wp-content/uploads/2025/10/4HGS-Circle-Logo.pdf-2.png" alt="4HG Logo">
+        <span class="brand-title">4HG Source</span>
+      </a>
+      
+      <div class="nav-actions">
+        <!-- Dark/Light Theme Toggle -->
+        <button id="theme-toggle" class="btn-icon" type="button" aria-label="Toggle Light/Dark Theme">
+          <svg id="theme-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path id="theme-icon-path" stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m2.828-9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+        </button>
 
-      <!-- Dynamic Firebase Authentication Display Container -->
-      <div id="auth-container">
-        <!-- Renders Google Login button or User Profile card + Logout dynamically -->
+        <!-- Dynamic Firebase Authentication Display Container -->
+        <div id="auth-container">
+          <!-- Renders Google Login button or User Profile card + Logout dynamically -->
+        </div>
       </div>
     </div>
-  </header>
+  </nav>
 
   <!-- Main Dashboard Grid Layout -->
   <main class="dashboard-container">

@@ -87,104 +87,102 @@ body {
   background: var(--text-secondary);
 }
 
-/* App Header & Layout */
-header {
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  background: rgba(25, 27, 32, 0.6);
-  border-bottom: 1px solid var(--glass-border);
-  padding: 1rem 2rem;
+/* Navbar Styles (Cloned from Repair Tracker) */
+.navbar {
+  background-color: hsla(240, 10%, 4%, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 16px 0;
+  transition: var(--transition-smooth);
+}
+
+/* Make sure the navbar contents look correct when boxed/contained */
+.navbar .container {
+  width: 100%;
+  max-width: 1500px; /* Aligns with .dashboard-container width */
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.navbar-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 100;
-  position: sticky;
-  top: 0;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-body.light-mode header {
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.logo-container {
+.brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   text-decoration: none;
 }
 
-.logo-circle {
+.brand-logo {
   width: 42px;
   height: 42px;
-  background-color: var(--accent-green);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: contain;
+  filter: drop-shadow(0 0 4px rgba(141, 219, 5, 0.3));
+}
+
+.brand-title {
+  font-size: 1.35rem;
   font-weight: 800;
-  color: #000;
-  font-size: 1.1rem;
-  box-shadow: 0 0 15px var(--accent-green-glow);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.2);
-  transition: var(--transition-smooth);
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffffff 30%, var(--accent-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.brand-text h1 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--text-primary);
-  transition: color 0.3s ease;
+/* Light mode overrides inside navbar to keep it dark but correct styling */
+body.light-mode .brand-title {
+  background: linear-gradient(135deg, #ffffff 30%, var(--accent-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.brand-text p {
-  font-size: 0.75rem;
-  color: var(--accent-green);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: color 0.3s ease;
-}
-
-.header-controls {
+.nav-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 16px;
 }
 
-/* Theme Toggle Button */
-.theme-toggle-btn {
-  background: var(--bg-slate-light);
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
-  width: 40px;
-  height: 40px;
+.btn-icon {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   cursor: pointer;
+  transition: var(--transition-smooth);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition-smooth);
 }
 
-.theme-toggle-btn:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--accent-green);
+.btn-icon:hover {
+  color: var(--accent-green);
+  background-color: hsla(240, 10%, 16%, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-.theme-toggle-btn svg {
-  width: 20px;
-  height: 20px;
+.btn-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
-/* Real Authentication Profile Widget */
+/* Real Authentication Profile Widget - Customized for top navbar */
 .user-profile-widget {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--bg-slate-light);
-  border: 1px solid var(--glass-border);
+  background: hsla(240, 10%, 12%, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0.4rem 0.75rem;
   border-radius: 12px;
   transition: var(--transition-smooth);
@@ -199,7 +197,7 @@ body.light-mode header {
 .user-profile-name {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff; /* White color inside dark navbar */
 }
 
 .user-profile-role {
