@@ -467,7 +467,6 @@ body.light-mode .btn-ios:hover {
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 2rem 1.5rem;
   padding: 0.5rem 0;
-  flex: 1;
 }
 
 /* Grid App Item Icon - LARGER DIMENSIONS */
