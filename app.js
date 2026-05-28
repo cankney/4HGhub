@@ -71,13 +71,13 @@ const DEFAULT_APPS = [
 const DEFAULT_USERS = [
   { id: 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2', name: 'Cole Ankney', role: 'Admin', email: 'cole@4hgs.com' },
   { id: 'user-sales', name: 'John Smith', role: 'Sales', email: 'john@4hgs.com' },
-  { id: 'user-tech', name: 'Dave Miller', role: 'Technician', email: 'dave@4hgs.com' }
+  { id: 'user-shipping', name: 'Dave Miller', role: 'Shipping', email: 'dave@4hgs.com' }
 ];
 
 const DEFAULT_PERMISSIONS = {
   'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops'],
   'user-sales': ['orders', 'crm', 'catalog', 'folder-ops'], 
-  'user-tech': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops']
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -224,7 +224,7 @@ async function loadDatabaseFromFirestore() {
         id: auth.currentUser.uid,
         name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
         email: auth.currentUser.email.toLowerCase(),
-        role: isCole ? 'Admin' : 'Guest'
+        role: isCole ? 'Admin' : 'Shipping'
       };
       await setDoc(doc(db, "users", activeUser.id), activeUser);
 
@@ -560,7 +560,7 @@ function renderAuthHeader(user) {
   if (user) {
     // Logged In: profile card + Sign Out button
     const activeUser = getActiveUser();
-    const role = activeUser ? activeUser.role : 'Guest';
+    const role = activeUser ? activeUser.role : 'Shipping';
     
     container.innerHTML = `
       <div class="user-profile-widget">
@@ -1372,7 +1372,7 @@ function renderPermissionsMatrix() {
     
     state.users.forEach(user => {
       const isPermitted = state.permissions[user.id] && state.permissions[user.id].includes(app.id);
-      const isLockedAdmin = user.role === 'Admin'; 
+      const isLockedAdmin = user.role === 'Admin' || user.role === 'El Presidente'; 
       
       row.innerHTML += `
         <td>
@@ -1468,11 +1468,11 @@ function handleUserSubmit(e) {
     state.users.push(newUser);
     
     let initialPerms = ['catalog', 'ai-troubleshoot'];
-    if (role === 'Admin') {
+    if (role === 'Admin' || role === 'El Presidente') {
       initialPerms = state.apps.map(a => a.id);
     } else if (role === 'Sales') {
       initialPerms = ['orders', 'crm', 'catalog', 'folder-ops'];
-    } else if (role === 'Technician') {
+    } else if (role === 'Shipping') {
       initialPerms = ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops'];
     }
     state.permissions[userId] = initialPerms;
@@ -1492,7 +1492,7 @@ function loadUserIntoForm(user) {
   document.getElementById('edit-user-id').value = user.id;
   document.getElementById('new-user-name').value = user.name || '';
   document.getElementById('new-user-email').value = user.email || '';
-  document.getElementById('new-user-role').value = user.role || 'Guest';
+  document.getElementById('new-user-role').value = user.role || 'Shipping';
   document.getElementById('btn-save-user').textContent = 'Update Employee Profile';
 }
 
@@ -1509,7 +1509,7 @@ function loadProfileIntoForm() {
   if (!user || !activeUser) return;
 
   document.getElementById('profile-name').value = activeUser.name || '';
-  document.getElementById('profile-role').value = activeUser.role || 'Guest';
+  document.getElementById('profile-role').value = activeUser.role || 'Shipping';
   document.getElementById('profile-email').value = user.email || '';
   document.getElementById('profile-password').value = '';
   document.getElementById('profile-confirm-password').value = '';
@@ -1594,7 +1594,7 @@ function handlePermissionsSave() {
   const checkboxes = document.querySelectorAll('#permissions-matrix-table input[type="checkbox"]');
   
   state.users.forEach(user => {
-    if (user.role !== 'Admin') {
+    if (user.role !== 'Admin' && user.role !== 'El Presidente') {
       state.permissions[user.id] = [];
     }
   });
@@ -1603,9 +1603,9 @@ function handlePermissionsSave() {
     const userId = chk.dataset.user;
     const appId = chk.dataset.app;
     const userObj = state.users.find(u => u.id === userId);
-    const userRole = userObj ? userObj.role : 'Guest';
+    const userRole = userObj ? userObj.role : 'Shipping';
     
-    if (chk.checked && userRole !== 'Admin') {
+    if (chk.checked && userRole !== 'Admin' && userRole !== 'El Presidente') {
       state.permissions[userId].push(appId);
     }
   });

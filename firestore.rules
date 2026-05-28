@@ -107,11 +107,11 @@ service cloud.firestore {
     match /users/{userId} {
       // User can read their own profile, Admin can read/write all
       allow read: if isOwner(userId) || isAdmin();
-      // Allow self-creation on first sign-in (must be guest initially unless cole@4hgs.com)
+      // Allow self-creation on first sign-in (must be Shipping initially unless cole@4hgs.com)
       allow create: if isAuthenticated() && (
         isAdmin() || (
           isOwner(userId) && 
-          request.resource.data.role == 'Guest' &&
+          request.resource.data.role == 'Shipping' &&
           request.resource.data.email == request.auth.token.email
         )
       );
