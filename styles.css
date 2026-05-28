@@ -207,6 +207,31 @@ body.light-mode .brand-title {
   text-transform: uppercase;
 }
 
+/* Ensure buttons inside the navbar maintain dark theme legibility in light mode */
+.navbar .btn-ios {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+body.light-mode .navbar .btn-ios {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.navbar .btn-ios:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--accent-green);
+}
+
+body.light-mode .navbar .btn-ios:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--accent-green);
+}
+
 /* Master Layout Dashboard */
 .dashboard-container {
   display: grid;
