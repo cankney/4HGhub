@@ -644,6 +644,7 @@ function deleteApp(appId) {
   state.apps.splice(appIndex, 1);
   saveDatabase();
   renderAppGrid();
+  renderAppsPanelList();
   showToast('Application deleted successfully');
 }
 
@@ -680,6 +681,7 @@ function openAdminPortal() {
     renderPermissionsMatrix();
     renderUsersList();
     renderBroadcastList();
+    renderAppsPanelList();
   }
 }
 
@@ -747,6 +749,94 @@ function renderIconSelector() {
   
   const defaultSelected = document.querySelector('.icon-option');
   if (defaultSelected) defaultSelected.classList.add('selected');
+}
+
+// Render Applications List with Reorder buttons inside settings
+function renderAppsPanelList() {
+  const panel = document.getElementById('apps-panel-list');
+  if (!panel) return;
+  
+  panel.innerHTML = '';
+  
+  // Sort apps by order
+  const sortedApps = [...state.apps].sort((a, b) => a.order - b.order);
+  
+  sortedApps.forEach((app, index) => {
+    const item = document.createElement('div');
+    item.className = 'user-list-item';
+    item.innerHTML = `
+      <div class="user-item-info">
+        <span class="user-item-name" style="font-weight: 700;">
+          ${app.name} 
+          <span style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; background: ${app.type === 'folder' ? 'rgba(141,220,4,0.15)' : 'rgba(255,255,255,0.06)'}; color: ${app.type === 'folder' ? 'var(--accent-green)' : 'var(--text-secondary)'}; margin-left: 0.5rem; text-transform: uppercase;">
+            ${app.type}
+          </span>
+        </span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary); text-overflow: ellipsis; overflow: hidden; max-width: 250px; white-space: nowrap;">
+          ${app.type === 'folder' ? `Contains: ${(app.appIds || []).length} apps` : app.link}
+        </span>
+      </div>
+      <div style="display: flex; gap: 0.35rem; align-items: center;">
+        <button class="btn-reorder-up" data-id="${app.id}" title="Move Up" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; ${index === 0 ? 'opacity: 0.35; cursor: not-allowed;' : ''}">▲</button>
+        <button class="btn-reorder-down" data-id="${app.id}" title="Move Down" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; ${index === sortedApps.length - 1 ? 'opacity: 0.35; cursor: not-allowed;' : ''}">▼</button>
+        <button class="btn-icon-edit-app" data-id="${app.id}" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">Edit</button>
+        <button class="btn-icon-delete-app" data-id="${app.id}" style="background: rgba(255,59,48,0.1); color: #ff3b30; border: 1px solid rgba(255,59,48,0.15); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">&times;</button>
+      </div>
+    `;
+    
+    // Up click handler
+    const btnUp = item.querySelector('.btn-reorder-up');
+    if (btnUp && index > 0) {
+      btnUp.addEventListener('click', () => {
+        const prevApp = sortedApps[index - 1];
+        const tempOrder = app.order;
+        app.order = prevApp.order;
+        prevApp.order = tempOrder;
+        
+        saveDatabase();
+        renderAppsPanelList();
+        renderAppGrid();
+        showToast(`Moved "${app.name}" up`);
+      });
+    }
+    
+    // Down click handler
+    const btnDown = item.querySelector('.btn-reorder-down');
+    if (btnDown && index < sortedApps.length - 1) {
+      btnDown.addEventListener('click', () => {
+        const nextApp = sortedApps[index + 1];
+        const tempOrder = app.order;
+        app.order = nextApp.order;
+        nextApp.order = tempOrder;
+        
+        saveDatabase();
+        renderAppsPanelList();
+        renderAppGrid();
+        showToast(`Moved "${app.name}" down`);
+      });
+    }
+    
+    // Edit click handler
+    const btnEdit = item.querySelector('.btn-icon-edit-app');
+    if (btnEdit) {
+      btnEdit.addEventListener('click', () => {
+        loadAppIntoForm(app);
+      });
+    }
+    
+    // Delete click handler
+    const btnDelete = item.querySelector('.btn-icon-delete-app');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', () => {
+        if (confirm(`Are you sure you want to delete "${app.name}"?`)) {
+          deleteApp(app.id);
+          renderAppsPanelList();
+        }
+      });
+    }
+    
+    panel.appendChild(item);
+  });
 }
 
 // Render Users List tab inside Admin Panel
@@ -881,6 +971,7 @@ function handleAppSubmit(e) {
   resetAppCuratorForm();
   renderAppGrid();
   renderPermissionsMatrix();
+  renderAppsPanelList();
 }
 
 // User form save handler
