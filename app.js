@@ -53,13 +53,13 @@ const DEFAULT_APPS = [
 ];
 
 const DEFAULT_USERS = [
-  { id: 'user-admin', name: 'Cole Ankney', role: 'Admin', email: 'cole@4hgs.com' },
+  { id: 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2', name: 'Cole Ankney', role: 'Admin', email: 'cole@4hgs.com' },
   { id: 'user-sales', name: 'John Smith', role: 'Sales', email: 'john@4hgs.com' },
   { id: 'user-tech', name: 'Dave Miller', role: 'Technician', email: 'dave@4hgs.com' }
 ];
 
 const DEFAULT_PERMISSIONS = {
-  'user-admin': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops'],
+  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops'],
   'user-sales': ['orders', 'crm', 'catalog', 'folder-ops'], 
   'user-tech': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops']
 };
@@ -107,12 +107,35 @@ function initDatabase() {
   state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
   state.theme = localStorage.getItem('HGS_THEME');
   
-  // Migration: Update admin email to cole@4hgs.com if it's any of the old ones
-  const oldAdmin = state.users.find(u => u.id === 'user-admin' || u.email === 'coleankney@gmail.com' || u.email === 'rcankney@gmail.com');
-  if (oldAdmin && oldAdmin.email !== 'cole@4hgs.com') {
-    oldAdmin.email = 'cole@4hgs.com';
-    saveDatabase();
+  // Migration: Remove the old seed admin 'user-admin' and establish 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2' as the sole Admin
+  state.users = state.users.filter(u => u.id !== 'user-admin');
+  delete state.permissions['user-admin'];
+
+  // Check if our active Admin profile is in the list
+  const activeAdminId = 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2';
+  let activeAdmin = state.users.find(u => u.id === activeAdminId || u.email === 'cole@4hgs.com');
+  
+  if (activeAdmin) {
+    activeAdmin.id = activeAdminId;
+    activeAdmin.email = 'cole@4hgs.com';
+    activeAdmin.role = 'Admin';
+  } else {
+    activeAdmin = {
+      id: activeAdminId,
+      name: 'Cole Ankney',
+      role: 'Admin',
+      email: 'cole@4hgs.com'
+    };
+    state.users.push(activeAdmin);
   }
+
+  // Ensure they have full permissions
+  state.permissions[activeAdminId] = state.apps.map(a => a.id);
+  
+  // Clean up any remaining duplicate profiles with email cole@4hgs.com that aren't the main one
+  state.users = state.users.filter(u => u.id === activeAdminId || u.email !== 'cole@4hgs.com');
+  
+  saveDatabase();
   
   applyTheme();
 }
@@ -860,7 +883,7 @@ function renderUsersList() {
       </div>
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <button class="btn-icon-edit" data-id="${user.id}" style="background:rgba(255,255,255,0.05); color:var(--text-primary); border:1px solid var(--glass-border); padding:0.25rem 0.5rem; border-radius:4px; font-size:0.7rem; cursor:pointer;">Edit</button>
-        ${user.id !== 'user-admin' ? `<button class="btn-icon-delete" data-id="${user.id}" style="background:rgba(255,59,48,0.1); color:#ff3b30; border:1px solid rgba(255,59,48,0.15); padding:0.25rem 0.5rem; border-radius:4px; font-size:0.7rem; cursor:pointer;">&times; Delete</button>` : ''}
+        ${user.role !== 'Admin' ? `<button class="btn-icon-delete" data-id="${user.id}" style="background:rgba(255,59,48,0.1); color:#ff3b30; border:1px solid rgba(255,59,48,0.15); padding:0.25rem 0.5rem; border-radius:4px; font-size:0.7rem; cursor:pointer;">&times; Delete</button>` : ''}
       </div>
     `;
 
@@ -918,7 +941,7 @@ function renderPermissionsMatrix() {
     
     state.users.forEach(user => {
       const isPermitted = state.permissions[user.id] && state.permissions[user.id].includes(app.id);
-      const isLockedAdmin = user.id === 'user-admin'; 
+      const isLockedAdmin = user.role === 'Admin'; 
       
       row.innerHTML += `
         <td>
@@ -965,10 +988,15 @@ function handleAppSubmit(e) {
     };
     state.apps.push(newApp);
     
-    // Auto grant access to Administrator
-    if (!state.permissions['user-admin'].includes(newApp.id)) {
-      state.permissions['user-admin'].push(newApp.id);
-    }
+    // Auto grant access to all Admins
+    state.users.forEach(u => {
+      if (u.role === 'Admin') {
+        if (!state.permissions[u.id]) state.permissions[u.id] = [];
+        if (!state.permissions[u.id].includes(newApp.id)) {
+          state.permissions[u.id].push(newApp.id);
+        }
+      }
+    });
     showToast('New Application Added Successfully!');
   }
 
@@ -1127,7 +1155,7 @@ function handlePermissionsSave() {
   const checkboxes = document.querySelectorAll('#permissions-matrix-table input[type="checkbox"]');
   
   state.users.forEach(user => {
-    if (user.id !== 'user-admin') {
+    if (user.role !== 'Admin') {
       state.permissions[user.id] = [];
     }
   });
@@ -1135,8 +1163,10 @@ function handlePermissionsSave() {
   checkboxes.forEach(chk => {
     const userId = chk.dataset.user;
     const appId = chk.dataset.app;
+    const userObj = state.users.find(u => u.id === userId);
+    const userRole = userObj ? userObj.role : 'Guest';
     
-    if (chk.checked && userId !== 'user-admin') {
+    if (chk.checked && userRole !== 'Admin') {
       state.permissions[userId].push(appId);
     }
   });
@@ -1342,7 +1372,7 @@ function initFirebaseAuth() {
         const isCole = firebaseUser.email.toLowerCase().includes('cole') || (firebaseUser.displayName && firebaseUser.displayName.toLowerCase().includes('cole'));
         
         localUser = {
-          id: `user-${Date.now()}`,
+          id: firebaseUser.uid,
           name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
           email: firebaseUser.email.toLowerCase(),
           role: isCole ? 'Admin' : 'Guest'
