@@ -343,8 +343,13 @@ function renderAppGrid() {
     return;
   }
 
-  // Restore Grid CSS Display
-  grid.style.display = 'grid';
+  // Restore Grid CSS Display (only if Settings panel is NOT currently active!)
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel && adminPanel.style.display === 'flex') {
+    grid.style.display = 'none';
+  } else {
+    grid.style.display = 'grid';
+  }
 
   const sortedApps = [...state.apps].sort((a, b) => a.order - b.order);
   
