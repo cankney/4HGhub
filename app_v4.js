@@ -1563,11 +1563,8 @@ function renderPermissionsMatrix() {
       const isLockedAdmin = false; // Allow editing checkboxes for Admins and El Presidentes
       
       row.innerHTML += `
-        <td>
-          <label class="checkbox-custom">
-            <input type="checkbox" data-user="${user.id}" data-app="${app.id}" ${isPermitted ? 'checked' : ''} ${isLockedAdmin ? 'disabled' : ''}>
-            <span class="checkbox-checkmark"></span>
-          </label>
+        <td style="text-align: center;">
+          <input type="checkbox" data-user="${user.id}" data-app="${app.id}" ${isPermitted ? 'checked' : ''} ${isLockedAdmin ? 'disabled' : ''} style="width: 20px; height: 20px; cursor: pointer;">
         </td>
       `;
     });

@@ -57,15 +57,23 @@ service cloud.firestore {
     }
     
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isAuthenticated() && (
+        request.auth.uid == userId ||
+        (request.auth.token.email != null && userId == 'email_' + request.auth.token.email)
+      );
     }
     
-    // Check if the current user has the Admin role in database OR is the bootstrap email
+    // Check if the current user has the Admin/El Presidente role in database OR is the bootstrap email
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email == 'cole@4hgs.com' ||
+        (request.auth.token.email != null && request.auth.token.email == 'cole@4hgs.com') ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches("(?i).*(admin|president|boss|executive|chief).*")) ||
+        (request.auth.token.email != null &&
+         exists(path("/databases/" + database + "/documents/users/email_" + request.auth.token.email)) &&
+         get(path("/databases/" + database + "/documents/users/email_" + request.auth.token.email)).data.role != null &&
+         get(path("/databases/" + database + "/documents/users/email_" + request.auth.token.email)).data.role.matches("(?i).*(admin|president|boss|executive|chief).*"))
       );
     }
     
@@ -105,14 +113,17 @@ service cloud.firestore {
 
     // Users Profiles
     match /users/{userId} {
-      // User can read their own profile, Admin can read/write all
-      allow read: if isOwner(userId) || isAdmin();
-      // Allow self-creation on first sign-in (must be Shipping initially unless cole@4hgs.com)
+      // User can read their own profile, Admin can read/write all, or if email matches authenticated user email
+      allow read: if isOwner(userId) || isAdmin() || (isAuthenticated() && resource.data.email == request.auth.token.email);
+      // Allow self-creation on first sign-in. Let them write their actual role if it matches pre-authorized email_ role.
       allow create: if isAuthenticated() && (
         isAdmin() || (
-          isOwner(userId) && 
-          request.resource.data.role == 'Shipping' &&
-          request.resource.data.email == request.auth.token.email
+          isOwner(userId) && (
+            (request.resource.data.role == 'Shipping' && request.resource.data.email == request.auth.token.email) ||
+            (exists(path("/databases/" + database + "/documents/users/email_" + request.auth.token.email)) &&
+             request.resource.data.role == get(path("/databases/" + database + "/documents/users/email_" + request.auth.token.email)).data.role &&
+             request.resource.data.email == request.auth.token.email)
+          )
         )
       );
       // Admin can update any role, self can update only profile fields (but role must remain unchanged)
@@ -128,9 +139,14 @@ service cloud.firestore {
 
     // Access permissions matrix
     match /permissions/{userId} {
-      // User can read their own access map, Admin can do all
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isAdmin();
+      // User can read their own access map, Admin can do all, or if associated user document matches user email
+      allow read: if isOwner(userId) || isAdmin() || (
+        isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        get(/databases/$(database)/documents/users/$(userId)).data.email == request.auth.token.email
+      );
+      allow create: if isOwner(userId) || isAdmin();
+      allow update, delete: if isAdmin();
     }
   }
 }
