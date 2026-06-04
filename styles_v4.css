@@ -1239,11 +1239,11 @@ body.logged-out .dashboard-container {
   border-radius: 50%;
   cursor: pointer;
   transition: var(--transition-smooth);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  line-height: 1;
+  padding: 0 !important;
+  box-sizing: border-box;
 }
 
 .btn-icon-small:hover {

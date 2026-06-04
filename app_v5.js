@@ -2301,7 +2301,7 @@ function renderPolls() {
   // Toggle "+ Create Poll" visibility based on auth
   const btnToggle = document.getElementById('btn-toggle-create-poll');
   if (btnToggle) {
-    btnToggle.style.display = state.activeUserId ? 'block' : 'none';
+    btnToggle.style.display = state.activeUserId ? 'inline-flex' : 'none';
   }
 
   // Filter polls
