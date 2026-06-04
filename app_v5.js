@@ -2290,6 +2290,13 @@ document.addEventListener('DOMContentLoaded', () => {
   initClockUpdates();
   bindEventHandlers();
   initFirebaseAuth(); // Dynamic Firebase login observer
+
+  // Service Worker registration for PWA installability
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registered with scope:', reg.scope))
+      .catch(err => console.error('Service Worker registration failed:', err));
+  }
 });
 
 // --- Employee Polls Widget Functionality ---
