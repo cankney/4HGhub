@@ -1215,6 +1215,13 @@ body.light-mode .toast {
   .clock-widget {
     display: none; /* Hide clock widget since mobile has status time bar */
   }
+  /* Prevent iOS zoom on focus by ensuring font-size is at least 16px */
+  input, 
+  select, 
+  textarea, 
+  .form-control {
+    font-size: 16px !important;
+  }
 }
 
 /* Specific smaller screen responsiveness rules */
