@@ -86,6 +86,22 @@ const DEFAULT_BROADCASTS = [
   { id: 'b-3', title: 'Sunday Maintenance Window', body: 'CRM Database and billing portals offline Sunday 1:00 AM to 4:00 AM EST.', time: 'May 24' }
 ];
 
+const DEFAULT_POLLS = [
+  {
+    id: 'p-1',
+    question: 'Where should we host the 2026 summer company picnic?',
+    options: ['Pine Lake Park', 'Sunnyvale Gardens', 'The Beachfront'],
+    createdBy: 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2',
+    creatorName: 'Cole Ankney',
+    createdAt: new Date().toISOString(),
+    status: 'active',
+    votes: [
+      { uid: 'user-sales', name: 'John Smith', optionIndex: 0 },
+      { uid: 'user-shipping', name: 'Dave Miller', optionIndex: 1 }
+    ]
+  }
+];
+
 const DEFAULT_SECTIONS = [
   { id: 'default', name: '4HGS Apps', order: 0 }
 ];
@@ -97,6 +113,8 @@ let state = {
   permissions: {},
   broadcasts: [],
   sections: [],
+  polls: [],
+  pollsFilter: 'active',
   activeUserId: null, // Null indicates no authenticated Firebase session!
   isEditing: false,
   activeFolderId: null,
@@ -115,6 +133,7 @@ function initDatabase() {
   state.apps = DEFAULT_APPS;
   state.sections = DEFAULT_SECTIONS;
   state.broadcasts = DEFAULT_BROADCASTS;
+  state.polls = DEFAULT_POLLS;
   state.users = DEFAULT_USERS;
   state.permissions = DEFAULT_PERMISSIONS;
   
@@ -129,6 +148,7 @@ function saveDatabase() {
   localStorage.setItem('HGS_PERMISSIONS', JSON.stringify(state.permissions));
   localStorage.setItem('HGS_BROADCASTS', JSON.stringify(state.broadcasts));
   localStorage.setItem('HGS_SECTIONS', JSON.stringify(state.sections));
+  localStorage.setItem('HGS_POLLS', JSON.stringify(state.polls));
   localStorage.setItem('HGS_THEME', state.theme);
 }
 
@@ -148,12 +168,16 @@ function loadDatabaseOfflineFallback() {
   if (!localStorage.getItem('HGS_SECTIONS')) {
     localStorage.setItem('HGS_SECTIONS', JSON.stringify(DEFAULT_SECTIONS));
   }
+  if (!localStorage.getItem('HGS_POLLS')) {
+    localStorage.setItem('HGS_POLLS', JSON.stringify(DEFAULT_POLLS));
+  }
 
   state.apps = JSON.parse(localStorage.getItem('HGS_APPS'));
   state.users = JSON.parse(localStorage.getItem('HGS_USERS'));
   state.permissions = JSON.parse(localStorage.getItem('HGS_PERMISSIONS'));
   state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
   state.sections = JSON.parse(localStorage.getItem('HGS_SECTIONS')) || DEFAULT_SECTIONS;
+  state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || DEFAULT_POLLS;
   
   state.apps.forEach(app => {
     if (!app.sectionId) app.sectionId = 'default';
@@ -194,6 +218,13 @@ async function loadDatabaseFromFirestore() {
     const broadcastsList = [];
     broadcastsSnapshot.forEach(doc => {
       broadcastsList.push(doc.data());
+    });
+
+    // 4. Fetch polls
+    const pollsSnapshot = await getDocs(collection(db, "polls"));
+    const pollsList = [];
+    pollsSnapshot.forEach(doc => {
+      pollsList.push(doc.data());
     });
 
     const isCole = auth.currentUser.email && (
@@ -296,10 +327,11 @@ async function loadDatabaseFromFirestore() {
       }
     }
 
-    // Assign apps, sections, and broadcasts
+    // Assign apps, sections, broadcasts, and polls
     state.apps = appsList.length > 0 ? appsList : DEFAULT_APPS;
     state.sections = sectionsList.length > 0 ? sectionsList : DEFAULT_SECTIONS;
     state.broadcasts = broadcastsList;
+    state.polls = pollsList.length > 0 ? pollsList : DEFAULT_POLLS;
 
     // Load users and permissions depending on role
     if (isAdmin) {
@@ -489,6 +521,11 @@ async function seedFirestoreDatabase() {
       await setDoc(doc(db, "broadcasts", broadcast.id), broadcast);
     }
     
+    // 3b. Polls
+    for (const poll of DEFAULT_POLLS) {
+      await setDoc(doc(db, "polls", poll.id), poll);
+    }
+    
     // 4. Admin Profile
     const adminUser = {
       id: auth.currentUser.uid,
@@ -593,6 +630,22 @@ async function syncDeleteUserFromFirestore(userId) {
 async function syncPermissionToFirestore(userId, appIds) {
   try {
     await setDoc(doc(db, "permissions", userId), { appIds: appIds });
+  } catch (err) {
+    console.error("Sync error:", err);
+  }
+}
+
+async function syncPollToFirestore(poll) {
+  try {
+    await setDoc(doc(db, "polls", poll.id), poll);
+  } catch (err) {
+    console.error("Sync error:", err);
+  }
+}
+
+async function syncDeletePollFromFirestore(pollId) {
+  try {
+    await deleteDoc(doc(db, "polls", pollId));
   } catch (err) {
     console.error("Sync error:", err);
   }
@@ -783,6 +836,7 @@ function renderWidgets() {
     `;
     feed.appendChild(alert);
   });
+  renderPolls();
 }
 
 // Render main app grid based on permissions and folders
@@ -2173,6 +2227,42 @@ function bindEventHandlers() {
     }
   });
 
+  // Poll events
+  const btnTogglePoll = document.getElementById('btn-toggle-create-poll');
+  if (btnTogglePoll) {
+    btnTogglePoll.addEventListener('click', toggleCreatePollForm);
+  }
+  const btnCancelPoll = document.getElementById('btn-cancel-create-poll');
+  if (btnCancelPoll) {
+    btnCancelPoll.addEventListener('click', toggleCreatePollForm);
+  }
+  const btnAddOption = document.getElementById('btn-add-poll-option');
+  if (btnAddOption) {
+    btnAddOption.addEventListener('click', addPollOptionInput);
+  }
+  const formPoll = document.getElementById('poll-creation-form');
+  if (formPoll) {
+    formPoll.addEventListener('submit', handlePollSubmit);
+  }
+
+  // Poll filter tabs
+  const tabActive = document.getElementById('tab-polls-active');
+  const tabPast = document.getElementById('tab-polls-past');
+  if (tabActive && tabPast) {
+    tabActive.addEventListener('click', () => {
+      tabActive.classList.add('active');
+      tabPast.classList.remove('active');
+      state.pollsFilter = 'active';
+      renderPolls();
+    });
+    tabPast.addEventListener('click', () => {
+      tabPast.classList.add('active');
+      tabActive.classList.remove('active');
+      state.pollsFilter = 'closed';
+      renderPolls();
+    });
+  }
+
   setupDialogTabs();
 }
 
@@ -2201,3 +2291,277 @@ document.addEventListener('DOMContentLoaded', () => {
   bindEventHandlers();
   initFirebaseAuth(); // Dynamic Firebase login observer
 });
+
+// --- Employee Polls Widget Functionality ---
+
+function renderPolls() {
+  const container = document.getElementById('widget-polls-list');
+  if (!container) return;
+
+  // Toggle "+ Create Poll" visibility based on auth
+  const btnToggle = document.getElementById('btn-toggle-create-poll');
+  if (btnToggle) {
+    btnToggle.style.display = state.activeUserId ? 'block' : 'none';
+  }
+
+  // Filter polls
+  const pollsToRender = state.polls.filter(poll => {
+    if (state.pollsFilter === 'active') {
+      return poll.status === 'active';
+    } else {
+      return poll.status === 'closed';
+    }
+  });
+
+  // Sort by createdAt descending
+  pollsToRender.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  container.innerHTML = '';
+
+  if (!state.activeUserId) {
+    container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">Please log in to view and vote on polls.</div>`;
+    return;
+  }
+
+  if (pollsToRender.length === 0) {
+    container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">No ${state.pollsFilter} polls found.</div>`;
+    return;
+  }
+
+  const activeUser = getActiveUser();
+  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+  const isAdmin = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
+
+  pollsToRender.forEach(poll => {
+    const pollItem = document.createElement('article');
+    pollItem.className = 'poll-item';
+
+    // Meta details
+    const dateStr = new Date(poll.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const creatorMeta = `<div class="poll-creator-meta"><span>By ${poll.creatorName || 'Employee'}</span><span>${dateStr}</span></div>`;
+
+    // Question
+    const questionEl = `<div class="poll-question">${poll.question}</div>`;
+
+    // Check if current user already voted
+    const votesList = poll.votes || [];
+    const userVote = votesList.find(v => v.uid === state.activeUserId);
+    const hasVoted = !!userVote;
+    const isClosed = poll.status === 'closed';
+
+    let contentHtml = '';
+
+    if (isClosed || hasVoted) {
+      // Show results (percentages and voter names)
+      const totalVotes = votesList.length;
+
+      // Group votes by optionIndex
+      const voteCounts = {};
+      poll.options.forEach((_, idx) => { voteCounts[idx] = 0; });
+      votesList.forEach(v => {
+        if (voteCounts[v.optionIndex] !== undefined) {
+          voteCounts[v.optionIndex]++;
+        }
+      });
+
+      let optionsHtml = '';
+      poll.options.forEach((option, idx) => {
+        const count = voteCounts[idx];
+        const percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+        const votedForThis = userVote && userVote.optionIndex === idx;
+
+        // Find voters for this option
+        const votersForThis = votesList.filter(v => v.optionIndex === idx).map(v => v.name);
+        const votersText = votersForThis.length > 0 ? `Voters: ${votersForThis.join(', ')}` : 'No votes yet';
+
+        optionsHtml += `
+          <div class="poll-result-bar-wrapper">
+            <div class="poll-result-bar-label">
+              <span>${option}${votedForThis ? ' <span class="poll-result-user-voted">My Vote</span>' : ''}</span>
+              <span class="poll-result-count">${count} (${percent}%)</span>
+            </div>
+            <div class="poll-result-bar-track">
+              <div class="poll-result-bar-fill" style="width: ${percent}%"></div>
+            </div>
+            <div class="poll-voter-list-text">${votersText}</div>
+          </div>
+        `;
+      });
+      contentHtml = `<div class="poll-options-list">${optionsHtml}</div>`;
+    } else {
+      // Show voting buttons
+      let optionsHtml = '';
+      poll.options.forEach((option, idx) => {
+        optionsHtml += `
+          <button type="button" class="btn-poll-vote-option" data-poll-id="${poll.id}" data-option-idx="${idx}">
+            <span>${option}</span>
+            <svg style="width:14px;height:14px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        `;
+      });
+      contentHtml = `<div class="poll-options-list">${optionsHtml}</div>`;
+    }
+
+    // Admin/Creator controls
+    let footerHtml = '';
+    const isCreator = poll.createdBy === state.activeUserId;
+    if (isAdmin || isCreator) {
+      footerHtml = `
+        <div class="poll-footer-actions">
+          ${!isClosed ? `<button type="button" class="btn-poll-action btn-close-poll" data-poll-id="${poll.id}">Close Poll</button>` : ''}
+          <button type="button" class="btn-poll-action btn-poll-action-danger btn-delete-poll" data-poll-id="${poll.id}">Delete</button>
+        </div>
+      `;
+    }
+
+    pollItem.innerHTML = creatorMeta + questionEl + contentHtml + footerHtml;
+
+    // Attach vote listeners
+    pollItem.querySelectorAll('.btn-poll-vote-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pollId = btn.dataset.pollId;
+        const optionIdx = parseInt(btn.dataset.optionIdx);
+        submitVote(pollId, optionIdx);
+      });
+    });
+
+    // Attach close listener
+    const closeBtn = pollItem.querySelector('.btn-close-poll');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        closePoll(poll.id);
+      });
+    }
+
+    // Attach delete listener
+    const deleteBtn = pollItem.querySelector('.btn-delete-poll');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to delete this poll?')) {
+          deletePoll(poll.id);
+        }
+      });
+    }
+
+    container.appendChild(pollItem);
+  });
+}
+
+function toggleCreatePollForm() {
+  const form = document.getElementById('poll-creation-form');
+  if (!form) return;
+  const isHidden = form.style.display === 'none';
+  form.style.display = isHidden ? 'block' : 'none';
+  
+  if (isHidden) {
+    // Reset options inputs
+    document.getElementById('poll-question-input').value = '';
+    const container = document.getElementById('poll-options-inputs-container');
+    container.innerHTML = `
+      <input type="text" class="form-control poll-option-input" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" placeholder="Option 1" required autocomplete="off">
+      <input type="text" class="form-control poll-option-input" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" placeholder="Option 2" required autocomplete="off">
+    `;
+  }
+}
+
+function addPollOptionInput() {
+  const container = document.getElementById('poll-options-inputs-container');
+  const count = container.querySelectorAll('.poll-option-input').length;
+  if (count >= 4) {
+    showToast('Maximum of 4 options allowed.', false);
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'form-control poll-option-input';
+  input.style.padding = '0.4rem 0.6rem';
+  input.style.fontSize = '0.85rem';
+  input.placeholder = `Option ${count + 1}`;
+  input.required = true;
+  input.autocomplete = 'off';
+  container.appendChild(input);
+}
+
+async function handlePollSubmit(e) {
+  e.preventDefault();
+  const question = document.getElementById('poll-question-input').value.trim();
+  const optionInputs = document.querySelectorAll('.poll-option-input');
+  const options = Array.from(optionInputs).map(input => input.value.trim()).filter(v => v);
+
+  if (options.length < 2) {
+    showToast('A poll requires at least 2 options.', false);
+    return;
+  }
+
+  const activeUser = getActiveUser();
+  if (!activeUser) {
+    showToast('You must be logged in to create a poll.', false);
+    return;
+  }
+
+  const newPoll = {
+    id: `poll-${Date.now()}`,
+    question: question,
+    options: options,
+    createdBy: activeUser.id,
+    creatorName: activeUser.name,
+    createdAt: new Date().toISOString(),
+    status: 'active',
+    votes: []
+  };
+
+  state.polls.push(newPoll);
+  saveDatabase();
+  syncPollToFirestore(newPoll);
+  toggleCreatePollForm();
+  renderPolls();
+  showToast('Poll published successfully!');
+}
+
+async function submitVote(pollId, optionIndex) {
+  const activeUser = getActiveUser();
+  if (!activeUser) {
+    showToast('Please log in to vote.', false);
+    return;
+  }
+
+  const poll = state.polls.find(p => p.id === pollId);
+  if (!poll) return;
+
+  // Prevent double vote
+  if (poll.votes.some(v => v.uid === activeUser.id)) {
+    showToast('You have already voted on this poll.', false);
+    return;
+  }
+
+  const newVote = {
+    uid: activeUser.id,
+    name: activeUser.name,
+    optionIndex: optionIndex
+  };
+
+  poll.votes.push(newVote);
+  saveDatabase();
+  syncPollToFirestore(poll);
+  renderPolls();
+  showToast('Your vote has been counted!');
+}
+
+async function closePoll(pollId) {
+  const poll = state.polls.find(p => p.id === pollId);
+  if (!poll) return;
+
+  poll.status = 'closed';
+  saveDatabase();
+  syncPollToFirestore(poll);
+  renderPolls();
+  showToast('Poll has been closed.');
+}
+
+async function deletePoll(pollId) {
+  state.polls = state.polls.filter(p => p.id !== pollId);
+  saveDatabase();
+  syncDeletePollFromFirestore(pollId);
+  renderPolls();
+  showToast('Poll has been deleted.');
+}

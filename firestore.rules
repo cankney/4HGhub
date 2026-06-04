@@ -148,5 +148,22 @@ service cloud.firestore {
       allow create: if isOwner(userId) || isAdmin();
       allow update, delete: if isAdmin();
     }
+
+    // Polls
+    match /polls/{pollId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        resource.data.createdBy == request.auth.uid || 
+        (
+          request.resource.data.question == resource.data.question &&
+          request.resource.data.options == resource.data.options &&
+          request.resource.data.createdBy == resource.data.createdBy &&
+          request.resource.data.createdAt == resource.data.createdAt
+        )
+      );
+      allow delete: if isAuthenticated() && (isAdmin() || resource.data.createdBy == request.auth.uid);
+    }
   }
 }

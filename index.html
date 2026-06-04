@@ -60,6 +60,54 @@
         </div>
       </section>
 
+      <!-- Widget: Employee Polls -->
+      <section class="widget polls-widget" aria-labelledby="polls-widget-title">
+        <div class="polls-widget-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+          <h2 id="polls-widget-title" class="widget-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            Employee Polls
+          </h2>
+          <button id="btn-toggle-create-poll" class="btn-icon-small" type="button" aria-label="Create New Poll" style="display: none;">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Inline Creation Form (collapsed by default) -->
+        <form id="poll-creation-form" class="poll-creation-form" style="display: none; margin-top: 1rem;">
+          <div class="form-group-small" style="margin-bottom: 0.75rem;">
+            <label for="poll-question-input" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Question</label>
+            <input type="text" id="poll-question-input" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" placeholder="e.g. Favorite lunch spot?" required autocomplete="off">
+          </div>
+          <div class="form-group-small" style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Options (2 to 4)</label>
+            <div id="poll-options-inputs-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <input type="text" class="form-control poll-option-input" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" placeholder="Option 1" required autocomplete="off">
+              <input type="text" class="form-control poll-option-input" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" placeholder="Option 2" required autocomplete="off">
+            </div>
+            <button type="button" id="btn-add-poll-option" class="btn-link-small" style="background: none; border: none; color: var(--accent-green); font-size: 0.75rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem; display: block; padding: 0;">+ Add Option</button>
+          </div>
+          <div class="poll-form-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button type="button" id="btn-cancel-create-poll" class="btn-ios" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">Cancel</button>
+            <button type="submit" class="btn-ios btn-ios-accent" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">Publish</button>
+          </div>
+        </form>
+
+        <!-- Tabs filter -->
+        <div class="polls-filter-tabs" style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 0.75rem;">
+          <button id="tab-polls-active" class="poll-tab-btn active" type="button">Active</button>
+          <button id="tab-polls-past" class="poll-tab-btn" type="button">Past</button>
+        </div>
+
+        <div id="widget-polls-list" class="polls-list" style="margin-top: 0.75rem;">
+          <!-- Will be dynamically populated by JS -->
+          <div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">Please log in to view and vote on polls.</div>
+        </div>
+      </section>
+
     </aside>
 
     <!-- Center Column: Application Screen Container -->
