@@ -201,6 +201,10 @@ body.light-mode .brand-title {
   font-size: 0.85rem;
   font-weight: 700;
   color: #ffffff; /* White color inside dark navbar */
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-profile-role {
@@ -1230,21 +1234,35 @@ body.light-mode .toast {
 
 @media (max-width: 576px) {
   .brand-title {
-    font-size: 1.15rem;
+    font-size: 1.05rem;
+  }
+  .brand-logo {
+    width: 32px;
+    height: 32px;
   }
   .user-profile-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .user-profile-name {
+    max-width: 80px;
+    font-size: 0.75rem;
+  }
+  .user-profile-role {
     display: none !important;
   }
   .user-profile-widget {
-    padding: 0.25rem;
-    background: transparent;
-    border: none;
+    padding: 0.35rem 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    gap: 0.4rem;
   }
   .navbar-inner {
-    gap: 8px;
+    gap: 6px;
   }
   .nav-actions {
-    gap: 8px;
+    gap: 6px;
   }
 }
 

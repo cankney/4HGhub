@@ -795,7 +795,7 @@ function renderAuthHeader(user) {
     container.innerHTML = `
       <div class="user-profile-widget">
         <div class="user-profile-info">
-          <span class="user-profile-name">${user.email}</span>
+          <span class="user-profile-name">${activeUser ? activeUser.name : (user.displayName || user.email)}</span>
           <span class="user-profile-role">${role}</span>
         </div>
         <button id="btn-logout" class="btn-ios" type="button" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">
