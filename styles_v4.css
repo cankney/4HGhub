@@ -235,12 +235,32 @@ body.light-mode .navbar .btn-ios:hover {
   color: var(--accent-green);
 }
 
+/* Top Actions Bar (between top nav and apps container) */
+.top-actions-bar {
+  background: transparent;
+  padding: 1.5rem 0 0.5rem 0;
+  width: 100%;
+}
+
+.top-actions-inner {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+body.logged-out .top-actions-bar {
+  display: none !important;
+}
+
 /* Master Layout Dashboard */
 .dashboard-container {
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 2rem;
-  padding: 2rem;
+  padding: 0.5rem 2rem 2rem 2rem;
   flex: 1;
   max-width: 1500px;
   margin: 0 auto;
@@ -1172,6 +1192,10 @@ body.light-mode .toast {
   }
   .navbar .container {
     padding: 0 1rem;
+  }
+  .top-actions-inner {
+    padding: 0 1rem;
+    justify-content: center; /* Center on mobile for easy reach */
   }
   .ios-shell {
     order: 1; /* Apps always on top! */

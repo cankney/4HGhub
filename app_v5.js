@@ -942,15 +942,18 @@ function renderAppGrid() {
   // Restore Display Styles
   const adminPanel = document.getElementById('admin-panel-inline');
   const isSettingsOpen = adminPanel && adminPanel.style.display === 'flex';
+  const topActions = document.getElementById('top-actions-bar');
   
   if (isSettingsOpen) {
     mainGrid.style.display = 'none';
     if (subsequentContainer) subsequentContainer.style.display = 'none';
     document.getElementById('ios-toolbar').style.display = 'none';
+    if (topActions) topActions.style.display = 'none';
   } else {
     mainGrid.style.display = 'grid';
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     document.getElementById('ios-toolbar').style.display = 'flex';
+    if (topActions) topActions.style.display = 'block';
   }
 
   // Prepare and create all subsequent grids and headers in DOM
@@ -1334,6 +1337,9 @@ function openAdminPortal() {
   
   const subsequentContainer = document.getElementById('subsequent-sections-container');
   if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
   
   document.getElementById('admin-panel-inline').style.display = 'flex';
   
