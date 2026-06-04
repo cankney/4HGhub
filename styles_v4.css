@@ -1243,6 +1243,7 @@ body.logged-out .dashboard-container {
   align-items: center;
   justify-content: center;
   padding: 0;
+  line-height: 1;
 }
 
 .btn-icon-small:hover {
@@ -1259,6 +1260,7 @@ body.light-mode .btn-icon-small:hover {
 .btn-icon-small svg {
   width: 14px;
   height: 14px;
+  display: block;
 }
 
 /* Tabs Filter styling */
