@@ -629,6 +629,22 @@
                 <p>This utility is signed and distributed internally. The system auto-updater connects securely to 4HG Hub to fetch version information. In-app updating will automatically request permissions or prompt for credentials if installed inside the global Applications folder.</p>
             </div>
         </div>
+
+        <!-- Damaged App / Gatekeeper Troubleshooting -->
+        <div class="security-notice" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); margin-top: 20px;">
+            <div class="security-icon" style="background: rgba(239, 68, 68, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" x2="12" y1="8" y2="12"/>
+                    <line x1="12" x2="12.01" y1="16" y2="16"/>
+                </svg>
+            </div>
+            <div class="security-content">
+                <h4 style="color: #fca5a5;">Getting a "Damaged" App Error?</h4>
+                <p style="margin-bottom: 8px; font-size: 14px;">Since this utility is distributed internally outside the App Store, macOS Gatekeeper may flag the downloaded app as "damaged". Run this single command in your Terminal to authorize it:</p>
+                <code style="display: block; background: rgba(0, 0, 0, 0.4); padding: 8px 12px; border-radius: 8px; font-family: monospace; font-size: 13px; color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.15); overflow-x: auto; white-space: pre-wrap; word-break: break-all;">xattr -rd com.apple.quarantine "/Applications/GIF Screenshot Maker.app"</code>
+            </div>
+        </div>
     </section>
 
     <section class="changelog-section" id="changelog">
