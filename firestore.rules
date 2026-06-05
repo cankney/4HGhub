@@ -156,12 +156,7 @@ service cloud.firestore {
       allow update: if isAuthenticated() && (
         isAdmin() || 
         resource.data.createdBy == request.auth.uid || 
-        (
-          request.resource.data.question == resource.data.question &&
-          request.resource.data.options == resource.data.options &&
-          request.resource.data.createdBy == resource.data.createdBy &&
-          request.resource.data.createdAt == resource.data.createdAt
-        )
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes'])
       );
       allow delete: if isAuthenticated() && (isAdmin() || resource.data.createdBy == request.auth.uid);
     }
