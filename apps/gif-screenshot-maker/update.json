@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
-  "downloadUrl": "https://4hghub.com/apps/gif-screenshot-maker/GIF_Screenshot_Maker_1.0.zip",
-  "releaseNotes": "Bug fixes and performance enhancements."
+  "version": "1.1",
+  "downloadUrl": "https://4hghub.com/apps/gif-screenshot-maker/GIF_Screenshot_Maker_1.1.zip",
+  "releaseNotes": "1. Removed line segment exceeding arrowheads. 2. Added Redo button next to Undo."
 }
