@@ -410,6 +410,85 @@
             color: var(--text-muted);
             font-size: 14px;
         }
+
+        /* Changelog Section */
+        .changelog-section {
+            max-width: 1000px;
+            margin: 0 auto 100px;
+            padding: 0 40px;
+        }
+        
+        .changelog-section h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 32px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .changelog-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .changelog-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 24px 32px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .changelog-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 30px rgba(141, 220, 4, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .changelog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .changelog-version {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+        
+        .changelog-date {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        
+        .changelog-notes {
+            list-style: none;
+            padding-left: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .changelog-notes li {
+            font-size: 15px;
+            color: var(--text-main);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .changelog-notes li::before {
+            content: "•";
+            color: var(--accent-primary);
+            font-size: 18px;
+            position: absolute;
+            left: 0;
+            top: -2px;
+        }
     </style>
     <!-- Firebase Auth Gate -->
     <script type="module">
@@ -548,6 +627,35 @@
             <div class="security-content">
                 <h4>Internal Security Policy</h4>
                 <p>This utility is signed and distributed internally. The system auto-updater connects securely to 4HG Hub to fetch version information. In-app updating will automatically request permissions or prompt for credentials if installed inside the global Applications folder.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="changelog-section" id="changelog">
+        <h2>Version History & Changelogs</h2>
+        <div class="changelog-list">
+            <!-- Version 1.1 -->
+            <div class="changelog-card">
+                <div class="changelog-header">
+                    <span class="changelog-version">v1.1</span>
+                    <span class="changelog-date">June 5, 2026</span>
+                </div>
+                <ul class="changelog-notes">
+                    <li>Removed drawing line segment that exceeded arrowheads.</li>
+                    <li>Added a dedicated <strong>Redo</strong> button next to the Undo action.</li>
+                </ul>
+            </div>
+            <!-- Version 1.0 -->
+            <div class="changelog-card">
+                <div class="changelog-header">
+                    <span class="changelog-version">v1.0</span>
+                    <span class="changelog-date">May 26, 2026</span>
+                </div>
+                <ul class="changelog-notes">
+                    <li>Initial release of GIF Screenshot Maker for macOS.</li>
+                    <li>Supports quick capture area select, drawing arrow annotation, custom frame rates, and fast export to GIF.</li>
+                    <li>Integrated custom in-app updater for seamless OTA updates.</li>
+                </ul>
             </div>
         </div>
     </section>
