@@ -65,7 +65,8 @@ const DEFAULT_APPS = [
   { id: 'invoicing', name: 'Invoicing Portal', link: 'https://billing.4hgs.com/', icon: 'dollar-sign', order: 5, type: 'app' },
   { id: 'ai-troubleshoot', name: 'Troubleshooting AI', link: 'https://ai.4hgs.com/', icon: 'brain', order: 6, type: 'app' },
   // Folder containing Ops apps
-  { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'] }
+  { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'] },
+  { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app' }
 ];
 
 const DEFAULT_USERS = [
@@ -75,9 +76,9 @@ const DEFAULT_USERS = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops'],
-  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops'], 
-  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops']
+  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker'],
+  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker'], 
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -240,6 +241,37 @@ async function loadDatabaseFromFirestore() {
       showToast("Seeding empty database...", true);
       await seedFirestoreDatabase();
       return;
+    }
+
+    // Auto-register GIF Screenshot Maker if missing from database
+    if (isCole && appsList.length > 0 && !appsList.some(a => a.id === 'gif-screenshot-maker')) {
+      const newApp = {
+        id: 'gif-screenshot-maker',
+        name: 'GIF Screenshot Maker',
+        link: 'apps/gif-screenshot-maker/',
+        icon: 'apps/gif-screenshot-maker/app_icon.png',
+        order: appsList.length,
+        type: 'app',
+        sectionId: 'default'
+      };
+      try {
+        await setDoc(doc(db, "apps", newApp.id), newApp);
+        appsList.push(newApp);
+        showToast("Auto-registered GIF Screenshot Maker in database!", true);
+        
+        // Auto-grant permission to Cole
+        const colePermRef = doc(db, "permissions", auth.currentUser.uid);
+        const colePermSnap = await getDoc(colePermRef);
+        if (colePermSnap.exists()) {
+          const currentPerms = colePermSnap.data().appIds || [];
+          if (!currentPerms.includes('gif-screenshot-maker')) {
+            currentPerms.push('gif-screenshot-maker');
+            await setDoc(colePermRef, { appIds: currentPerms });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to auto-register GIF Screenshot Maker:", err);
+      }
     }
 
     // Try fetching the active user's document directly first to check role
@@ -508,11 +540,11 @@ function getRoleDefaultPermissions(role) {
   if (r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief')) {
     return state.apps.map(a => a.id);
   } else if (r.includes('sale')) {
-    return ['orders', 'crm', 'catalog', 'folder-ops'];
+    return ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker'];
   } else if (r.includes('ship')) {
-    return ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops'];
+    return ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker'];
   }
-  return ['catalog', 'ai-troubleshoot'];
+  return ['catalog', 'ai-troubleshoot', 'gif-screenshot-maker'];
 }
 
 async function seedFirestoreDatabase() {
@@ -785,6 +817,10 @@ function getActiveUser() {
 
 // Dynamic Icon rendering helper
 function getIconMarkup(item) {
+  if (item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/') || item.icon.includes('.') || item.icon.includes('/'))) {
+    // Custom icon path/URL - render full size
+    return `<img src="${item.icon}" class="app-custom-icon-img" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;" alt="">`;
+  }
   if (item.icon === 'favicon') {
     const directFavicon = getFaviconUrl(item.link);
     const finalCorporateFallback = `https://4hgs.com/wp-content/uploads/2025/10/4HGS-Circle-Logo.pdf-2.png`;

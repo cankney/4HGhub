@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF Screenshot Maker | 4HG Internal Hub</title>
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0915;
+            --bg-secondary: #111022;
+            --accent-primary: #6366f1;
+            --accent-secondary: #a855f7;
+            --accent-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-glow: rgba(99, 102, 241, 0.15);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.12) 0%, transparent 40%);
+            background-attachment: fixed;
+            line-height: 1.6;
+        }
+        
+        /* Navigation Bar */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 8%;
+            background: rgba(10, 9, 21, 0.6);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logo svg {
+            stroke: var(--accent-primary);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s ease;
+        }
+        
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+        
+        /* Main Hero Section */
+        .hero {
+            max-width: 1200px;
+            margin: 60px auto 100px;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        .hero-text h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 54px;
+            line-height: 1.15;
+            font-weight: 700;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+        }
+        
+        .hero-text h1 span {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero-text p {
+            font-size: 18px;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+        
+        .meta-badges {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        
+        .badge {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .badge.sparkle {
+            border-color: rgba(168, 85, 247, 0.4);
+            color: #d8b4fe;
+            background: rgba(168, 85, 247, 0.05);
+        }
+        
+        /* Action Button */
+        .cta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        
+        .btn-download {
+            background: var(--accent-gradient);
+            color: white;
+            text-decoration: none;
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px var(--glass-glow);
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-download:active {
+            transform: translateY(0);
+        }
+        
+        .download-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            padding-left: 6px;
+        }
+        
+        /* App Graphic Visual */
+        .hero-graphic {
+            position: relative;
+        }
+        
+        .app-window-mock {
+            background: #18172b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            width: 100%;
+            aspect-ratio: 4/3;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .window-header {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot.red { background: #ef4444; }
+        .dot.yellow { background: #eab308; }
+        .dot.green { background: #22c55e; }
+        
+        .window-title {
+            margin: 0 auto 0 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        .window-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, #25243d 0%, #111022 100%);
+            position: relative;
+        }
+        
+        /* CSS Simulated Animated App Capture Mock */
+        .mock-canvas {
+            width: 80%;
+            height: 70%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mock-image {
+            width: 60%;
+            opacity: 0.2;
+        }
+        
+        .mock-arrow {
+            position: absolute;
+            top: 40%;
+            left: 20%;
+            width: 60px;
+            height: 40px;
+            stroke: #ef4444;
+            stroke-width: 3;
+            fill: none;
+            stroke-dasharray: 100;
+            animation: drawArrow 2s infinite alternate ease-in-out;
+        }
+        
+        @keyframes drawArrow {
+            from { stroke-dashoffset: 100; }
+            to { stroke-dashoffset: 0; }
+        }
+        
+        .mock-text {
+            position: absolute;
+            top: 25%;
+            left: 45%;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: bold;
+            color: #ef4444;
+            font-size: 16px;
+            animation: pulseText 1.5s infinite alternate ease-in-out;
+        }
+        
+        @keyframes pulseText {
+            from { transform: scale(0.95); opacity: 0.8; }
+            to { transform: scale(1.05); opacity: 1; }
+        }
+        
+        .glow-sphere {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
+            top: -50px;
+            right: -50px;
+            z-index: -1;
+            animation: floatGlow 6s infinite alternate ease-in-out;
+        }
+        
+        @keyframes floatGlow {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(20px, 20px); }
+        }
+        
+        /* Instructions Section */
+        .instructions-section {
+            max-width: 1000px;
+            margin: 0 auto 100px;
+            padding: 0 40px;
+        }
+        
+        .instructions-section h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 32px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .instructions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .step-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 32px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .step-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.05);
+            transform: translateY(-4px);
+        }
+        
+        .step-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 40px;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
+        
+        .step-card h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .step-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* Security Notice Callout (Gatekeeper instructions) */
+        .security-notice {
+            background: rgba(168, 85, 247, 0.05);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            padding: 24px 32px;
+            border-radius: 16px;
+            margin-top: 40px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .security-icon {
+            background: rgba(168, 85, 247, 0.1);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .security-content h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #e9d5ff;
+            margin-bottom: 4px;
+        }
+        
+        .security-content p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 40px 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                <path d="M12 8v8"/>
+                <path d="M8 12h8"/>
+            </svg>
+            <span>4HG Hub</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#installation">Installation Guide</a></li>
+            <li><a href="https://4hghub.com">Back to Hub</a></li>
+        </ul>
+    </nav>
+
+    <main class="hero">
+        <div class="hero-text">
+            <div class="meta-badges">
+                <div class="badge">macOS 14.0+ Required</div>
+                <div class="badge sparkle">Internal Appcast Enabled</div>
+            </div>
+            
+            <h1>GIF Screenshot <span>Maker</span></h1>
+            <p>Annotate your screens with engaging animations (Squiggle, Pulse, Rainbow Glow, and more) and export them as animated GIFs instantly. Perfect for demonstrating bugs, features, and workflows on Slack or email.</p>
+            
+            <div class="cta-group">
+                <!-- Dynamically resolved link targeting the packaged zip -->
+                <a href="https://4hghub.com/apps/gif-screenshot-maker/GIF_Screenshot_Maker.zip" class="btn-download" id="download-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" x2="12" y1="15" y2="3"/>
+                    </svg>
+                    Download for macOS (.ZIP)
+                </a>
+                <span class="download-sub">Includes custom in-app updater for seamless updates.</span>
+            </div>
+        </div>
+        
+        <div class="hero-graphic">
+            <div class="glow-sphere"></div>
+            <div class="app-window-mock">
+                <div class="window-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <div class="window-title">GIF Screenshot Maker</div>
+                </div>
+                <div class="window-body">
+                    <div class="mock-canvas">
+                        <svg class="mock-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <rect width="18" height="18" x="3" y="3" rx="2"/>
+                            <circle cx="9" cy="9" r="2"/>
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                        </svg>
+                        
+                        <!-- Simulated drawing arrow -->
+                        <svg class="mock-arrow" viewBox="0 0 60 40">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />
+                                </marker>
+                            </defs>
+                            <path d="M10 30 C 25 10, 40 10, 50 20" marker-end="url(#arrowhead)" />
+                        </svg>
+                        
+                        <!-- Simulated animated text -->
+                        <div class="mock-text">Click!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section class="instructions-section" id="installation">
+        <h2>How to Install & Open</h2>
+        
+        <div class="instructions-grid">
+            <div class="step-card">
+                <div class="step-num">01</div>
+                <h3>Download</h3>
+                <p>Click the download button above to retrieve the `GIF_Screenshot_Maker.zip` file containing the application bundle.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-num">02</div>
+                <h3>Extract & Move</h3>
+                <p>Double-click the downloaded ZIP to extract the app. Drag the `GIF Screenshot Maker` application into your `/Applications` directory.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-num">03</div>
+                <h3>First Relaunch</h3>
+                <p>Because the app is built internally, macOS will block it on double-click. **Right-click** on the app in Finder and select **Open**, then click **Open Anyway** in the prompt.</p>
+            </div>
+        </div>
+        
+        <div class="security-notice">
+            <div class="security-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d8b4fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+            </div>
+            <div class="security-content">
+                <h4>Internal Security Policy</h4>
+                <p>This utility is signed and distributed internally. The system auto-updater connects securely to 4HG Hub to fetch version information. In-app updating will automatically request permissions or prompt for credentials if installed inside the global Applications folder.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 4HG Technology Group. For internal use only.</p>
+    </footer>
+
+    <script>
+        // Dynamically fetch and display the latest version from update.json if hosted in same path
+        fetch('update.json')
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error();
+            })
+            .then(data => {
+                const subText = document.querySelector('.download-sub');
+                if (subText && data.version) {
+                    subText.innerHTML = `Latest Version: v${data.version} | Includes custom in-app updater for seamless updates.`;
+                }
+                const dlLink = document.getElementById('download-link');
+                if (dlLink && data.downloadUrl) {
+                    dlLink.setAttribute('href', data.downloadUrl);
+                }
+            })
+            .catch(() => {
+                // Keep default hardcoded fallbacks
+            });
+    </script>
+</body>
+</html>
