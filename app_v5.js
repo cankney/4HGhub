@@ -1,7 +1,7 @@
 // 4HGS Application Hub - Core Logic & State Management
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, query, where, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -121,6 +121,8 @@ let state = {
   theme: 'dark' 
 };
 
+let pollsUnsubscribe = null;
+
 // Database Persistence Helpers
 function initDatabase() {
   if (!localStorage.getItem('HGS_THEME')) {
@@ -218,13 +220,6 @@ async function loadDatabaseFromFirestore() {
     const broadcastsList = [];
     broadcastsSnapshot.forEach(doc => {
       broadcastsList.push(doc.data());
-    });
-
-    // 4. Fetch polls
-    const pollsSnapshot = await getDocs(collection(db, "polls"));
-    const pollsList = [];
-    pollsSnapshot.forEach(doc => {
-      pollsList.push(doc.data());
     });
 
     const isCole = auth.currentUser.email && (
@@ -331,7 +326,6 @@ async function loadDatabaseFromFirestore() {
     state.apps = appsList.length > 0 ? appsList : DEFAULT_APPS;
     state.sections = sectionsList.length > 0 ? sectionsList : DEFAULT_SECTIONS;
     state.broadcasts = broadcastsList;
-    state.polls = pollsList.length > 0 ? pollsList : DEFAULT_POLLS;
 
     // Load users and permissions depending on role
     if (isAdmin) {
@@ -380,6 +374,9 @@ async function loadDatabaseFromFirestore() {
     state.apps.forEach(app => {
       if (!app.sectionId) app.sectionId = 'default';
     });
+ 
+    // Start real-time polls subscription
+    subscribeToPolls();
 
     renderWidgets();
     renderAuthHeader(auth.currentUser);
@@ -2279,6 +2276,10 @@ function initFirebaseAuth() {
       await loadDatabaseFromFirestore();
     } else {
       // Logged Out State
+      if (pollsUnsubscribe) {
+        pollsUnsubscribe();
+        pollsUnsubscribe = null;
+      }
       state.activeUserId = null;
       saveDatabase();
       
@@ -2537,27 +2538,41 @@ async function submitVote(pollId, optionIndex) {
     showToast('Please log in to vote.', false);
     return;
   }
-
+ 
   const poll = state.polls.find(p => p.id === pollId);
   if (!poll) return;
-
+ 
   // Prevent double vote
   if (poll.votes.some(v => v.uid === activeUser.id)) {
     showToast('You have already voted on this poll.', false);
     return;
   }
-
+ 
   const newVote = {
     uid: activeUser.id,
     name: activeUser.name,
     optionIndex: optionIndex
   };
-
+ 
+  // Optimistically update local state and UI for instant response
   poll.votes.push(newVote);
   saveDatabase();
-  syncPollToFirestore(poll);
   renderPolls();
-  showToast('Your vote has been counted!');
+ 
+  // Atomically append vote to document in database
+  try {
+    await updateDoc(doc(db, "polls", pollId), {
+      votes: arrayUnion(newVote)
+    });
+    showToast('Your vote has been counted!');
+  } catch (err) {
+    console.error("Failed to submit vote atomically:", err);
+    showToast('Failed to lock in your vote. Please try again.', false);
+    // Rollback local state if write fails
+    poll.votes = poll.votes.filter(v => v.uid !== activeUser.id);
+    saveDatabase();
+    renderPolls();
+  }
 }
 
 async function closePoll(pollId) {
@@ -2577,4 +2592,28 @@ async function deletePoll(pollId) {
   syncDeletePollFromFirestore(pollId);
   renderPolls();
   showToast('Poll has been deleted.');
+}
+ 
+function subscribeToPolls() {
+  if (pollsUnsubscribe) {
+    pollsUnsubscribe();
+    pollsUnsubscribe = null;
+  }
+ 
+  try {
+    const pollsCollection = collection(db, "polls");
+    pollsUnsubscribe = onSnapshot(pollsCollection, (snapshot) => {
+      const pollsList = [];
+      snapshot.forEach(doc => {
+        pollsList.push(doc.data());
+      });
+      state.polls = pollsList.length > 0 ? pollsList : DEFAULT_POLLS;
+      saveDatabase();
+      renderPolls();
+    }, (error) => {
+      console.error("Polls real-time subscription error:", error);
+    });
+  } catch (err) {
+    console.error("Failed to start polls subscription:", err);
+  }
 }
