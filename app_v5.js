@@ -115,6 +115,7 @@ let state = {
   sections: [],
   polls: [],
   pollsFilter: 'active',
+  suggestions: [],
   activeUserId: null, // Null indicates no authenticated Firebase session!
   isEditing: false,
   activeFolderId: null,
@@ -122,6 +123,7 @@ let state = {
 };
 
 let pollsUnsubscribe = null;
+let suggestionsUnsubscribe = null;
 
 // Database Persistence Helpers
 function initDatabase() {
@@ -136,6 +138,7 @@ function initDatabase() {
   state.sections = DEFAULT_SECTIONS;
   state.broadcasts = DEFAULT_BROADCASTS;
   state.polls = DEFAULT_POLLS;
+  state.suggestions = [];
   state.users = DEFAULT_USERS;
   state.permissions = DEFAULT_PERMISSIONS;
   
@@ -151,6 +154,7 @@ function saveDatabase() {
   localStorage.setItem('HGS_BROADCASTS', JSON.stringify(state.broadcasts));
   localStorage.setItem('HGS_SECTIONS', JSON.stringify(state.sections));
   localStorage.setItem('HGS_POLLS', JSON.stringify(state.polls));
+  localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify(state.suggestions));
   localStorage.setItem('HGS_THEME', state.theme);
 }
 
@@ -173,6 +177,9 @@ function loadDatabaseOfflineFallback() {
   if (!localStorage.getItem('HGS_POLLS')) {
     localStorage.setItem('HGS_POLLS', JSON.stringify(DEFAULT_POLLS));
   }
+  if (!localStorage.getItem('HGS_SUGGESTIONS')) {
+    localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify([]));
+  }
 
   state.apps = JSON.parse(localStorage.getItem('HGS_APPS'));
   state.users = JSON.parse(localStorage.getItem('HGS_USERS'));
@@ -180,6 +187,7 @@ function loadDatabaseOfflineFallback() {
   state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
   state.sections = JSON.parse(localStorage.getItem('HGS_SECTIONS')) || DEFAULT_SECTIONS;
   state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || DEFAULT_POLLS;
+  state.suggestions = JSON.parse(localStorage.getItem('HGS_SUGGESTIONS')) || [];
   
   state.apps.forEach(app => {
     if (!app.sectionId) app.sectionId = 'default';
@@ -377,6 +385,17 @@ async function loadDatabaseFromFirestore() {
  
     // Start real-time polls subscription
     subscribeToPolls();
+
+    // Start real-time suggestions subscription if admin
+    if (isAdmin) {
+      subscribeToSuggestions();
+    } else {
+      if (suggestionsUnsubscribe) {
+        suggestionsUnsubscribe();
+        suggestionsUnsubscribe = null;
+      }
+      state.suggestions = [];
+    }
 
     renderWidgets();
     renderAuthHeader(auth.currentUser);
@@ -834,6 +853,7 @@ function renderWidgets() {
     feed.appendChild(alert);
   });
   renderPolls();
+  renderSuggestionBox();
 }
 
 // Render main app grid based on permissions and folders
@@ -1349,7 +1369,7 @@ function openAdminPortal() {
   const isPrivileged = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
   const isAdmin = activeUser && isPrivileged;
   
-  const adminTabs = ['tab-btn-apps', 'tab-btn-sections', 'tab-btn-permissions', 'tab-btn-users', 'tab-btn-broadcasts'];
+  const adminTabs = ['tab-btn-apps', 'tab-btn-sections', 'tab-btn-permissions', 'tab-btn-users', 'tab-btn-broadcasts', 'tab-btn-suggestions'];
   adminTabs.forEach(tabId => {
     const tabBtn = document.getElementById(tabId);
     if (tabBtn) {
@@ -1368,6 +1388,7 @@ function openAdminPortal() {
     renderAppsPanelList();
     renderSectionsPanelList();
     renderAppSectionSelect();
+    renderSuggestionsPanelList();
   }
 }
 
@@ -2280,10 +2301,16 @@ function initFirebaseAuth() {
         pollsUnsubscribe();
         pollsUnsubscribe = null;
       }
+      if (suggestionsUnsubscribe) {
+        suggestionsUnsubscribe();
+        suggestionsUnsubscribe = null;
+      }
       state.activeUserId = null;
+      state.suggestions = [];
       saveDatabase();
       
       renderAuthHeader(null);
+      renderWidgets();
       renderAppGrid();
       closeAdminPortal(); // Exit admin panel if logged out
     }
@@ -2616,4 +2643,164 @@ function subscribeToPolls() {
   } catch (err) {
     console.error("Failed to start polls subscription:", err);
   }
+}
+
+// --- Suggestion Box Widget & Inbox Functionality ---
+
+function renderSuggestionBox() {
+  const container = document.getElementById('widget-suggestion-container');
+  if (!container) return;
+
+  if (!state.activeUserId) {
+    container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">Please log in to submit suggestions.</div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <form id="suggestion-form" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+      <div class="form-group-small" style="margin-bottom: 0;">
+        <textarea id="suggestion-input" class="form-control" style="resize: none; min-height: 80px; font-size: 0.85rem; padding: 0.5rem 0.6rem; width: 100%;" placeholder="Share your feedback..." required autocomplete="off"></textarea>
+      </div>
+      <button type="submit" class="btn-ios btn-ios-accent" style="width: 100%; justify-content: center; padding: 0.4rem 0.6rem; font-size: 0.8rem; font-weight: 700;">Submit Suggestion</button>
+    </form>
+  `;
+
+  document.getElementById('suggestion-form').addEventListener('submit', handleSuggestionSubmit);
+}
+
+async function handleSuggestionSubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById('suggestion-input');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  const activeUser = getActiveUser();
+  if (!activeUser) {
+    showToast('You must be logged in to submit a suggestion.', false);
+    return;
+  }
+
+  const suggestionId = 'sug-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  const suggestion = {
+    id: suggestionId,
+    text: text,
+    userId: activeUser.id,
+    userName: activeUser.name,
+    userEmail: activeUser.email,
+    createdAt: new Date().toISOString()
+  };
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+  }
+
+  try {
+    await setDoc(doc(db, "suggestions", suggestionId), suggestion);
+    showToast('Thank you for your suggestion!');
+    input.value = '';
+  } catch (error) {
+    console.error('Failed to submit suggestion:', error);
+    showToast('Failed to submit suggestion. Please try again.', false);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Suggestion';
+    }
+  }
+}
+
+function subscribeToSuggestions() {
+  if (suggestionsUnsubscribe) {
+    suggestionsUnsubscribe();
+    suggestionsUnsubscribe = null;
+  }
+
+  try {
+    const suggestionsCollection = collection(db, "suggestions");
+    suggestionsUnsubscribe = onSnapshot(suggestionsCollection, (snapshot) => {
+      const suggestionsList = [];
+      snapshot.forEach(doc => {
+        suggestionsList.push(doc.data());
+      });
+      state.suggestions = suggestionsList;
+      saveDatabase();
+      renderSuggestionsPanelList();
+    }, (error) => {
+      console.error("Suggestions real-time subscription error:", error);
+    });
+  } catch (err) {
+    console.error("Failed to start suggestions subscription:", err);
+  }
+}
+
+function renderSuggestionsPanelList() {
+  const container = document.getElementById('suggestions-panel-list');
+  if (!container) return;
+
+  const sortedSuggestions = [...state.suggestions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  container.innerHTML = '';
+
+  if (sortedSuggestions.length === 0) {
+    container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1.5rem 0;">No suggestions found.</div>`;
+    return;
+  }
+
+  sortedSuggestions.forEach(suggestion => {
+    const dateStr = new Date(suggestion.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const item = document.createElement('div');
+    item.className = 'user-list-item suggestion-item';
+    item.style.flexDirection = 'column';
+    item.style.alignItems = 'flex-start';
+    item.style.gap = '0.5rem';
+    item.style.padding = '0.75rem';
+
+    item.innerHTML = `
+      <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+        <div class="user-item-info">
+          <span class="user-item-name">${suggestion.userName || 'Anonymous'}</span>
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">${suggestion.userEmail || ''}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 0.7rem; color: var(--text-muted);">${dateStr}</span>
+          <button class="btn-icon-delete btn-delete-suggestion" data-id="${suggestion.id}" aria-label="Delete Suggestion" style="font-size: 1.25rem; padding: 0 0.5rem; background: transparent; border: none; color: #ff3b30; cursor: pointer;">&times;</button>
+        </div>
+      </div>
+      <div style="font-size: 0.85rem; color: var(--text-primary); line-height: 1.4; width: 100%; word-break: break-word; background: rgba(0,0,0,0.15); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--glass-border); white-space: pre-wrap;">${escapeHTML(suggestion.text)}</div>
+    `;
+
+    item.querySelector('.btn-delete-suggestion').addEventListener('click', () => {
+      if (confirm('Are you sure you want to delete this suggestion?')) {
+        deleteSuggestion(suggestion.id);
+      }
+    });
+
+    container.appendChild(item);
+  });
+}
+
+async function deleteSuggestion(id) {
+  state.suggestions = state.suggestions.filter(s => s.id !== id);
+  saveDatabase();
+  try {
+    await deleteDoc(doc(db, "suggestions", id));
+    showToast('Suggestion deleted successfully.');
+    renderSuggestionsPanelList();
+  } catch (error) {
+    console.error('Failed to delete suggestion:', error);
+    showToast('Failed to delete suggestion.', false);
+  }
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

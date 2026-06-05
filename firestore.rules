@@ -165,5 +165,12 @@ service cloud.firestore {
       );
       allow delete: if isAuthenticated() && (isAdmin() || resource.data.createdBy == request.auth.uid);
     }
+
+    // Suggestions
+    match /suggestions/{suggestionId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
   }
 }

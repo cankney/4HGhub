@@ -135,6 +135,19 @@
         </div>
       </section>
 
+      <!-- Widget: Suggestion Box -->
+      <section class="widget suggestion-widget" aria-labelledby="suggestion-widget-title">
+        <h2 id="suggestion-widget-title" class="widget-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5a2 2 0 012-2h12a2 2 0 012 2zM9 11h6"></path>
+          </svg>
+          Suggestion Box
+        </h2>
+        <div id="widget-suggestion-container">
+          <!-- Will be dynamically populated by JS -->
+        </div>
+      </section>
+
     </aside>
 
     <!-- Center Column: Application Screen Container -->
@@ -173,6 +186,7 @@
             <button class="dialog-tab-btn" data-tab="tab-permissions" id="tab-btn-permissions" type="button">User Access Matrix</button>
             <button class="dialog-tab-btn" data-tab="tab-users" id="tab-btn-users" type="button">Users</button>
             <button class="dialog-tab-btn" data-tab="tab-broadcasts" id="tab-btn-broadcasts" type="button">Broadcast Manager</button>
+            <button class="dialog-tab-btn" data-tab="tab-suggestions" id="tab-btn-suggestions" type="button" style="display: none;">Suggestions Inbox</button>
           </div>
 
           <!-- TAB: My Account Profile Settings -->
@@ -350,6 +364,16 @@
                 <button type="submit" class="btn-ios btn-ios-accent" id="btn-save-broadcast">Publish Broadcast</button>
               </div>
             </form>
+          </div>
+
+          <!-- TAB: Suggestions Inbox -->
+          <div class="dialog-tab-content" id="tab-suggestions">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Suggestions submitted by employees:
+            </p>
+            <div class="user-list" id="suggestions-panel-list" style="max-height: 400px; overflow-y: auto;">
+              <!-- Will be dynamically populated by JS -->
+            </div>
           </div>
 
         </div>

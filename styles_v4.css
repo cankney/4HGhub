@@ -1619,3 +1619,17 @@ body.light-mode .btn-poll-action:hover {
   color: var(--accent-green-hover) !important;
   text-decoration: underline;
 }
+
+/* Suggestion Box & Inbox Custom Styling */
+.suggestion-item {
+  transition: var(--transition-smooth);
+}
+
+.suggestion-item:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+body.light-mode .suggestion-item:hover {
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
