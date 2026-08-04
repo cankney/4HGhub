@@ -5,8 +5,7 @@ const ASSETS = [
   './styles_v4.css',
   './app_v5.js',
   './manifest.json',
-  'https://4hgs.com/wp-content/uploads/2025/09/image-37.png',
-  'https://4hgs.com/wp-content/uploads/2025/10/4HGS-Circle-Logo.pdf-2.png'
+  './assets/4hgs_logo.svg'
 ];
 
 self.addEventListener('install', (e) => {

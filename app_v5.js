@@ -57,13 +57,13 @@ const SVG_ICONS = {
 
 // Seed Data definition
 const DEFAULT_APPS = [
-  { id: 'inventory', name: 'Inventory Manager', link: 'https://inventory.4hgs.com/', icon: 'box', order: 0, type: 'app' },
-  { id: 'repairs', name: 'Repairs Dispatch', link: 'https://repairs.4hgs.com/', icon: 'wrench', order: 1, type: 'app' },
-  { id: 'orders', name: 'Order Tracker', link: 'https://orders.4hgs.com/', icon: 'truck', order: 2, type: 'app' },
-  { id: 'crm', name: 'CRM Database', link: 'https://crm.4hgs.com/', icon: 'users', order: 3, type: 'app' },
-  { id: 'catalog', name: 'Catalog Search', link: 'https://catalog.4hgs.com/', icon: 'search-book', order: 4, type: 'app' },
-  { id: 'invoicing', name: 'Invoicing Portal', link: 'https://billing.4hgs.com/', icon: 'dollar-sign', order: 5, type: 'app' },
-  { id: 'ai-troubleshoot', name: 'Troubleshooting AI', link: 'https://ai.4hgs.com/', icon: 'brain', order: 6, type: 'app' },
+  { id: 'inventory', name: 'Inventory Manager', link: 'https://inventory.4hgsource.com/', icon: 'box', order: 0, type: 'app' },
+  { id: 'repairs', name: 'Repairs Dispatch', link: 'https://repairs.4hgsource.com/', icon: 'wrench', order: 1, type: 'app' },
+  { id: 'orders', name: 'Order Tracker', link: 'https://orders.4hgsource.com/', icon: 'truck', order: 2, type: 'app' },
+  { id: 'crm', name: 'CRM Database', link: 'https://crm.4hgsource.com/', icon: 'users', order: 3, type: 'app' },
+  { id: 'catalog', name: 'Catalog Search', link: 'https://catalog.4hgsource.com/', icon: 'search-book', order: 4, type: 'app' },
+  { id: 'invoicing', name: 'Invoicing Portal', link: 'https://billing.4hgsource.com/', icon: 'dollar-sign', order: 5, type: 'app' },
+  { id: 'ai-troubleshoot', name: 'Troubleshooting AI', link: 'https://ai.4hgsource.com/', icon: 'brain', order: 6, type: 'app' },
   // Folder containing Ops apps
   { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'] },
   { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app' }
@@ -787,19 +787,17 @@ function getFaviconUrl(url) {
   }
   
   if (!domain) {
-    return 'https://4hgs.com/wp-content/uploads/2025/10/4HGS-Circle-Logo.pdf-2.png';
+    return 'assets/4hgs_logo.svg';
   }
   
   const lowerDomain = domain.toLowerCase();
   // Brand Intelligence: For any corporate domain, intranet subdomain, or sharepoint portal,
   // directly serve the gorgeous official 4HG Source circle logo instead of generic fallback globes.
   if (lowerDomain.endsWith('4hgs.com') || lowerDomain.endsWith('4hghub.com') || lowerDomain.includes('4hgsource')) {
-    return 'https://4hgs.com/wp-content/uploads/2025/10/4HGS-Circle-Logo.pdf-2.png';
+    return 'assets/4hgs_logo.svg';
   }
   
   // Try loading the favicon DIRECTLY from the target site first!
-  // This is highly robust and crucial for intranet/private/local network sites 
-  // where external crawlers (Google/DuckDuckGo) cannot reach.
   return `${protocol}//${domain}/favicon.ico`;
 }
 
@@ -818,16 +816,21 @@ function getActiveUser() {
 // Dynamic Icon rendering helper
 function getIconMarkup(item) {
   if (item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/') || item.icon.includes('.') || item.icon.includes('/'))) {
-    // Custom icon path/URL - render full size
-    return `<img src="${item.icon}" class="app-custom-icon-img" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;" alt="">`;
+    // Custom icon path/URL - render full size with fallback if broken
+    const fallbackSvg = SVG_ICONS[item.fallbackIcon] || SVG_ICONS.box;
+    return `
+      <img src="${item.icon}" class="app-custom-icon-img" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;" alt="" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+      <div class="app-icon-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; position:absolute; top:0; left:0;">${fallbackSvg}</div>
+    `.trim();
   }
   if (item.icon === 'favicon') {
     const directFavicon = getFaviconUrl(item.link);
-    const finalCorporateFallback = `https://4hgs.com/wp-content/uploads/2025/10/4HGS-Circle-Logo.pdf-2.png`;
+    const fallbackSvg = SVG_ICONS.favicon || SVG_ICONS.box;
     
-    // Direct network load + immediate high-res corporate fallback.
-    // Bypasses public crawlers (Google s2) completely to eliminate default "weird globe" images.
-    return `<img src="${directFavicon}" class="app-favicon-img" alt="" onerror="this.onerror=null; this.src='${finalCorporateFallback}';">`;
+    return `
+      <img src="${directFavicon}" class="app-favicon-img" alt="" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+      <div class="app-icon-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; position:absolute; top:0; left:0;">${fallbackSvg}</div>
+    `.trim();
   }
   return SVG_ICONS[item.icon] || SVG_ICONS.box;
 }
