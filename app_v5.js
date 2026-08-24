@@ -3633,10 +3633,13 @@ function renderChallenges() {
         const existingVal = myGuess ? myGuess.value : '';
         bodyHtml = `
           <form class="challenge-guess-box" id="form-guess-${challenge.id}">
-            <div class="challenge-input-row">
+            <div class="challenge-input-group">
               <input type="number" step="${stepVal}" name="guessVal" value="${existingVal}" class="challenge-input" placeholder="${placeholderText}" required autocomplete="off">
-              <button type="submit" class="btn-lock-guess">${myGuess ? 'Update Guess' : 'Lock In Guess'}</button>
             </div>
+            <button type="submit" class="btn-lock-guess">
+              <svg style="width:13px;height:13px;margin-right:6px;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path></svg>
+              ${myGuess ? 'Update My Guess' : 'Lock In My Guess'}
+            </button>
           </form>
         `;
       }
