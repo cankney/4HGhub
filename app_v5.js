@@ -3074,16 +3074,6 @@ function bindEventHandlers() {
     });
   }
 
-  // Sidebar Useful Links triggers
-  const btnSidebarBenefits = document.getElementById('btn-sidebar-benefits');
-  if (btnSidebarBenefits) {
-    btnSidebarBenefits.addEventListener('click', () => openBenefitsPage());
-  }
-  const btnSidebarDocs = document.getElementById('btn-sidebar-docs');
-  if (btnSidebarDocs) {
-    btnSidebarDocs.addEventListener('click', () => openBenefitsDocsPage());
-  }
-
   setupDialogTabs();
 }
 
