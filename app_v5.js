@@ -57,16 +57,19 @@ const SVG_ICONS = {
 
 // Seed Data definition
 const DEFAULT_APPS = [
-  { id: 'inventory', name: 'Inventory Manager', link: 'https://inventory.4hgsource.com/', icon: 'box', order: 0, type: 'app' },
-  { id: 'repairs', name: 'Repairs Dispatch', link: 'https://repairs.4hgsource.com/', icon: 'wrench', order: 1, type: 'app' },
-  { id: 'orders', name: 'Order Tracker', link: 'https://orders.4hgsource.com/', icon: 'truck', order: 2, type: 'app' },
-  { id: 'crm', name: 'CRM Database', link: 'https://crm.4hgsource.com/', icon: 'users', order: 3, type: 'app' },
-  { id: 'catalog', name: 'Catalog Search', link: 'https://catalog.4hgsource.com/', icon: 'search-book', order: 4, type: 'app' },
-  { id: 'invoicing', name: 'Invoicing Portal', link: 'https://billing.4hgsource.com/', icon: 'dollar-sign', order: 5, type: 'app' },
-  { id: 'ai-troubleshoot', name: 'Troubleshooting AI', link: 'https://ai.4hgsource.com/', icon: 'brain', order: 6, type: 'app' },
+  { id: 'inventory', name: 'Inventory Manager', link: 'https://inventory.4hgsource.com/', icon: 'box', order: 0, type: 'app', sectionId: 'default' },
+  { id: 'repairs', name: 'Repairs Dispatch', link: 'https://repairs.4hgsource.com/', icon: 'wrench', order: 1, type: 'app', sectionId: 'default' },
+  { id: 'orders', name: 'Order Tracker', link: 'https://orders.4hgsource.com/', icon: 'truck', order: 2, type: 'app', sectionId: 'default' },
+  { id: 'crm', name: 'CRM Database', link: 'https://crm.4hgsource.com/', icon: 'users', order: 3, type: 'app', sectionId: 'default' },
+  { id: 'catalog', name: 'Catalog Search', link: 'https://catalog.4hgsource.com/', icon: 'search-book', order: 4, type: 'app', sectionId: 'default' },
+  { id: 'invoicing', name: 'Invoicing Portal', link: 'https://billing.4hgsource.com/', icon: 'dollar-sign', order: 5, type: 'app', sectionId: 'default' },
+  { id: 'ai-troubleshoot', name: 'Troubleshooting AI', link: 'https://ai.4hgsource.com/', icon: 'brain', order: 6, type: 'app', sectionId: 'default' },
   // Folder containing Ops apps
-  { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'] },
-  { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app' }
+  { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'], sectionId: 'default' },
+  { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app', sectionId: 'default' },
+  // Useful Links Section Apps (Visible to All Users)
+  { id: 'health-benefits', name: 'Health Benefits', icon: 'shield', order: 0, type: 'app', sectionId: 'useful-links', allUsers: true },
+  { id: 'benefits-docs', name: 'Benefits Documents', icon: 'file-text', order: 1, type: 'app', sectionId: 'useful-links', allUsers: true }
 ];
 
 const DEFAULT_USERS = [
@@ -76,9 +79,9 @@ const DEFAULT_USERS = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker'],
-  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker'], 
-  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker']
+  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs'],
+  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs'], 
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -104,7 +107,8 @@ const DEFAULT_POLLS = [
 ];
 
 const DEFAULT_SECTIONS = [
-  { id: 'default', name: '4HGS Apps', order: 0 }
+  { id: 'default', name: '4HGS Apps', order: 0 },
+  { id: 'useful-links', name: 'Useful Links', order: 1 }
 ];
 
 // Active State
@@ -143,9 +147,38 @@ function initDatabase() {
   state.users = DEFAULT_USERS;
   state.permissions = DEFAULT_PERMISSIONS;
   
+  ensureDefaultSectionsAndApps();
   state.apps.forEach(app => {
     if (!app.sectionId) app.sectionId = 'default';
   });
+}
+
+function ensureDefaultSectionsAndApps() {
+  if (!state.sections.some(s => s.id === 'useful-links')) {
+    state.sections.push({ id: 'useful-links', name: 'Useful Links', order: 1 });
+  }
+  if (!state.apps.some(a => a.id === 'health-benefits')) {
+    state.apps.push({
+      id: 'health-benefits',
+      name: 'Health Benefits',
+      icon: 'shield',
+      order: 0,
+      type: 'app',
+      sectionId: 'useful-links',
+      allUsers: true
+    });
+  }
+  if (!state.apps.some(a => a.id === 'benefits-docs')) {
+    state.apps.push({
+      id: 'benefits-docs',
+      name: 'Benefits Documents',
+      icon: 'file-text',
+      order: 1,
+      type: 'app',
+      sectionId: 'useful-links',
+      allUsers: true
+    });
+  }
 }
 
 function saveDatabase() {
@@ -190,6 +223,7 @@ function loadDatabaseOfflineFallback() {
   state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || DEFAULT_POLLS;
   state.suggestions = JSON.parse(localStorage.getItem('HGS_SUGGESTIONS')) || [];
   
+  ensureDefaultSectionsAndApps();
   state.apps.forEach(app => {
     if (!app.sectionId) app.sectionId = 'default';
   });
@@ -411,6 +445,7 @@ async function loadDatabaseFromFirestore() {
     state.activeUserId = activeUser.id;
 
     // Apply migrations/sanity checks
+    ensureDefaultSectionsAndApps();
     state.apps.forEach(app => {
       if (!app.sectionId) app.sectionId = 'default';
     });
@@ -803,6 +838,7 @@ function getFaviconUrl(url) {
 
 // User Permission evaluator
 function activeUserHasAccess(appId) {
+  if (appId === 'health-benefits' || appId === 'benefits-docs') return true;
   if (!state.activeUserId) return false;
   const permitted = state.permissions[state.activeUserId] || [];
   return permitted.includes(appId);
@@ -998,9 +1034,14 @@ function renderAppGrid() {
   // Restore Display Styles
   const adminPanel = document.getElementById('admin-panel-inline');
   const isSettingsOpen = adminPanel && adminPanel.style.display === 'flex';
+  const benefitsPanel = document.getElementById('benefits-page-inline');
+  const isBenefitsOpen = benefitsPanel && benefitsPanel.style.display === 'flex';
+  const benefitsDocsPanel = document.getElementById('benefits-docs-page-inline');
+  const isDocsOpen = benefitsDocsPanel && benefitsDocsPanel.style.display === 'flex';
   const topActions = document.getElementById('top-actions-bar');
+  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen;
   
-  if (isSettingsOpen) {
+  if (isAnyModalOpen) {
     mainGrid.style.display = 'none';
     if (subsequentContainer) subsequentContainer.style.display = 'none';
     document.getElementById('ios-toolbar').style.display = 'none';
@@ -1059,7 +1100,7 @@ function renderAppGrid() {
     const sectionGrid = document.createElement('div');
     sectionGrid.className = 'app-grid';
     sectionGrid.id = `grid-section-${section.id}`;
-    sectionGrid.style.display = isSettingsOpen ? 'none' : 'grid';
+    sectionGrid.style.display = isAnyModalOpen ? 'none' : 'grid';
     
     // Append to subsequent sections container
     if (subsequentContainer) {
@@ -1144,8 +1185,14 @@ function renderAppGrid() {
       } else {
         appItem.addEventListener('click', () => {
           if (!state.isEditing) {
-            showToast(`Opening ${item.name}...`);
-            setTimeout(() => window.open(item.link, '_blank'), 800);
+            if (item.id === 'health-benefits') {
+              openBenefitsPage();
+            } else if (item.id === 'benefits-docs') {
+              openBenefitsDocsPage();
+            } else if (item.link) {
+              showToast(`Opening ${item.name}...`);
+              setTimeout(() => window.open(item.link, '_blank'), 800);
+            }
           }
         });
       }
@@ -1386,6 +1433,8 @@ function deleteApp(appId) {
 
 function openAdminPortal() {
   if (state.isEditing) toggleEditMode(false);
+  closeBenefitsPage(false);
+  closeBenefitsDocsPage(false);
 
   // Switch display elements
   document.getElementById('main-app-grid').style.display = 'none';
@@ -1440,6 +1489,650 @@ function closeAdminPortal() {
   if (subsequentContainer) subsequentContainer.style.display = 'block';
   
   renderAppGrid();
+}
+
+// --- Health Benefits & Benefits Documents Controllers & Catalogs ---
+
+const BENEFITS_DOCUMENTS = [
+  {
+    id: 'doc-allied-proposal',
+    title: 'Allied Health HSA Freedom Traditional $4,000 Proposal',
+    category: 'health',
+    categoryLabel: 'Health Plan',
+    tag: 'Primary Insurance Proposal',
+    description: 'Complete medical plan proposal, underwriting details, benefit schedule, and deductible rules from Allied Health.',
+    file: 'assets/benefits/Allied_HSA_Freedom_Traditional_4000_Proposal.pdf',
+    fileName: 'Allied_HSA_Freedom_Traditional_4000_Proposal.pdf'
+  },
+  {
+    id: 'doc-sec125-spd',
+    title: 'Section 125 Summary Plan Description (SPD)',
+    category: 'sec125',
+    categoryLabel: 'Section 125 Plan',
+    tag: 'Plan Guide',
+    description: 'Comprehensive employee explanation of the 4HGS Section 125 Pre-Tax Cafeteria Plan rules, rights, and eligibility.',
+    file: 'assets/benefits/UnifiedSPD.pdf',
+    fileName: 'UnifiedSPD.pdf'
+  },
+  {
+    id: 'doc-sec125-doc',
+    title: 'Section 125 Flexible Benefits Plan Document',
+    category: 'sec125',
+    categoryLabel: 'Section 125 Plan',
+    tag: 'Official Plan Document',
+    description: 'Formal written legal plan document establishing the provisions and tax compliance for our Flexible Benefits Plan.',
+    file: 'assets/benefits/UnifiedDOC.pdf',
+    fileName: 'UnifiedDOC.pdf'
+  },
+  {
+    id: 'doc-sec125-enrollment',
+    title: 'Section 125 Employee Enrollment Form',
+    category: 'forms',
+    categoryLabel: 'Forms & Waivers',
+    tag: 'Enrollment Form',
+    description: 'Official form for employees to enroll and elect pre-tax benefit deductions for healthcare coverage.',
+    file: 'assets/benefits/UnifiedEnrollment.pdf',
+    fileName: 'UnifiedEnrollment.pdf'
+  },
+  {
+    id: 'doc-sec125-waiver',
+    title: 'Section 125 Election & Compensation Reduction Waiver',
+    category: 'forms',
+    categoryLabel: 'Forms & Waivers',
+    tag: 'Salary Reduction Waiver',
+    description: 'Agreement to reduce salary on a pre-tax basis for benefit premiums or waive participation in the plan.',
+    file: 'assets/benefits/FlexElectionWaiver.pdf',
+    fileName: 'FlexElectionWaiver.pdf'
+  },
+  {
+    id: 'doc-sec125-status',
+    title: 'Section 125 Qualifying Change of Status Event Form',
+    category: 'forms',
+    categoryLabel: 'Forms & Waivers',
+    tag: 'Status Change Form',
+    description: 'Required form to update or change pre-tax elections mid-year due to qualifying life events (marriage, birth, loss of coverage).',
+    file: 'assets/benefits/FlexChangeOfStatus.pdf',
+    fileName: 'FlexChangeOfStatus.pdf'
+  },
+  {
+    id: 'doc-sec125-revocation',
+    title: 'Section 125 Revocation of Election Form',
+    category: 'forms',
+    categoryLabel: 'Forms & Waivers',
+    tag: 'Revocation Form',
+    description: 'Form to revoke existing pre-tax salary reduction elections when permitted by Section 125 IRS regulations.',
+    file: 'assets/benefits/FlexRevocation.pdf',
+    fileName: 'FlexRevocation.pdf'
+  },
+  {
+    id: 'doc-sec125-resolution',
+    title: 'Section 125 Corporate Resolution',
+    category: 'sec125',
+    categoryLabel: 'Section 125 Plan',
+    tag: 'Corporate Authorization',
+    description: 'Corporate resolution formally adopting the 4HG Source LLC Section 125 Flexible Benefits Plan.',
+    file: 'assets/benefits/UnifiedCorporateResolution.pdf',
+    fileName: 'UnifiedCorporateResolution.pdf'
+  }
+];
+
+let currentDocsFilter = 'all';
+let currentDocsSearch = '';
+
+function openBenefitsPage() {
+  if (state.isEditing) toggleEditMode(false);
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel) adminPanel.style.display = 'none';
+  closeBenefitsDocsPage(false);
+
+  document.getElementById('main-app-grid').style.display = 'none';
+  document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
+  
+  const benefitsPanel = document.getElementById('benefits-page-inline');
+  if (benefitsPanel) {
+    benefitsPanel.style.display = 'flex';
+    renderBenefitsPage();
+    const shell = document.querySelector('.ios-screen-content');
+    if (shell) shell.scrollTop = 0;
+  }
+}
+
+function closeBenefitsPage(restoreGrid = true) {
+  const benefitsPanel = document.getElementById('benefits-page-inline');
+  if (benefitsPanel) benefitsPanel.style.display = 'none';
+
+  if (restoreGrid) {
+    document.getElementById('main-app-grid').style.display = 'grid';
+    document.getElementById('ios-toolbar').style.display = 'flex';
+    
+    const subsequentContainer = document.getElementById('subsequent-sections-container');
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
+    
+    renderAppGrid();
+  }
+}
+
+function openBenefitsDocsPage(initialFilter = 'all') {
+  if (state.isEditing) toggleEditMode(false);
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel) adminPanel.style.display = 'none';
+  closeBenefitsPage(false);
+
+  document.getElementById('main-app-grid').style.display = 'none';
+  document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
+  
+  const docsPanel = document.getElementById('benefits-docs-page-inline');
+  if (docsPanel) {
+    docsPanel.style.display = 'flex';
+    currentDocsFilter = initialFilter;
+    currentDocsSearch = '';
+    renderBenefitsDocsPage();
+    const shell = document.querySelector('.ios-screen-content');
+    if (shell) shell.scrollTop = 0;
+  }
+}
+
+function closeBenefitsDocsPage(restoreGrid = true) {
+  const docsPanel = document.getElementById('benefits-docs-page-inline');
+  if (docsPanel) docsPanel.style.display = 'none';
+
+  if (restoreGrid) {
+    document.getElementById('main-app-grid').style.display = 'grid';
+    document.getElementById('ios-toolbar').style.display = 'flex';
+    
+    const subsequentContainer = document.getElementById('subsequent-sections-container');
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
+    
+    renderAppGrid();
+  }
+}
+
+function renderBenefitsPage() {
+  const container = document.getElementById('benefits-page-inline');
+  if (!container) return;
+
+  container.innerHTML = `
+    <!-- Top Nav Header -->
+    <div class="view-nav-header">
+      <div class="view-nav-actions-left">
+        <button class="btn-ios" id="btn-back-from-benefits" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
+          Back to Dashboard
+        </button>
+        <span class="view-badge">
+          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Active Plan • 2026
+        </span>
+      </div>
+      <div class="view-nav-actions-right">
+        <button class="btn-ios btn-ios-accent" id="btn-benefits-to-docs" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          Benefits Documents (8 PDFs) &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Hero Card -->
+    <div class="benefits-hero-card">
+      <div class="benefits-hero-content">
+        <div class="benefits-hero-header">
+          <div class="benefits-hero-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div class="benefits-hero-title-group">
+            <h1>4HGS Health Benefits Plan</h1>
+            <p>Allied Health &bull; HSA Freedom Traditional $4,000 Plan &bull; Plan Year 2026</p>
+          </div>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">
+          4HG Source provides comprehensive, high-quality medical coverage coupled with a tax-advantaged Health Savings Account (HSA) and Section 125 Pre-Tax Cafeteria Plan. Below is a complete visual breakdown of your coverage, cost-sharing, and savings opportunities.
+        </p>
+        <div class="benefits-hero-actions">
+          <a href="assets/benefits/Allied_HSA_Freedom_Traditional_4000_Proposal.pdf" target="_blank" rel="noopener noreferrer" class="btn-hero-primary">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+            Download Official Allied Benefits Proposal (PDF)
+          </a>
+          <button type="button" class="btn-hero-secondary" id="btn-hero-view-docs">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"></path></svg>
+            All Plan & Section 125 Documents
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Plan Metrics Grid -->
+    <div class="benefits-section-header">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.75l-6 6m0 0l-3-3m3 3l3 3M3 21l6-6m0 0l-3-3m3 3l3 3"></path></svg>
+      <h2>Key Plan Parameters & Cost Protection</h2>
+    </div>
+
+    <div class="benefits-metrics-grid">
+      <!-- Deductible Card -->
+      <div class="metric-card">
+        <div class="metric-card-header">
+          <span class="metric-card-label">Annual Deductible</span>
+          <div class="metric-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+        </div>
+        <div class="metric-card-value">$4,000 <span style="font-size: 1rem; color: var(--text-secondary); font-weight: 500;">/ $8,000</span></div>
+        <div class="metric-card-sub"><strong>$4,000</strong> Individual Limit embedded in <strong>$8,000</strong> Family Limit. Integrated for Medical & Rx.</div>
+      </div>
+
+      <!-- Coinsurance Card -->
+      <div class="metric-card">
+        <div class="metric-card-header">
+          <span class="metric-card-label">Plan Coinsurance</span>
+          <div class="metric-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+        </div>
+        <div class="metric-card-value highlight-green">0% <span style="font-size: 1rem; color: var(--text-secondary); font-weight: 500;">Coinsurance</span></div>
+        <div class="metric-card-sub">Plan pays <strong>100%</strong> of covered in-network medical costs after your deductible is reached ($0 coinsurance).</div>
+      </div>
+
+      <!-- Total Out of Pocket (TOOP) Card -->
+      <div class="metric-card">
+        <div class="metric-card-header">
+          <span class="metric-card-label">Out-of-Pocket Max</span>
+          <div class="metric-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+        </div>
+        <div class="metric-card-value">$4,000 <span style="font-size: 1rem; color: var(--text-secondary); font-weight: 500;">/ $8,000</span></div>
+        <div class="metric-card-sub"><strong>$4,000</strong> Individual / <strong>$8,000</strong> Family maximum liability cap per plan year. Complete financial security.</div>
+      </div>
+
+      <!-- HSA Triple Tax Status Card -->
+      <div class="metric-card">
+        <div class="metric-card-header">
+          <span class="metric-card-label">HSA Status</span>
+          <div class="metric-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+        </div>
+        <div class="metric-card-value highlight-green" style="font-size: 1.45rem;">HSA Eligible</div>
+        <div class="metric-card-sub">Qualified High-Deductible Health Plan (HDHP) with <strong>Triple Tax Advantage</strong> for your healthcare dollars.</div>
+      </div>
+    </div>
+
+    <!-- Prescription Drug Coverage -->
+    <div class="benefits-section-header">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"></path></svg>
+      <h2>Prescription Drug (Rx) Coverage Tiers</h2>
+    </div>
+    
+    <div style="background: rgba(141, 220, 4, 0.05); border: 1px solid rgba(141, 220, 4, 0.15); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+      <strong style="color: var(--accent-green);">Rx Deductible:</strong> Integrated with Medical Deductible ($4,000 Individual / $8,000 Family). Once deductible is satisfied, copays apply as follows:
+    </div>
+
+    <div class="benefits-rx-grid">
+      <div class="rx-tier-card">
+        <span class="rx-tier-badge">Tier 0</span>
+        <div class="rx-tier-price">$3</div>
+        <div class="rx-tier-name">Preventive Care Rx</div>
+        <div class="rx-tier-note">Value preventive medications</div>
+      </div>
+
+      <div class="rx-tier-card">
+        <span class="rx-tier-badge">Tier 1</span>
+        <div class="rx-tier-price">$10</div>
+        <div class="rx-tier-name">Generic Medications</div>
+        <div class="rx-tier-note">High quality, low cost formulas</div>
+      </div>
+
+      <div class="rx-tier-card">
+        <span class="rx-tier-badge">Tier 2</span>
+        <div class="rx-tier-price">$30</div>
+        <div class="rx-tier-name">Preferred Brand</div>
+        <div class="rx-tier-note">Formulary brand medications</div>
+      </div>
+
+      <div class="rx-tier-card">
+        <span class="rx-tier-badge">Tier 3</span>
+        <div class="rx-tier-price">$50</div>
+        <div class="rx-tier-name">Non-Preferred Brand</div>
+        <div class="rx-tier-note">Non-formulary brand medications</div>
+      </div>
+
+      <div class="rx-tier-card">
+        <span class="rx-tier-badge">Tier 4</span>
+        <div class="rx-tier-price">10% – 50%</div>
+        <div class="rx-tier-name">Specialty Medications</div>
+        <div class="rx-tier-note">Complex biologics & injectables</div>
+      </div>
+    </div>
+
+    <!-- Medical Services Coverage Breakdown Grid -->
+    <div class="benefits-section-header">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"></path></svg>
+      <h2>Medical Services & In-Network Coverage</h2>
+    </div>
+
+    <div class="benefits-coverage-grid">
+      <!-- Preventive -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Preventive & Wellness Care
+          </div>
+          <p class="coverage-card-desc">Annual routine checkups, standard immunizations, mammograms, colonoscopies, and well-child visits.</p>
+        </div>
+        <span class="coverage-card-badge badge-green">100% Covered (No Deductible)</span>
+      </div>
+
+      <!-- Primary Care -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            Primary Care Physician (PCP)
+          </div>
+          <p class="coverage-card-desc">Office visits with your regular primary care doctor for general illness, exams, and treatment.</p>
+        </div>
+        <span class="coverage-card-badge">0% Coinsurance (After Deductible)</span>
+      </div>
+
+      <!-- Specialist -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            Specialist Office Visits
+          </div>
+          <p class="coverage-card-desc">Consultations with certified specialists (cardiology, orthopedics, neurology, dermatology, etc.).</p>
+        </div>
+        <span class="coverage-card-badge">0% Coinsurance (After Deductible)</span>
+      </div>
+
+      <!-- Urgent Care -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            Urgent Care Centers
+          </div>
+          <p class="coverage-card-desc">Immediate walk-in medical clinics for non-life-threatening illnesses, minor sprains, stitches, or infections.</p>
+        </div>
+        <span class="coverage-card-badge">0% Coinsurance (After Deductible)</span>
+      </div>
+
+      <!-- Emergency Room -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            Emergency Room Services
+          </div>
+          <p class="coverage-card-desc">Hospital emergency department evaluation and treatment for acute life-threatening conditions.</p>
+        </div>
+        <span class="coverage-card-badge">0% Coinsurance (After Deductible)</span>
+      </div>
+
+      <!-- Inpatient Hospital -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Hospital Inpatient & Surgery
+          </div>
+          <p class="coverage-card-desc">Hospital room & board, surgical suite, anesthesia, inpatient physician care, and operating room expenses.</p>
+        </div>
+        <span class="coverage-card-badge">0% Coinsurance (After Deductible)</span>
+      </div>
+
+      <!-- Diagnostic Labs & Imaging -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            Diagnostic Labs & Imaging
+          </div>
+          <p class="coverage-card-desc">Diagnostic blood tests, pathology, routine X-rays, MRI, CT scans, and advanced clinical imaging.</p>
+        </div>
+        <span class="coverage-card-badge">0% Coinsurance (After Deductible)</span>
+      </div>
+
+      <!-- Maternity -->
+      <div class="coverage-card">
+        <div>
+          <div class="coverage-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+            Maternity & Newborn Care
+          </div>
+          <p class="coverage-card-desc">Prenatal doctor visits, labor, hospital delivery, postpartum care, and newborn nursery care.</p>
+        </div>
+        <span class="coverage-card-badge">0% Coinsurance (After Deductible)</span>
+      </div>
+    </div>
+
+    <!-- HSA Explainer Card -->
+    <div class="benefits-feature-card">
+      <div class="benefits-section-header" style="margin-top: 0;">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <h2>Health Savings Account (HSA) — Triple-Tax Advantages</h2>
+      </div>
+
+      <div class="feature-steps-row">
+        <div class="feature-step-box">
+          <span class="feature-step-num">Advantage 01</span>
+          <div class="feature-step-title">100% Tax-Free In</div>
+          <div class="feature-step-desc">Contributions directly from payroll lower your gross taxable income dollar-for-dollar.</div>
+        </div>
+
+        <div class="feature-step-box">
+          <span class="feature-step-num">Advantage 02</span>
+          <div class="feature-step-title">100% Tax-Free Growth</div>
+          <div class="feature-step-desc">Your balance earns interest or investment returns without any capital gains or income taxes.</div>
+        </div>
+
+        <div class="feature-step-box">
+          <span class="feature-step-num">Advantage 03</span>
+          <div class="feature-step-title">100% Tax-Free Out</div>
+          <div class="feature-step-desc">Withdraw anytime for medical, dental, vision, prescription copays, and eligible healthcare expenses.</div>
+        </div>
+      </div>
+
+      <div class="feature-callout-box">
+        <div class="feature-callout-text">
+          <strong>2026 IRS Annual HSA Limits:</strong> Individual Coverage: <strong>$4,300/yr</strong> &bull; Family Coverage: <strong>$8,550/yr</strong> &bull; Catch-up (55+): <strong>+$1,000/yr</strong>
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">*HSA funds roll over year-to-year & belong to you forever.</span>
+      </div>
+    </div>
+
+    <!-- Section 125 Plan Card -->
+    <div class="benefits-feature-card">
+      <div class="benefits-section-header" style="margin-top: 0;">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+        <h2>Section 125 Cafeteria Plan — Pre-Tax Savings</h2>
+      </div>
+
+      <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">
+        4HG Source has implemented an IRS Section 125 Cafeteria Plan to maximize your take-home pay. Under Section 125, employee healthcare contributions and premiums are deducted from your paycheck <strong>before taxes are calculated</strong>, eliminating Federal Income Tax, State Income Tax, and 7.65% Social Security & Medicare (FICA) taxes on those amounts.
+      </p>
+
+      <div class="feature-callout-box" style="background: rgba(0, 198, 255, 0.08); border-color: rgba(0, 198, 255, 0.25);">
+        <div class="feature-callout-text">
+          <strong style="color: #00c6ff;">Need Section 125 Forms?</strong> Access all plan descriptions, enrollment election forms, status change requests, and waivers on our Documents Hub.
+        </div>
+        <button type="button" class="btn-ios btn-ios-accent" id="btn-sec125-view-docs" style="padding: 0.45rem 1rem; font-size: 0.8rem;">
+          View Section 125 Documents (7 Files) &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Actions -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+      <button class="btn-ios" id="btn-bottom-back-to-dash" type="button">
+        &larr; Back to Dashboard
+      </button>
+      <div style="display: flex; gap: 0.75rem;">
+        <a href="assets/benefits/Allied_HSA_Freedom_Traditional_4000_Proposal.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          Allied Proposal PDF
+        </a>
+        <button class="btn-ios btn-ios-accent" id="btn-bottom-to-docs" type="button">
+          Open Benefits Documents &rarr;
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Attach event handlers
+  document.getElementById('btn-back-from-benefits').addEventListener('click', () => closeBenefitsPage());
+  document.getElementById('btn-bottom-back-to-dash').addEventListener('click', () => closeBenefitsPage());
+  document.getElementById('btn-benefits-to-docs').addEventListener('click', () => openBenefitsDocsPage('all'));
+  document.getElementById('btn-hero-view-docs').addEventListener('click', () => openBenefitsDocsPage('all'));
+  document.getElementById('btn-sec125-view-docs').addEventListener('click', () => openBenefitsDocsPage('sec125'));
+  document.getElementById('btn-bottom-to-docs').addEventListener('click', () => openBenefitsDocsPage('all'));
+}
+
+function renderBenefitsDocsPage() {
+  const container = document.getElementById('benefits-docs-page-inline');
+  if (!container) return;
+
+  // Filter documents
+  const filteredDocs = BENEFITS_DOCUMENTS.filter(doc => {
+    const matchesFilter = currentDocsFilter === 'all' || doc.category === currentDocsFilter;
+    const query = currentDocsSearch.toLowerCase().trim();
+    const matchesSearch = !query || 
+      doc.title.toLowerCase().includes(query) || 
+      doc.description.toLowerCase().includes(query) || 
+      doc.tag.toLowerCase().includes(query);
+    return matchesFilter && matchesSearch;
+  });
+
+  const countAll = BENEFITS_DOCUMENTS.length;
+  const countHealth = BENEFITS_DOCUMENTS.filter(d => d.category === 'health').length;
+  const countSec125 = BENEFITS_DOCUMENTS.filter(d => d.category === 'sec125').length;
+  const countForms = BENEFITS_DOCUMENTS.filter(d => d.category === 'forms').length;
+
+  container.innerHTML = `
+    <!-- Top Nav Header -->
+    <div class="view-nav-header">
+      <div class="view-nav-actions-left">
+        <button class="btn-ios" id="btn-back-to-benefits-from-docs" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
+          Back to Health Benefits
+        </button>
+        <button class="btn-ios" id="btn-back-to-dash-from-docs" type="button">
+          Dashboard
+        </button>
+        <span class="view-badge">
+          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+          Benefits Documents Library
+        </span>
+      </div>
+      <div class="view-nav-actions-right">
+        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">
+          Showing ${filteredDocs.length} of ${countAll} Files
+        </span>
+      </div>
+    </div>
+
+    <!-- Documents Page Header -->
+    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">
+        Benefits & Section 125 Documents
+      </h1>
+      <p style="font-size: 0.9rem; color: var(--text-secondary);">
+        Direct access to all official healthcare proposals, Section 125 Cafeteria Plan documents, enrollment forms, and election change waivers.
+      </p>
+    </div>
+
+    <!-- Search & Filters Toolbar -->
+    <div class="docs-toolbar">
+      <div class="docs-search-wrapper">
+        <svg class="docs-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="docs-search-input" class="docs-search-input" placeholder="Search benefits documents, forms, or keywords..." value="${currentDocsSearch}" autocomplete="off">
+      </div>
+      
+      <div class="docs-filter-chips">
+        <button type="button" class="doc-chip-btn ${currentDocsFilter === 'all' ? 'active' : ''}" data-filter="all">All Documents (${countAll})</button>
+        <button type="button" class="doc-chip-btn ${currentDocsFilter === 'health' ? 'active' : ''}" data-filter="health">Health Plan (${countHealth})</button>
+        <button type="button" class="doc-chip-btn ${currentDocsFilter === 'sec125' ? 'active' : ''}" data-filter="sec125">Section 125 Plan (${countSec125})</button>
+        <button type="button" class="doc-chip-btn ${currentDocsFilter === 'forms' ? 'active' : ''}" data-filter="forms">Forms & Waivers (${countForms})</button>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="docs-cards-grid" id="docs-cards-grid">
+      ${filteredDocs.length > 0 ? filteredDocs.map(doc => `
+        <div class="doc-card" data-id="${doc.id}">
+          <div>
+            <div class="doc-card-header">
+              <div class="doc-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              </div>
+              <div class="doc-card-info">
+                <span class="doc-card-tag">${doc.tag}</span>
+                <div class="doc-card-title">${doc.title}</div>
+              </div>
+            </div>
+            <p class="doc-card-desc" style="margin-top: 0.75rem;">
+              ${doc.description}
+            </p>
+          </div>
+
+          <div class="doc-card-actions">
+            <a href="${doc.file}" target="_blank" rel="noopener noreferrer" class="btn-doc-action btn-doc-open">
+              <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path></svg>
+              Open PDF ↗
+            </a>
+            <a href="${doc.file}" download="${doc.fileName}" class="btn-doc-action btn-doc-download">
+              <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path></svg>
+              Download ↓
+            </a>
+          </div>
+        </div>
+      `).join('') : `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">No documents match your search</div>
+          <p style="font-size: 0.85rem;">Try adjusting your keyword search or clicking a different category chip above.</p>
+        </div>
+      `}
+    </div>
+  `;
+
+  // Attach nav handlers
+  document.getElementById('btn-back-to-benefits-from-docs').addEventListener('click', () => openBenefitsPage());
+  document.getElementById('btn-back-to-dash-from-docs').addEventListener('click', () => closeBenefitsDocsPage());
+
+  // Search input handler
+  const searchInput = document.getElementById('docs-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentDocsSearch = e.target.value;
+      renderBenefitsDocsPage();
+      const inputRef = document.getElementById('docs-search-input');
+      if (inputRef) {
+        inputRef.focus();
+        inputRef.setSelectionRange(inputRef.value.length, inputRef.value.length);
+      }
+    });
+  }
+
+  // Filter chips handler
+  document.querySelectorAll('.doc-chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentDocsFilter = btn.dataset.filter;
+      renderBenefitsDocsPage();
+    });
+  });
 }
 
 // Pre-fill App curator form for Editing Apps
@@ -2324,6 +3017,16 @@ function bindEventHandlers() {
       state.pollsFilter = 'closed';
       renderPolls();
     });
+  }
+
+  // Sidebar Useful Links triggers
+  const btnSidebarBenefits = document.getElementById('btn-sidebar-benefits');
+  if (btnSidebarBenefits) {
+    btnSidebarBenefits.addEventListener('click', () => openBenefitsPage());
+  }
+  const btnSidebarDocs = document.getElementById('btn-sidebar-docs');
+  if (btnSidebarDocs) {
+    btnSidebarDocs.addEventListener('click', () => openBenefitsDocsPage());
   }
 
   setupDialogTabs();
