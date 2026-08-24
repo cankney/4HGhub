@@ -3923,10 +3923,18 @@ function subscribeToChallenges() {
       saveDatabase();
       renderChallenges();
     }, (error) => {
-      console.error("Challenges real-time subscription error:", error);
+      console.warn("Challenges subscription notice (using local storage):", error.message || error);
+      if (!state.challenges || state.challenges.length === 0) {
+        state.challenges = JSON.parse(localStorage.getItem('HGS_CHALLENGES')) || DEFAULT_CHALLENGES;
+        renderChallenges();
+      }
     });
   } catch (err) {
-    console.error("Failed to start challenges subscription:", err);
+    console.warn("Failed to start challenges subscription:", err);
+    if (!state.challenges || state.challenges.length === 0) {
+      state.challenges = JSON.parse(localStorage.getItem('HGS_CHALLENGES')) || DEFAULT_CHALLENGES;
+      renderChallenges();
+    }
   }
 }
 
@@ -4082,10 +4090,14 @@ async function deleteSuggestion(id) {
 
 function escapeHTML(str) {
   if (!str) return '';
-  return str
+  return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function escapeHtml(str) {
+  return escapeHTML(str);
 }
