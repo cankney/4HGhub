@@ -5,7 +5,7 @@ const ASSETS = [
   './styles_v4.css',
   './app_v5.js',
   './manifest.json',
-  './assets/4hgs_logo.svg'
+  './assets/4hgs_logo.png'
 ];
 
 self.addEventListener('install', (e) => {

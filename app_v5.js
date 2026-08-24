@@ -877,14 +877,14 @@ function getFaviconUrl(url) {
   }
   
   if (!domain) {
-    return 'assets/4hgs_logo.svg';
+    return 'assets/4hgs_logo.png';
   }
   
   const lowerDomain = domain.toLowerCase();
   // Brand Intelligence: For any corporate domain, intranet subdomain, or sharepoint portal,
   // directly serve the gorgeous official 4HG Source circle logo instead of generic fallback globes.
   if (lowerDomain.endsWith('4hgs.com') || lowerDomain.endsWith('4hghub.com') || lowerDomain.includes('4hgsource')) {
-    return 'assets/4hgs_logo.svg';
+    return 'assets/4hgs_logo.png';
   }
   
   // Try loading the favicon DIRECTLY from the target site first!

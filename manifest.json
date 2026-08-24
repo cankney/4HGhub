@@ -10,24 +10,9 @@
   "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "assets/4hgs_logo.svg",
-      "sizes": "32x32",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "assets/4hgs_logo.svg",
-      "sizes": "180x180",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "assets/4hgs_logo.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "assets/4hgs_logo.svg",
+      "src": "assets/4hgs_logo.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 }
