@@ -154,31 +154,86 @@ function initDatabase() {
 }
 
 function ensureDefaultSectionsAndApps() {
-  if (!state.sections.some(s => s.id === 'useful-links')) {
-    state.sections.push({ id: 'useful-links', name: 'Useful Links', order: 1 });
+  // 1. Find all sections that match "Useful Links" (case-insensitive or by ID)
+  const usefulLinksSections = state.sections.filter(s => 
+    (s.name && s.name.trim().toLowerCase() === 'useful links') || s.id === 'useful-links'
+  );
+
+  let primaryUsefulSection;
+  if (usefulLinksSections.length > 0) {
+    // Use the first existing Useful Links section as primary
+    primaryUsefulSection = usefulLinksSections[0];
+    
+    // If there are duplicate Useful Links sections, merge them
+    if (usefulLinksSections.length > 1) {
+      const duplicateIds = usefulLinksSections.slice(1).map(s => s.id);
+      
+      // Re-assign all apps from duplicate sections to the primary section
+      state.apps.forEach(app => {
+        if (duplicateIds.includes(app.sectionId)) {
+          app.sectionId = primaryUsefulSection.id;
+        }
+      });
+      
+      // Remove duplicate sections from state
+      state.sections = state.sections.filter(s => !duplicateIds.includes(s.id));
+    }
+  } else {
+    // Create new Useful Links section if none exists
+    const maxOrder = state.sections.length > 0 ? Math.max(...state.sections.map(s => s.order || 0)) : 0;
+    primaryUsefulSection = { id: 'useful-links', name: 'Useful Links', order: maxOrder + 1 };
+    state.sections.push(primaryUsefulSection);
   }
-  if (!state.apps.some(a => a.id === 'health-benefits')) {
+
+  // Ensure primaryUsefulSection name is properly formatted
+  if (primaryUsefulSection) {
+    primaryUsefulSection.name = 'Useful Links';
+  }
+
+  const usefulSectionId = primaryUsefulSection.id;
+
+  // 2. Ensure health-benefits app exists and is assigned to the unified Useful Links section
+  const healthBenefitsApp = state.apps.find(a => a.id === 'health-benefits');
+  if (!healthBenefitsApp) {
     state.apps.push({
       id: 'health-benefits',
       name: 'Health Benefits',
       icon: 'shield',
       order: 0,
       type: 'app',
-      sectionId: 'useful-links',
+      sectionId: usefulSectionId,
       allUsers: true
     });
+  } else {
+    healthBenefitsApp.sectionId = usefulSectionId;
+    healthBenefitsApp.allUsers = true;
   }
-  if (!state.apps.some(a => a.id === 'benefits-docs')) {
+
+  // 3. Ensure benefits-docs app exists and is assigned to the unified Useful Links section
+  const benefitsDocsApp = state.apps.find(a => a.id === 'benefits-docs');
+  if (!benefitsDocsApp) {
     state.apps.push({
       id: 'benefits-docs',
       name: 'Benefits Documents',
       icon: 'file-text',
       order: 1,
       type: 'app',
-      sectionId: 'useful-links',
+      sectionId: usefulSectionId,
       allUsers: true
     });
+  } else {
+    benefitsDocsApp.sectionId = usefulSectionId;
+    benefitsDocsApp.allUsers = true;
   }
+
+  // 4. Also clean up any other accidental duplicate sections in state.sections by id or name
+  const seenNames = new Set();
+  state.sections = state.sections.filter(s => {
+    const norm = (s.name || '').trim().toLowerCase();
+    if (seenNames.has(norm)) return false;
+    seenNames.add(norm);
+    return true;
+  });
 }
 
 function saveDatabase() {
