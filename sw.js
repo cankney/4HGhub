@@ -1,4 +1,4 @@
-const CACHE_NAME = '4hghub-cache-v1';
+const CACHE_NAME = '4hghub-cache-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -31,36 +31,39 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Avoid interception for non-HTTP(S) schemes (e.g. chrome-extension or firebase SDKs internal endpoints if needed)
+  // Avoid interception for non-HTTP(S) schemes
   if (!e.request.url.startsWith('http')) {
     return;
   }
   
-  // Bypass caching for Firestore database requests and Firebase Auth endpoints to avoid stale data/errors
+  // Bypass caching for Firestore database requests and Firebase Auth endpoints
   if (e.request.url.includes('firestore.googleapis.com') || 
       e.request.url.includes('identitytoolkit.googleapis.com') ||
       e.request.method !== 'GET') {
     return;
   }
 
+  // Network-First strategy: always fetch the newest version from server first
   e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
+    fetch(e.request).then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(e.request, responseToCache);
+        });
       }
-      return fetch(e.request).then((response) => {
-        // Cache dynamic assets if they are static/regular types
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(e.request, responseToCache);
-          });
+      return networkResponse;
+    }).catch(() => {
+      // Offline fallback: serve from local cache if network is unavailable
+      return caches.match(e.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
-        return response;
-      }).catch(() => {
-        // Offline fallback
-        return caches.match('./index.html');
+        if (e.request.headers.get('accept') && e.request.headers.get('accept').includes('text/html')) {
+          return caches.match('./index.html');
+        }
       });
     })
   );
 });
+
