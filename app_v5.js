@@ -121,28 +121,6 @@ const DEFAULT_POLLS = [
   }
 ];
 
-const DEFAULT_CHALLENGES = [
-  {
-    id: 'challenge-1',
-    title: 'Weekly Dispatch Estimator',
-    prompt: 'Guess the total number of parts & repair packages we will ship out this week before Friday close!',
-    unitType: 'count',
-    unitPrefix: '',
-    unitSuffix: ' pkgs',
-    closesAt: 'Friday at 4:30 PM',
-    createdAt: new Date().toISOString(),
-    status: 'active',
-    createdBy: 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2',
-    creatorName: 'Cole Ankney',
-    guesses: [
-      { uid: 'user-sales', name: 'John Smith', value: 142, submittedAt: new Date().toISOString() },
-      { uid: 'user-shipping', name: 'Dave Miller', value: 158, submittedAt: new Date().toISOString() }
-    ],
-    actualValue: null,
-    winner: null
-  }
-];
-
 const DEFAULT_SECTIONS = [
   { id: 'default', name: '4HGS Apps', order: 0 },
   { id: 'useful-links', name: 'Useful Links', order: 1 }
@@ -157,8 +135,6 @@ let state = {
   sections: [],
   polls: [],
   pollsFilter: 'active',
-  challenges: [],
-  challengesFilter: 'active',
   suggestions: [],
   activeUserId: null, // Null indicates no authenticated Firebase session!
   isEditing: false,
@@ -167,7 +143,6 @@ let state = {
 };
 
 let pollsUnsubscribe = null;
-let challengesUnsubscribe = null;
 let suggestionsUnsubscribe = null;
 
 // Database Persistence Helpers
@@ -183,7 +158,6 @@ function initDatabase() {
   state.sections = DEFAULT_SECTIONS;
   state.broadcasts = DEFAULT_BROADCASTS;
   state.polls = DEFAULT_POLLS;
-  state.challenges = DEFAULT_CHALLENGES;
   state.suggestions = [];
   state.users = DEFAULT_USERS;
   state.permissions = DEFAULT_PERMISSIONS;
@@ -284,7 +258,6 @@ function saveDatabase() {
   localStorage.setItem('HGS_BROADCASTS', JSON.stringify(state.broadcasts));
   localStorage.setItem('HGS_SECTIONS', JSON.stringify(state.sections));
   localStorage.setItem('HGS_POLLS', JSON.stringify(state.polls));
-  localStorage.setItem('HGS_CHALLENGES', JSON.stringify(state.challenges));
   localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify(state.suggestions));
   localStorage.setItem('HGS_THEME', state.theme);
 }
@@ -308,9 +281,6 @@ function loadDatabaseOfflineFallback() {
   if (!localStorage.getItem('HGS_POLLS')) {
     localStorage.setItem('HGS_POLLS', JSON.stringify(DEFAULT_POLLS));
   }
-  if (!localStorage.getItem('HGS_CHALLENGES')) {
-    localStorage.setItem('HGS_CHALLENGES', JSON.stringify(DEFAULT_CHALLENGES));
-  }
   if (!localStorage.getItem('HGS_SUGGESTIONS')) {
     localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify([]));
   }
@@ -321,7 +291,6 @@ function loadDatabaseOfflineFallback() {
   state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
   state.sections = JSON.parse(localStorage.getItem('HGS_SECTIONS')) || DEFAULT_SECTIONS;
   state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || DEFAULT_POLLS;
-  state.challenges = JSON.parse(localStorage.getItem('HGS_CHALLENGES')) || DEFAULT_CHALLENGES;
   state.suggestions = JSON.parse(localStorage.getItem('HGS_SUGGESTIONS')) || [];
   
   ensureDefaultSectionsAndApps();
@@ -553,9 +522,6 @@ async function loadDatabaseFromFirestore() {
  
     // Start real-time polls subscription
     subscribeToPolls();
-
-    // Start real-time challenges subscription
-    subscribeToChallenges();
 
     // Start real-time suggestions subscription if admin
     if (isAdmin) {
@@ -1032,7 +998,6 @@ function renderWidgets() {
     feed.appendChild(alert);
   });
   renderPolls();
-  renderChallenges();
   renderSuggestionBox();
 }
 
@@ -3124,38 +3089,6 @@ function bindEventHandlers() {
     });
   }
 
-  // Guessing Challenge events
-  const btnToggleChallenge = document.getElementById('btn-toggle-create-challenge');
-  if (btnToggleChallenge) {
-    btnToggleChallenge.addEventListener('click', toggleCreateChallengeForm);
-  }
-  const btnCancelChallenge = document.getElementById('btn-cancel-create-challenge');
-  if (btnCancelChallenge) {
-    btnCancelChallenge.addEventListener('click', toggleCreateChallengeForm);
-  }
-  const formChallenge = document.getElementById('challenge-creation-form');
-  if (formChallenge) {
-    formChallenge.addEventListener('submit', handleChallengeSubmit);
-  }
-
-  // Challenge filter tabs
-  const tabChallengeActive = document.getElementById('tab-challenge-active');
-  const tabChallengePast = document.getElementById('tab-challenge-past');
-  if (tabChallengeActive && tabChallengePast) {
-    tabChallengeActive.addEventListener('click', () => {
-      tabChallengeActive.classList.add('active');
-      tabChallengePast.classList.remove('active');
-      state.challengesFilter = 'active';
-      renderChallenges();
-    });
-    tabChallengePast.addEventListener('click', () => {
-      tabChallengePast.classList.add('active');
-      tabChallengeActive.classList.remove('active');
-      state.challengesFilter = 'closed';
-      renderChallenges();
-    });
-  }
-
   setupDialogTabs();
 }
 
@@ -3169,10 +3102,6 @@ function initFirebaseAuth() {
       if (pollsUnsubscribe) {
         pollsUnsubscribe();
         pollsUnsubscribe = null;
-      }
-      if (challengesUnsubscribe) {
-        challengesUnsubscribe();
-        challengesUnsubscribe = null;
       }
       if (suggestionsUnsubscribe) {
         suggestionsUnsubscribe();
@@ -3515,444 +3444,6 @@ function subscribeToPolls() {
     });
   } catch (err) {
     console.error("Failed to start polls subscription:", err);
-  }
-}
-
-// --- Weekly Guessing Game / Price is Right Widget Functionality ---
-
-function formatChallengeUnit(val, unitType, unitPrefix, unitSuffix) {
-  if (val === null || val === undefined || isNaN(val)) return '—';
-  const num = Number(val);
-  if (unitType === 'currency') {
-    return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  } else if (unitType === 'weight') {
-    return num.toLocaleString('en-US') + ' lbs';
-  } else if (unitType === 'count') {
-    return num.toLocaleString('en-US') + (unitSuffix || ' pkgs');
-  } else {
-    return (unitPrefix || '') + num.toLocaleString('en-US') + (unitSuffix || '');
-  }
-}
-
-function renderChallenges() {
-  const container = document.getElementById('widget-challenge-container');
-  if (!container) return;
-
-  const btnToggle = document.getElementById('btn-toggle-create-challenge');
-  const activeUser = getActiveUser();
-  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
-  const isAdmin = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
-
-  if (btnToggle) {
-    btnToggle.style.display = (activeUser && isAdmin) ? 'inline-flex' : 'none';
-  }
-
-  const challengesToRender = (state.challenges || []).filter(c => {
-    if (state.challengesFilter === 'active') {
-      return c.status === 'active';
-    } else {
-      return c.status === 'closed';
-    }
-  });
-
-  challengesToRender.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  container.innerHTML = '';
-
-  if (!state.activeUserId) {
-    container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">Please log in to participate in the guessing challenge.</div>`;
-    return;
-  }
-
-  if (challengesToRender.length === 0) {
-    container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">No ${state.challengesFilter === 'active' ? 'active' : 'past'} challenges found.</div>`;
-    return;
-  }
-
-  challengesToRender.forEach(challenge => {
-    const item = document.createElement('article');
-    item.className = 'challenge-item';
-
-    const dateStr = new Date(challenge.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
-    const unitBadgeText = challenge.unitType === 'currency' ? '💰 Price' : (challenge.unitType === 'weight' ? '⚖️ Weight' : '📦 Count');
-    
-    // Find active user's existing guess
-    const guessesList = challenge.guesses || [];
-    const myGuess = guessesList.find(g => g.uid === state.activeUserId);
-    const isClosed = challenge.status === 'closed';
-
-    let bodyHtml = '';
-
-    if (isClosed) {
-      // Show Winner Card & Leaderboard
-      const winnerName = challenge.winner ? challenge.winner.name : 'No winner recorded';
-      const winningGuess = challenge.winner ? formatChallengeUnit(challenge.winner.value, challenge.unitType, challenge.unitPrefix, challenge.unitSuffix) : '—';
-      const actualFmt = formatChallengeUnit(challenge.actualValue, challenge.unitType, challenge.unitPrefix, challenge.unitSuffix);
-
-      // Sort all guesses by closeness to actualValue
-      const sortedGuesses = [...guessesList].sort((a, b) => {
-        const diffA = Math.abs(a.value - challenge.actualValue);
-        const diffB = Math.abs(b.value - challenge.actualValue);
-        return diffA - diffB;
-      });
-
-      let leaderboardRows = '';
-      sortedGuesses.forEach((g, rank) => {
-        const isWinner = challenge.winner && challenge.winner.uid === g.uid;
-        const isYou = g.uid === state.activeUserId;
-        const rankMedal = rank === 0 ? '🥇' : (rank === 1 ? '🥈' : (rank === 2 ? '🥉' : `#${rank + 1}`));
-        const diffVal = (g.value - challenge.actualValue);
-        const diffSign = diffVal > 0 ? `+${diffVal.toLocaleString()}` : (diffVal < 0 ? `${diffVal.toLocaleString()}` : 'Exact!');
-
-        leaderboardRows += `
-          <div class="leaderboard-row ${isWinner ? 'is-winner' : ''} ${isYou ? 'is-you' : ''}">
-            <span>${rankMedal} ${escapeHtml(g.name)}${isYou ? ' (You)' : ''}</span>
-            <span>${formatChallengeUnit(g.value, challenge.unitType, challenge.unitPrefix, challenge.unitSuffix)} <small style="opacity: 0.7;">(${diffSign})</small></span>
-          </div>
-        `;
-      });
-
-      bodyHtml = `
-        <div class="challenge-winner-card">
-          <div class="winner-card-title">
-            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.25h13.5v1.986m-13.5 0A48.667 48.667 0 0112 3.75c2.298 0 4.542.164 6.75.486m0 0v.264c0 2.108-.966 3.99-2.48 5.228m2.48-5.228c.982.143 1.954.317 2.916.52a6.003 6.003 0 01-5.496 5.008"></path></svg>
-            Winner: ${escapeHtml(winnerName)}!
-          </div>
-          <div class="winner-card-details">
-            Actual: <strong>${actualFmt}</strong> • Winning Guess: <strong>${winningGuess}</strong>
-          </div>
-        </div>
-        <button type="button" class="challenge-leaderboard-toggle" id="btn-toggle-lb-${challenge.id}">
-          📊 View All Guesses (${guessesList.length}) ▾
-        </button>
-        <div id="leaderboard-${challenge.id}" class="challenge-leaderboard" style="display: none;">
-          ${leaderboardRows}
-        </div>
-      `;
-    } else {
-      // Active challenge
-      const placeholderText = challenge.unitType === 'currency' ? 'e.g. 1250.00' : 'e.g. 150';
-      const stepVal = challenge.unitType === 'currency' ? '0.01' : '1';
-
-      if (myGuess && !challenge._isEditingGuess) {
-        bodyHtml = `
-          <div class="challenge-locked-banner">
-            <div>
-              <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Your Locked Guess:</span>
-              <span class="challenge-locked-value">${formatChallengeUnit(myGuess.value, challenge.unitType, challenge.unitPrefix, challenge.unitSuffix)}</span>
-            </div>
-            <button type="button" class="btn-link-small" id="btn-edit-guess-${challenge.id}" style="background:none; border:none; color:var(--accent-green); font-size:0.75rem; font-weight:700; cursor:pointer;">Edit</button>
-          </div>
-        `;
-      } else {
-        const existingVal = myGuess ? myGuess.value : '';
-        bodyHtml = `
-          <form class="challenge-guess-box" id="form-guess-${challenge.id}">
-            <div class="challenge-input-group">
-              <input type="number" step="${stepVal}" name="guessVal" value="${existingVal}" class="challenge-input" placeholder="${placeholderText}" required autocomplete="off">
-            </div>
-            <button type="submit" class="btn-lock-guess">
-              <svg style="width:13px;height:13px;margin-right:6px;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path></svg>
-              ${myGuess ? 'Update My Guess' : 'Lock In My Guess'}
-            </button>
-          </form>
-        `;
-      }
-
-      bodyHtml += `
-        <div class="challenge-participants-info">
-          <span>👥 <strong>${guessesList.length}</strong> ${guessesList.length === 1 ? 'guess' : 'guesses'} submitted</span>
-          <span>⏳ ${escapeHtml(challenge.closesAt || 'Soon')}</span>
-        </div>
-      `;
-
-      if (isAdmin) {
-        bodyHtml += `
-          <div style="display:flex; gap:0.5rem; justify-content:flex-end; border-top:1px solid var(--glass-border); padding-top:0.5rem; margin-top:0.25rem;">
-            <button type="button" class="btn-ios" id="btn-crown-${challenge.id}" style="padding:0.25rem 0.6rem; font-size:0.72rem; color:#ffcc00; border-color:rgba(255,204,0,0.3);">🎯 Crown Winner</button>
-            <button type="button" class="btn-icon-small" id="btn-delete-challenge-${challenge.id}" style="width:24px; height:24px; padding:2px; color:var(--text-muted);" title="Delete Challenge">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
-          </div>
-        `;
-      }
-    }
-
-    item.innerHTML = `
-      <div class="challenge-meta-row">
-        <span class="challenge-badge-unit">${unitBadgeText}</span>
-        <span>${dateStr}</span>
-      </div>
-      <div class="challenge-title">${escapeHtml(challenge.title)}</div>
-      <div class="challenge-prompt">${escapeHtml(challenge.prompt)}</div>
-      ${bodyHtml}
-    `;
-
-    container.appendChild(item);
-
-    // Bind event listeners for this challenge item
-    if (isClosed) {
-      const toggleLbBtn = document.getElementById(`btn-toggle-lb-${challenge.id}`);
-      if (toggleLbBtn) {
-        toggleLbBtn.addEventListener('click', () => {
-          const lb = document.getElementById(`leaderboard-${challenge.id}`);
-          if (lb) lb.style.display = lb.style.display === 'none' ? 'flex' : 'none';
-        });
-      }
-    } else {
-      const editBtn = document.getElementById(`btn-edit-guess-${challenge.id}`);
-      if (editBtn) {
-        editBtn.addEventListener('click', () => {
-          challenge._isEditingGuess = true;
-          renderChallenges();
-        });
-      }
-
-      const guessForm = document.getElementById(`form-guess-${challenge.id}`);
-      if (guessForm) {
-        guessForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const rawVal = guessForm.elements['guessVal'].value;
-          submitChallengeGuess(challenge.id, rawVal);
-        });
-      }
-
-      if (isAdmin) {
-        const crownBtn = document.getElementById(`btn-crown-${challenge.id}`);
-        if (crownBtn) {
-          crownBtn.addEventListener('click', () => {
-            revealChallengeWinnerPrompt(challenge.id);
-          });
-        }
-        const delBtn = document.getElementById(`btn-delete-challenge-${challenge.id}`);
-        if (delBtn) {
-          delBtn.addEventListener('click', () => {
-            deleteChallenge(challenge.id);
-          });
-        }
-      }
-    }
-  });
-}
-
-function toggleCreateChallengeForm() {
-  const form = document.getElementById('challenge-creation-form');
-  if (!form) return;
-  const isHidden = form.style.display === 'none' || !form.style.display;
-  form.style.display = isHidden ? 'block' : 'none';
-  if (isHidden) {
-    document.getElementById('challenge-title-input').focus();
-  }
-}
-
-async function handleChallengeSubmit(e) {
-  e.preventDefault();
-  const activeUser = getActiveUser();
-  if (!activeUser) {
-    showToast('You must be logged in to create a challenge.', false);
-    return;
-  }
-
-  const titleInput = document.getElementById('challenge-title-input');
-  const promptInput = document.getElementById('challenge-prompt-input');
-  const unitSelect = document.getElementById('challenge-unit-type');
-  const closesInput = document.getElementById('challenge-closes-input');
-
-  const title = titleInput.value.trim();
-  const prompt = promptInput.value.trim();
-  const unitType = unitSelect.value;
-  const closesAt = closesInput.value.trim();
-
-  if (!title || !prompt || !closesAt) {
-    showToast('Please fill out all challenge fields.', false);
-    return;
-  }
-
-  const challengeId = 'challenge-' + Date.now();
-  const newChallenge = {
-    id: challengeId,
-    title: title,
-    prompt: prompt,
-    unitType: unitType,
-    unitPrefix: unitType === 'currency' ? '$' : '',
-    unitSuffix: unitType === 'weight' ? ' lbs' : (unitType === 'count' ? ' pkgs' : ''),
-    closesAt: closesAt,
-    createdAt: new Date().toISOString(),
-    status: 'active',
-    createdBy: activeUser.id,
-    creatorName: activeUser.name,
-    guesses: [],
-    actualValue: null,
-    winner: null
-  };
-
-  state.challenges.unshift(newChallenge);
-  saveDatabase();
-  syncChallengeToFirestore(newChallenge);
-  renderChallenges();
-
-  titleInput.value = '';
-  promptInput.value = '';
-  closesInput.value = '';
-  toggleCreateChallengeForm();
-  showToast('Guessing challenge published!');
-}
-
-async function submitChallengeGuess(challengeId, rawValue) {
-  const activeUser = getActiveUser();
-  if (!activeUser) {
-    showToast('You must be logged in to submit a guess.', false);
-    return;
-  }
-
-  const numVal = parseFloat(rawValue);
-  if (isNaN(numVal) || numVal < 0) {
-    showToast('Please enter a valid positive number.', false);
-    return;
-  }
-
-  const challenge = state.challenges.find(c => c.id === challengeId);
-  if (!challenge) return;
-
-  if (challenge.status === 'closed') {
-    showToast('This challenge is already closed.', false);
-    return;
-  }
-
-  if (!challenge.guesses) challenge.guesses = [];
-
-  const existingIndex = challenge.guesses.findIndex(g => g.uid === activeUser.id);
-  const guessObj = {
-    uid: activeUser.id,
-    name: activeUser.name,
-    value: numVal,
-    submittedAt: new Date().toISOString()
-  };
-
-  if (existingIndex >= 0) {
-    challenge.guesses[existingIndex] = guessObj;
-  } else {
-    challenge.guesses.push(guessObj);
-  }
-
-  challenge._isEditingGuess = false;
-  saveDatabase();
-  renderChallenges();
-
-  try {
-    const cleanChallenge = { ...challenge };
-    delete cleanChallenge._isEditingGuess;
-    await setDoc(doc(db, "challenges", challengeId), cleanChallenge);
-    showToast('Your guess has been locked in! 🎯');
-  } catch (err) {
-    console.error("Failed to sync guess to Firestore:", err);
-    showToast('Guess saved locally.');
-  }
-}
-
-async function revealChallengeWinnerPrompt(challengeId) {
-  const challenge = state.challenges.find(c => c.id === challengeId);
-  if (!challenge) return;
-
-  const actualStr = window.prompt(`Enter the ACTUAL final value for "${challenge.title}":`);
-  if (actualStr === null) return; // Cancelled
-
-  const actualNum = parseFloat(actualStr);
-  if (isNaN(actualNum)) {
-    showToast('Please enter a valid numeric value.', false);
-    return;
-  }
-
-  const guesses = challenge.guesses || [];
-  if (guesses.length === 0) {
-    challenge.status = 'closed';
-    challenge.actualValue = actualNum;
-    challenge.winner = null;
-  } else {
-    // Find closest guess (absolute distance; tie-breaker: earliest submission)
-    let closestGuess = guesses[0];
-    let smallestDiff = Math.abs(guesses[0].value - actualNum);
-
-    for (let i = 1; i < guesses.length; i++) {
-      const diff = Math.abs(guesses[i].value - actualNum);
-      if (diff < smallestDiff) {
-        smallestDiff = diff;
-        closestGuess = guesses[i];
-      }
-    }
-
-    challenge.status = 'closed';
-    challenge.actualValue = actualNum;
-    challenge.winner = {
-      uid: closestGuess.uid,
-      name: closestGuess.name,
-      value: closestGuess.value,
-      diff: smallestDiff
-    };
-  }
-
-  saveDatabase();
-  syncChallengeToFirestore(challenge);
-  renderChallenges();
-  showToast(`Winner crowned: ${challenge.winner ? challenge.winner.name : 'None'}! 🏆`);
-}
-
-async function deleteChallenge(challengeId) {
-  if (!window.confirm('Are you sure you want to delete this challenge?')) return;
-  state.challenges = state.challenges.filter(c => c.id !== challengeId);
-  saveDatabase();
-  syncDeleteChallengeFromFirestore(challengeId);
-  renderChallenges();
-  showToast('Challenge deleted.');
-}
-
-async function syncChallengeToFirestore(challenge) {
-  try {
-    const cleanChallenge = { ...challenge };
-    delete cleanChallenge._isEditingGuess;
-    await setDoc(doc(db, "challenges", cleanChallenge.id), cleanChallenge);
-  } catch (err) {
-    console.error("Firestore syncChallenge failed:", err);
-  }
-}
-
-async function syncDeleteChallengeFromFirestore(challengeId) {
-  try {
-    await deleteDoc(doc(db, "challenges", challengeId));
-  } catch (err) {
-    console.error("Firestore syncDeleteChallenge failed:", err);
-  }
-}
-
-function subscribeToChallenges() {
-  if (challengesUnsubscribe) {
-    challengesUnsubscribe();
-    challengesUnsubscribe = null;
-  }
-
-  try {
-    const challengesCollection = collection(db, "challenges");
-    challengesUnsubscribe = onSnapshot(challengesCollection, (snapshot) => {
-      const list = [];
-      snapshot.forEach(d => {
-        list.push(d.data());
-      });
-      state.challenges = list.length > 0 ? list : DEFAULT_CHALLENGES;
-      saveDatabase();
-      renderChallenges();
-    }, (error) => {
-      console.warn("Challenges subscription notice (using local storage):", error.message || error);
-      if (!state.challenges || state.challenges.length === 0) {
-        state.challenges = JSON.parse(localStorage.getItem('HGS_CHALLENGES')) || DEFAULT_CHALLENGES;
-        renderChallenges();
-      }
-    });
-  } catch (err) {
-    console.warn("Failed to start challenges subscription:", err);
-    if (!state.challenges || state.challenges.length === 0) {
-      state.challenges = JSON.parse(localStorage.getItem('HGS_CHALLENGES')) || DEFAULT_CHALLENGES;
-      renderChallenges();
-    }
   }
 }
 

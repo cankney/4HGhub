@@ -136,64 +136,7 @@
         </div>
       </section>
 
-      <!-- Widget: Weekly Guessing Game / Price is Right -->
-      <section class="widget guessing-widget" aria-labelledby="guessing-widget-title">
-        <div class="polls-widget-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
-          <h2 id="guessing-widget-title" class="widget-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.25h13.5v1.986m-13.5 0A48.667 48.667 0 0112 3.75c2.298 0 4.542.164 6.75.486m0 0v.264c0 2.108-.966 3.99-2.48 5.228m2.48-5.228c.982.143 1.954.317 2.916.52a6.003 6.003 0 01-5.496 5.008"></path>
-            </svg>
-            Guessing Game
-          </h2>
-          <button id="btn-toggle-create-challenge" class="btn-icon-small" type="button" aria-label="Create New Challenge" style="display: none;">
-            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
-            </svg>
-          </button>
-        </div>
 
-        <!-- Inline Challenge Creation Form (collapsed by default) -->
-        <form id="challenge-creation-form" class="poll-creation-form" style="display: none; margin-top: 1rem;">
-          <div class="form-group-small" style="margin-bottom: 0.75rem;">
-            <label for="challenge-title-input" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Challenge Title</label>
-            <input type="text" id="challenge-title-input" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" placeholder="e.g. Price is Right: Mystery Valve" required autocomplete="off">
-          </div>
-          <div class="form-group-small" style="margin-bottom: 0.75rem;">
-            <label for="challenge-prompt-input" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Description / Item Details</label>
-            <textarea id="challenge-prompt-input" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; min-height: 50px; resize: vertical;" placeholder="e.g. Guess the list price of this Parker valve before Friday!" required></textarea>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
-            <div class="form-group-small">
-              <label for="challenge-unit-type" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Unit Format</label>
-              <select id="challenge-unit-type" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
-                <option value="currency">Price ($ USD)</option>
-                <option value="count">Count / Quantity</option>
-                <option value="weight">Weight (lbs)</option>
-                <option value="custom">Units</option>
-              </select>
-            </div>
-            <div class="form-group-small">
-              <label for="challenge-closes-input" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Deadline / Closes</label>
-              <input type="text" id="challenge-closes-input" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" placeholder="e.g. Friday 4:30 PM" required autocomplete="off">
-            </div>
-          </div>
-          <div class="poll-form-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-            <button type="button" id="btn-cancel-create-challenge" class="btn-ios" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">Cancel</button>
-            <button type="submit" class="btn-ios btn-ios-accent" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">Publish Challenge</button>
-          </div>
-        </form>
-
-        <!-- Tabs filter -->
-        <div class="polls-filter-tabs" style="margin-top: 1rem;">
-          <button id="tab-challenge-active" class="poll-tab-btn active" type="button">Active</button>
-          <button id="tab-challenge-past" class="poll-tab-btn" type="button">Past Winners 🏆</button>
-        </div>
-
-        <div id="widget-challenge-container" class="challenges-list" style="margin-top: 0.75rem;">
-          <!-- Will be dynamically populated by JS -->
-          <div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">Please log in to play the guessing challenge.</div>
-        </div>
-      </section>
 
       <!-- Widget: Suggestion Box -->
       <section class="widget suggestion-widget" aria-labelledby="suggestion-widget-title">
