@@ -218,14 +218,12 @@ function ensureDefaultSectionsAndApps() {
       icon: 'shield',
       order: 0,
       type: 'app',
-      sectionId: usefulSectionId,
-      allUsers: true
+      sectionId: usefulSectionId
     });
   } else {
     if (!healthBenefitsApp.sectionId || !state.sections.some(s => s.id === healthBenefitsApp.sectionId)) {
       healthBenefitsApp.sectionId = usefulSectionId;
     }
-    healthBenefitsApp.allUsers = true;
   }
 
   // 3. Ensure benefits-docs app exists (preserve sectionId if already assigned to a valid section)
@@ -237,14 +235,12 @@ function ensureDefaultSectionsAndApps() {
       icon: 'file-text',
       order: 1,
       type: 'app',
-      sectionId: usefulSectionId,
-      allUsers: true
+      sectionId: usefulSectionId
     });
   } else {
     if (!benefitsDocsApp.sectionId || !state.sections.some(s => s.id === benefitsDocsApp.sectionId)) {
       benefitsDocsApp.sectionId = usefulSectionId;
     }
-    benefitsDocsApp.allUsers = true;
   }
 
   // 4. Also clean up any other accidental duplicate sections in state.sections by id or name
@@ -914,7 +910,6 @@ function getFaviconUrl(url) {
 
 // User Permission evaluator
 function activeUserHasAccess(appId) {
-  if (appId === 'health-benefits' || appId === 'benefits-docs') return true;
   if (!state.activeUserId) return false;
   const permitted = state.permissions[state.activeUserId] || [];
   return permitted.includes(appId);
@@ -1475,6 +1470,21 @@ function renderAppGrid() {
     const targetGrid = gridsMap[targetSectionId] || mainGrid;
     targetGrid.appendChild(appItem);
   });
+
+  // When not in edit mode, hide empty subsequent sections so users don't see headers for sections with no accessible apps
+  if (!state.isEditing) {
+    for (let i = 1; i < sortedSections.length; i++) {
+      const sec = sortedSections[i];
+      const grid = gridsMap[sec.id];
+      if (grid && grid.children.length === 0) {
+        grid.style.display = 'none';
+        const header = grid.previousElementSibling;
+        if (header && header.classList.contains('subsequent-section-header')) {
+          header.style.display = 'none';
+        }
+      }
+    }
+  }
 }
 
 // iOS Folder Drawer Overlay Controller
@@ -2847,10 +2857,16 @@ function renderPermissionsMatrix() {
   `;
   bulkRow.querySelector('.btn-matrix-grant-all').addEventListener('click', () => {
     state.permissions[matrixActiveUserId] = state.apps.map(a => a.id);
+    saveDatabase();
+    syncPermissionToFirestore(matrixActiveUserId, state.permissions[matrixActiveUserId]);
+    renderAppGrid();
     renderPermissionsMatrix();
   });
   bulkRow.querySelector('.btn-matrix-revoke-all').addEventListener('click', () => {
     state.permissions[matrixActiveUserId] = [];
+    saveDatabase();
+    syncPermissionToFirestore(matrixActiveUserId, state.permissions[matrixActiveUserId]);
+    renderAppGrid();
     renderPermissionsMatrix();
   });
   matrixWrapper.appendChild(bulkRow);
@@ -2895,7 +2911,9 @@ function renderPermissionsMatrix() {
         } else {
           state.permissions[matrixActiveUserId] = state.permissions[matrixActiveUserId].filter(id => id !== app.id);
         }
-        // Re-render to update summary chip counts
+        saveDatabase();
+        syncPermissionToFirestore(matrixActiveUserId, state.permissions[matrixActiveUserId]);
+        renderAppGrid();
         renderPermissionsMatrix();
       });
       group.appendChild(row);
