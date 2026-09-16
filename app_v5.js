@@ -139,7 +139,9 @@ let state = {
   activeUserId: null, // Null indicates no authenticated Firebase session!
   isEditing: false,
   activeFolderId: null,
-  theme: 'dark' 
+  theme: 'dark',
+  appSortMode: localStorage.getItem('HGS_APP_SORT') || 'custom',     // 'custom' | 'name-asc' | 'name-desc' | 'recent'
+  sectionSortMode: localStorage.getItem('HGS_SECTION_SORT') || 'custom' // 'custom' | 'name-asc' | 'name-desc'
 };
 
 let pollsUnsubscribe = null;
@@ -1001,8 +1003,91 @@ function renderWidgets() {
   renderSuggestionBox();
 }
 
+// --- Sort helpers for employee layout preferences ---
+
+function getSortedAppsForDisplay(apps) {
+  const copy = [...apps];
+  switch (state.appSortMode) {
+    case 'name-asc':  return copy.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    case 'name-desc': return copy.sort((a, b) => b.name.toLowerCase().localeCompare(a.name.toLowerCase()));
+    case 'recent':    return copy.sort((a, b) => b.order - a.order);
+    default:          return copy.sort((a, b) => a.order - b.order);
+  }
+}
+
+function getSortedSectionsForDisplay(sections) {
+  const copy = [...sections];
+  // Default section always pinned first
+  const defaultSec = copy.find(s => s.id === 'default');
+  const rest = copy.filter(s => s.id !== 'default');
+  switch (state.sectionSortMode) {
+    case 'name-asc':
+      rest.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+      break;
+    case 'name-desc':
+      rest.sort((a, b) => b.name.toLowerCase().localeCompare(a.name.toLowerCase()));
+      break;
+    default:
+      rest.sort((a, b) => a.order - b.order);
+  }
+  return defaultSec ? [defaultSec, ...rest] : rest;
+}
+
+// --- Section drag-and-drop (admin edit mode on live dashboard) ---
+let draggedSectionId = null;
+
+function setupSectionDragDrop(headerEl, sectionId) {
+  headerEl.setAttribute('draggable', 'true');
+
+  headerEl.addEventListener('dragstart', (e) => {
+    draggedSectionId = sectionId;
+    headerEl.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  headerEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+
+  headerEl.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    if (sectionId !== draggedSectionId) {
+      headerEl.classList.add('drag-over');
+    }
+  });
+
+  headerEl.addEventListener('dragleave', () => {
+    headerEl.classList.remove('drag-over');
+  });
+
+  headerEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    headerEl.classList.remove('drag-over');
+    if (draggedSectionId && sectionId !== draggedSectionId && sectionId !== 'default' && draggedSectionId !== 'default') {
+      const dragSec = state.sections.find(s => s.id === draggedSectionId);
+      const dropSec = state.sections.find(s => s.id === sectionId);
+      if (dragSec && dropSec) {
+        const tmp = dragSec.order;
+        dragSec.order = dropSec.order;
+        dropSec.order = tmp;
+        saveDatabase();
+        syncAllSectionsOrderToFirestore();
+        renderAppGrid();
+        showToast('Section order updated');
+      }
+    }
+  });
+
+  headerEl.addEventListener('dragend', () => {
+    headerEl.classList.remove('dragging');
+    draggedSectionId = null;
+  });
+}
+
 // Render main app grid based on permissions and folders
 function renderAppGrid() {
+
   const mainGrid = document.getElementById('main-app-grid');
   mainGrid.innerHTML = '';
   
@@ -1124,7 +1209,7 @@ function renderAppGrid() {
   }
 
   // Prepare and create all subsequent grids and headers in DOM
-  const sortedSections = [...state.sections].sort((a, b) => a.order - b.order);
+  const sortedSections = getSortedSectionsForDisplay(state.sections);
   const gridsMap = {};
   
   // The first section in sortedSections belongs to the mainGrid
@@ -1144,6 +1229,45 @@ function renderAppGrid() {
         mainToolbarTitle.innerHTML = `${firstSec.name}`;
       }
     }
+
+    // Employee sort controls (non-admin, logged-in, not editing)
+    const mainToolbar = document.getElementById('ios-toolbar');
+    const existingSortCtrl = mainToolbar ? mainToolbar.querySelector('.sort-controls') : null;
+    if (existingSortCtrl) existingSortCtrl.remove();
+
+    if (state.activeUserId && !isAdmin && !state.isEditing && mainToolbar) {
+      const sortCtrl = document.createElement('div');
+      sortCtrl.className = 'sort-controls';
+      sortCtrl.innerHTML = `
+        <label class="sort-label">Apps:
+          <select id="app-sort-select" class="sort-select">
+            <option value="custom"${state.appSortMode === 'custom' ? ' selected' : ''}>Default</option>
+            <option value="name-asc"${state.appSortMode === 'name-asc' ? ' selected' : ''}>A → Z</option>
+            <option value="name-desc"${state.appSortMode === 'name-desc' ? ' selected' : ''}>Z → A</option>
+            <option value="recent"${state.appSortMode === 'recent' ? ' selected' : ''}>Recently Added</option>
+          </select>
+        </label>
+        <label class="sort-label">Sections:
+          <select id="section-sort-select" class="sort-select">
+            <option value="custom"${state.sectionSortMode === 'custom' ? ' selected' : ''}>Default</option>
+            <option value="name-asc"${state.sectionSortMode === 'name-asc' ? ' selected' : ''}>A → Z</option>
+            <option value="name-desc"${state.sectionSortMode === 'name-desc' ? ' selected' : ''}>Z → A</option>
+          </select>
+        </label>
+      `;
+      mainToolbar.appendChild(sortCtrl);
+
+      sortCtrl.querySelector('#app-sort-select').addEventListener('change', (e) => {
+        state.appSortMode = e.target.value;
+        localStorage.setItem('HGS_APP_SORT', state.appSortMode);
+        renderAppGrid();
+      });
+      sortCtrl.querySelector('#section-sort-select').addEventListener('change', (e) => {
+        state.sectionSortMode = e.target.value;
+        localStorage.setItem('HGS_SECTION_SORT', state.sectionSortMode);
+        renderAppGrid();
+      });
+    }
   }
 
   // Create grid containers for subsequent sections
@@ -1154,7 +1278,16 @@ function renderAppGrid() {
     const toolbar = document.createElement('div');
     toolbar.className = 'ios-toolbar subsequent-section-header';
     toolbar.style.marginTop = '2.5rem'; // Premium vertical spacing between sections
-    
+
+    // Admin edit mode: drag handle + section controls
+    if (state.isEditing && isAdmin) {
+      const dragHandle = document.createElement('span');
+      dragHandle.className = 'section-drag-handle';
+      dragHandle.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`;
+      toolbar.appendChild(dragHandle);
+      setupSectionDragDrop(toolbar, section.id);
+    }
+
     const title = document.createElement('h2');
     title.className = 'ios-view-title';
     const parts = section.name.split(' ');
@@ -1165,6 +1298,19 @@ function renderAppGrid() {
       title.innerHTML = `${section.name}`;
     }
     toolbar.appendChild(title);
+
+    // Admin edit mode: section controls (remove)
+    if (state.isEditing && isAdmin) {
+      const sectionControls = document.createElement('div');
+      sectionControls.className = 'section-edit-controls';
+      sectionControls.innerHTML = `<button class="section-remove-btn" data-id="${section.id}" type="button" title="Remove section">✕ Remove</button>`;
+      sectionControls.querySelector('.section-remove-btn').addEventListener('click', () => {
+        if (confirm(`Remove section "${section.name}"? All its apps will move to the default section.`)) {
+          deleteSection(section.id);
+        }
+      });
+      toolbar.appendChild(sectionControls);
+    }
     
     // Create App Grid
     const sectionGrid = document.createElement('div');
@@ -1181,9 +1327,30 @@ function renderAppGrid() {
     gridsMap[section.id] = sectionGrid;
   }
 
+  // Admin edit mode: "Add Section" button appended after all section grids
+  if (state.isEditing && isAdmin && subsequentContainer) {
+    const addSectionBtn = document.createElement('button');
+    addSectionBtn.className = 'section-add-btn';
+    addSectionBtn.type = 'button';
+    addSectionBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+      Add Section
+    `;
+    addSectionBtn.addEventListener('click', () => {
+      toggleEditMode(false);
+      openAdminPortal();
+      setTimeout(() => {
+        const tabBtn = document.querySelector('.dialog-tab-btn[data-tab="tab-sections"]');
+        if (tabBtn) tabBtn.click();
+      }, 50);
+    });
+    subsequentContainer.appendChild(addSectionBtn);
+  }
+
   // Group and render applications
-  const sortedApps = [...state.apps].sort((a, b) => a.order - b.order);
+  const sortedApps = state.isEditing ? [...state.apps].sort((a, b) => a.order - b.order) : getSortedAppsForDisplay(state.apps);
   
+
   sortedApps.forEach(item => {
     // Hide sub-apps inside folders from main view
     const isSubApp = state.apps.some(a => a.type === 'folder' && a.appIds && a.appIds.includes(item.id));
@@ -1374,12 +1541,30 @@ function handleFolderRename(e) {
 
 // --- Drag & Drop Reordering Logic (HTML5 DnD APIs) ---
 let draggedElement = null;
+let dragGhostEl = null;
 
 function setupDragDropEvents(element) {
   element.addEventListener('dragstart', (e) => {
     draggedElement = element;
     element.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
+
+    // Build ghost clone with glow + position badge
+    dragGhostEl = element.cloneNode(true);
+    dragGhostEl.classList.add('drag-ghost');
+    dragGhostEl.classList.remove('dragging');
+
+    // Compute position badge (position among visible sortable items)
+    const allVisible = Array.from(document.querySelectorAll('.app-grid .app-item'));
+    const pos = allVisible.indexOf(element) + 1;
+    const badge = document.createElement('div');
+    badge.className = 'drag-position-badge';
+    badge.textContent = `${pos} of ${allVisible.length}`;
+    dragGhostEl.style.position = 'relative';
+    dragGhostEl.appendChild(badge);
+
+    document.body.appendChild(dragGhostEl);
+    e.dataTransfer.setDragImage(dragGhostEl, dragGhostEl.offsetWidth / 2, dragGhostEl.offsetHeight / 2);
   });
 
   element.addEventListener('dragover', (e) => {
@@ -1387,9 +1572,12 @@ function setupDragDropEvents(element) {
     e.dataTransfer.dropEffect = 'move';
   });
 
-  element.addEventListener('dragenter', () => {
+  element.addEventListener('dragenter', (e) => {
+    e.preventDefault();
     if (element !== draggedElement) {
       element.classList.add('drag-over');
+      element.classList.add('drag-target-pulse');
+      setTimeout(() => element.classList.remove('drag-target-pulse'), 300);
     }
   });
 
@@ -1450,8 +1638,13 @@ function setupDragDropEvents(element) {
   element.addEventListener('dragend', () => {
     element.classList.remove('dragging');
     draggedElement = null;
+    if (dragGhostEl) {
+      dragGhostEl.remove();
+      dragGhostEl = null;
+    }
   });
 }
+
 
 // Edit Mode controller
 function toggleEditMode(forceState = null) {
@@ -2421,36 +2614,134 @@ function deleteUser(userId) {
   showToast('Employee profile removed.');
 }
 
-// Render permission grid table rows dynamically
-function renderPermissionsMatrix() {
-  const table = document.getElementById('permissions-matrix-table');
-  table.innerHTML = '';
-  
-  const headerRow = document.createElement('tr');
-  headerRow.innerHTML = `<th>Application Name</th>`;
-  
-  state.users.forEach(user => {
-    headerRow.innerHTML += `<th>${user.name}</th>`;
-  });
-  table.appendChild(headerRow);
+// Render permission matrix — user-tab + section-grouped card layout
+let matrixActiveUserId = null; // tracks which user tab is selected
 
-  state.apps.forEach(app => {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td><strong>${app.name}</strong> ${app.type === 'folder' ? '📁' : ''}</td>`;
-    
-    state.users.forEach(user => {
-      const isPermitted = state.permissions[user.id] && state.permissions[user.id].includes(app.id);
-      const isLockedAdmin = false; // Allow editing checkboxes for Admins and El Presidentes
-      
-      row.innerHTML += `
-        <td style="text-align: center;">
-          <input type="checkbox" data-user="${user.id}" data-app="${app.id}" ${isPermitted ? 'checked' : ''} ${isLockedAdmin ? 'disabled' : ''} style="width: 20px; height: 20px; cursor: pointer;">
-        </td>
-      `;
+function renderPermissionsMatrix() {
+  const tabPanel = document.getElementById('tab-permissions');
+  if (!tabPanel) return;
+
+  // Keep Save button — find or rebuild the inner matrix wrapper
+  let matrixWrapper = tabPanel.querySelector('.matrix-revamp-wrapper');
+  if (!matrixWrapper) {
+    // On first render, clear the old markup and build from scratch
+    const oldDesc = tabPanel.querySelector('p');
+    const oldContainer = tabPanel.querySelector('.matrix-container');
+    if (oldDesc) oldDesc.remove();
+    if (oldContainer) oldContainer.remove();
+
+    matrixWrapper = document.createElement('div');
+    matrixWrapper.className = 'matrix-revamp-wrapper';
+    // Insert before the Save button
+    const saveRow = tabPanel.querySelector('.form-actions');
+    tabPanel.insertBefore(matrixWrapper, saveRow || null);
+  }
+  matrixWrapper.innerHTML = '';
+
+  if (state.users.length === 0) {
+    matrixWrapper.innerHTML = '<p style="color:var(--text-secondary);font-size:0.85rem;">No users yet. Add users in the Users tab first.</p>';
+    return;
+  }
+
+  // Default active user to first user if not set or no longer exists
+  if (!matrixActiveUserId || !state.users.find(u => u.id === matrixActiveUserId)) {
+    matrixActiveUserId = state.users[0].id;
+  }
+
+  const activeUser = state.users.find(u => u.id === matrixActiveUserId);
+  const userPerms = state.permissions[matrixActiveUserId] || [];
+
+  // --- User Tab Strip ---
+  const tabStrip = document.createElement('div');
+  tabStrip.className = 'matrix-user-tabs';
+  state.users.forEach(user => {
+    const grantedCount = (state.permissions[user.id] || []).length;
+    const tab = document.createElement('button');
+    tab.className = 'matrix-user-tab' + (user.id === matrixActiveUserId ? ' active' : '');
+    tab.type = 'button';
+    tab.dataset.uid = user.id;
+    tab.innerHTML = `
+      ${escapeHTML(user.name)}
+      <span class="matrix-summary-chip">${grantedCount}/${state.apps.length}</span>
+    `;
+    tab.addEventListener('click', () => {
+      matrixActiveUserId = user.id;
+      renderPermissionsMatrix();
     });
-    table.appendChild(row);
+    tabStrip.appendChild(tab);
+  });
+  matrixWrapper.appendChild(tabStrip);
+
+  // --- Bulk Controls ---
+  const bulkRow = document.createElement('div');
+  bulkRow.className = 'matrix-bulk-controls';
+  bulkRow.innerHTML = `
+    <span style="font-size:0.8rem;color:var(--text-secondary);font-weight:600;flex:1;">${escapeHTML(activeUser ? activeUser.name : '')} — ${userPerms.length} of ${state.apps.length} apps granted</span>
+    <button type="button" class="btn-ios btn-matrix-grant-all" style="padding:0.3rem 0.75rem;font-size:0.75rem;">Grant All</button>
+    <button type="button" class="btn-ios btn-matrix-revoke-all" style="padding:0.3rem 0.75rem;font-size:0.75rem;color:#ff3b30;border-color:rgba(255,59,48,0.3);">Revoke All</button>
+  `;
+  bulkRow.querySelector('.btn-matrix-grant-all').addEventListener('click', () => {
+    state.permissions[matrixActiveUserId] = state.apps.map(a => a.id);
+    renderPermissionsMatrix();
+  });
+  bulkRow.querySelector('.btn-matrix-revoke-all').addEventListener('click', () => {
+    state.permissions[matrixActiveUserId] = [];
+    renderPermissionsMatrix();
+  });
+  matrixWrapper.appendChild(bulkRow);
+
+  // --- App rows grouped by section ---
+  const sortedSections = [...state.sections].sort((a, b) => a.order - b.order);
+  const currentUserPerms = state.permissions[matrixActiveUserId] || [];
+
+  sortedSections.forEach(section => {
+    const sectionApps = [...state.apps].sort((a, b) => a.order - b.order).filter(a => a.sectionId === section.id);
+    if (sectionApps.length === 0) return;
+
+    const group = document.createElement('div');
+    group.className = 'matrix-section-group';
+
+    const label = document.createElement('div');
+    label.className = 'matrix-section-label';
+    label.textContent = section.name;
+    group.appendChild(label);
+
+    sectionApps.forEach(app => {
+      const isOn = currentUserPerms.includes(app.id);
+      const row = document.createElement('div');
+      row.className = 'matrix-app-row';
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div class="matrix-app-icon">${SVG_ICONS[app.icon] || SVG_ICONS.box}</div>
+          <span style="font-size:0.85rem;font-weight:600;">${escapeHTML(app.name)}</span>
+          ${app.type === 'folder' ? '<span style="font-size:0.65rem;color:var(--accent-green);font-weight:700;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(141,220,4,0.12);">FOLDER</span>' : ''}
+        </div>
+        <label class="toggle-switch" title="${isOn ? 'Revoke access' : 'Grant access'}">
+          <input type="checkbox" class="matrix-toggle" data-user="${matrixActiveUserId}" data-app="${app.id}" ${isOn ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+      `;
+      row.querySelector('.matrix-toggle').addEventListener('change', (e) => {
+        if (!state.permissions[matrixActiveUserId]) state.permissions[matrixActiveUserId] = [];
+        if (e.target.checked) {
+          if (!state.permissions[matrixActiveUserId].includes(app.id)) {
+            state.permissions[matrixActiveUserId].push(app.id);
+          }
+        } else {
+          state.permissions[matrixActiveUserId] = state.permissions[matrixActiveUserId].filter(id => id !== app.id);
+        }
+        // Re-render to update summary chip counts
+        renderPermissionsMatrix();
+      });
+      group.appendChild(row);
+    });
+
+    matrixWrapper.appendChild(group);
   });
 }
+
+// handlePermissionsSave now reads from state.permissions directly (toggles update it live)
+
 
 // App form save & EDIT handler
 function handleAppSubmit(e) {
@@ -2692,26 +2983,11 @@ function handleProfileSubmit(e) {
     });
 }
 
-// Permissions save matrix handler
+// Permissions save handler — state.permissions is updated live by toggle switches
 function handlePermissionsSave() {
-  const checkboxes = document.querySelectorAll('#permissions-matrix-table input[type="checkbox"]');
-  
-  state.users.forEach(user => {
-    state.permissions[user.id] = [];
-  });
-
-  checkboxes.forEach(chk => {
-    const userId = chk.dataset.user;
-    const appId = chk.dataset.app;
-    
-    if (chk.checked) {
-      state.permissions[userId].push(appId);
-    }
-  });
-
   saveDatabase();
   
-  // Sync changed user permissions to Firestore for all users
+  // Sync all users' permissions to Firestore
   state.users.forEach(user => {
     syncPermissionToFirestore(user.id, state.permissions[user.id] || []);
   });
@@ -2720,6 +2996,7 @@ function handlePermissionsSave() {
   showToast('Employee Permissions Saved!');
   closeAdminPortal();
 }
+
 
 // --- TAB: Dashboard Sections Management Engine ---
 
