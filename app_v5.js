@@ -1290,8 +1290,10 @@ function renderAppGrid() {
   const isDocsOpen = benefitsDocsPanel && benefitsDocsPanel.style.display === 'flex';
   const forkliftPanel = document.getElementById('forklift-page-inline');
   const isForkliftOpen = forkliftPanel && forkliftPanel.style.display === 'flex';
+  const forkliftTrainingPanel = document.getElementById('forklift-training-page-inline');
+  const isForkliftTrainingOpen = forkliftTrainingPanel && forkliftTrainingPanel.style.display === 'flex';
   const topActions = document.getElementById('top-actions-bar');
-  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen;
+  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen || isForkliftTrainingOpen;
   
   if (isAnyModalOpen) {
     mainGrid.style.display = 'none';
@@ -1884,6 +1886,7 @@ function openAdminPortal() {
   closeBenefitsPage(false);
   closeBenefitsDocsPage(false);
   closeForkliftSafetyPage(false);
+  closeForkliftTrainingPage(false);
 
   // Switch display elements
   document.getElementById('main-app-grid').style.display = 'none';
@@ -2035,6 +2038,7 @@ function openBenefitsPage() {
   if (adminPanel) adminPanel.style.display = 'none';
   closeBenefitsDocsPage(false);
   closeForkliftSafetyPage(false);
+  closeForkliftTrainingPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2075,6 +2079,7 @@ function openBenefitsDocsPage(initialFilter = 'all') {
   if (adminPanel) adminPanel.style.display = 'none';
   closeBenefitsPage(false);
   closeForkliftSafetyPage(false);
+  closeForkliftTrainingPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2685,6 +2690,7 @@ function openForkliftSafetyPage() {
   if (adminPanel) adminPanel.style.display = 'none';
   closeBenefitsPage(false);
   closeBenefitsDocsPage(false);
+  closeForkliftTrainingPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2707,6 +2713,9 @@ function openForkliftSafetyPage() {
 function closeForkliftSafetyPage(restoreGrid = true) {
   const forkliftPanel = document.getElementById('forklift-page-inline');
   if (forkliftPanel) forkliftPanel.style.display = 'none';
+
+  const forkliftTrainingPanel = document.getElementById('forklift-training-page-inline');
+  if (forkliftTrainingPanel) forkliftTrainingPanel.style.display = 'none';
 
   if (restoreGrid) {
     document.getElementById('main-app-grid').style.display = 'grid';
@@ -2740,7 +2749,11 @@ function renderForkliftSafetyPage() {
         </span>
       </div>
       <div class="view-nav-actions-right">
-        <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios btn-ios-accent">
+        <button class="btn-ios btn-ios-accent" id="btn-forklift-to-training" type="button" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35);">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path></svg>
+          Operator Training Program &rarr;
+        </button>
+        <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios">
           <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
           Operators Manual (PDF) ↗
         </a>
@@ -2763,9 +2776,13 @@ function renderForkliftSafetyPage() {
           Safe forklift operation protects our team, prevents severe tip-overs, and guarantees warehouse integrity. This portal houses verified machine technical data plate specifications, active operator certifications with a 3-year renewal countdown, essential safety rules from the official Toyota Operator's Manual, and daily pre-shift inspection checklists.
         </p>
         <div class="benefits-hero-actions">
-          <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-hero-primary" style="background: #f59e0b; color: #18181b; border: none; font-weight: 700;">
+          <button class="btn-hero-primary" id="btn-hero-to-training" type="button" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path></svg>
+            OSHA Operator Training Program &rarr;
+          </button>
+          <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-hero-secondary" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.35);">
             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-            Open Official Toyota Operator's Manual (PDF)
+            Toyota Manual (PDF)
           </a>
           <a href="#forklift-operators-section" class="btn-hero-secondary" id="btn-hero-scroll-operators">
             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path></svg>
@@ -3120,8 +3137,24 @@ function renderForkliftSafetyPage() {
       </div>
     </div>
 
+    <!-- Dedicated Training Program Banner -->
+    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; color: #60a5fa; flex-shrink: 0;">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path></svg>
+        </div>
+        <div>
+          <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">OSHA Forklift Operator Training Program Writeup</h4>
+          <p style="margin: 0.2rem 0 0 0; font-size: 0.82rem; color: var(--text-secondary);">Access our complete 4-module training curriculum tailored for our 2020 Toyota 8FGU25, covering SAS, LPG safety, tip-over protocols, and OSHA 1910.178 compliance.</p>
+        </div>
+      </div>
+      <button class="btn-ios btn-ios-accent" id="btn-bottom-to-training" type="button" style="background: #2563eb; color: #ffffff; border: none; font-weight: 700; white-space: nowrap;">
+        Open Training Program &rarr;
+      </button>
+    </div>
+
     <!-- Manual Download Banner -->
-    <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.08) 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;">
+    <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.08) 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1rem;">
       <div style="display: flex; align-items: center; gap: 1rem;">
         <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; color: #f59e0b; flex-shrink: 0;">
           <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
@@ -3143,6 +3176,21 @@ function renderForkliftSafetyPage() {
     btnBack.addEventListener('click', () => closeForkliftSafetyPage());
   }
 
+  const btnForkliftToTraining = document.getElementById('btn-forklift-to-training');
+  if (btnForkliftToTraining) {
+    btnForkliftToTraining.addEventListener('click', () => openForkliftTrainingPage());
+  }
+
+  const btnHeroToTraining = document.getElementById('btn-hero-to-training');
+  if (btnHeroToTraining) {
+    btnHeroToTraining.addEventListener('click', () => openForkliftTrainingPage());
+  }
+
+  const btnBottomToTraining = document.getElementById('btn-bottom-to-training');
+  if (btnBottomToTraining) {
+    btnBottomToTraining.addEventListener('click', () => openForkliftTrainingPage());
+  }
+
   const btnScrollOps = document.getElementById('btn-hero-scroll-operators');
   if (btnScrollOps) {
     btnScrollOps.addEventListener('click', (e) => {
@@ -3150,6 +3198,531 @@ function renderForkliftSafetyPage() {
       const target = document.getElementById('forklift-operators-section');
       if (target) target.scrollIntoView({ behavior: 'smooth' });
     });
+  }
+}
+
+// --- Forklift Training Program Page Controllers ---
+
+function openForkliftTrainingPage() {
+  if (state.isEditing) toggleEditMode(false);
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel) adminPanel.style.display = 'none';
+  closeBenefitsPage(false);
+  closeBenefitsDocsPage(false);
+  closeForkliftSafetyPage(false);
+
+  document.getElementById('main-app-grid').style.display = 'none';
+  document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
+  
+  const trainingPanel = document.getElementById('forklift-training-page-inline');
+  if (trainingPanel) {
+    trainingPanel.style.display = 'flex';
+    renderForkliftTrainingPage();
+    const shell = document.querySelector('.ios-screen-content');
+    if (shell) shell.scrollTop = 0;
+  }
+}
+
+function closeForkliftTrainingPage(restoreGrid = true) {
+  const trainingPanel = document.getElementById('forklift-training-page-inline');
+  if (trainingPanel) trainingPanel.style.display = 'none';
+
+  if (restoreGrid) {
+    document.getElementById('main-app-grid').style.display = 'grid';
+    document.getElementById('ios-toolbar').style.display = 'flex';
+    
+    const subsequentContainer = document.getElementById('subsequent-sections-container');
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
+    
+    renderAppGrid();
+  }
+}
+
+function renderForkliftTrainingPage() {
+  const container = document.getElementById('forklift-training-page-inline');
+  if (!container) return;
+
+  container.innerHTML = `
+    <!-- Top Nav Header -->
+    <div class="view-nav-header">
+      <div class="view-nav-actions-left">
+        <button class="btn-ios" id="btn-back-to-forklift-from-training" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
+          Forklift Safety Portal
+        </button>
+        <button class="btn-ios" id="btn-back-to-dash-from-training" type="button">
+          Dashboard
+        </button>
+        <span class="view-badge" style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3);">
+          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          OSHA 29 CFR 1910.178 • 2020 Toyota 8FGU25
+        </span>
+      </div>
+      <div class="view-nav-actions-right">
+        <a href="assets/forklift/OSHA_Forklift_Operator_Training_Program_2020_Toyota_8FGU25.txt" target="_blank" rel="noopener noreferrer" class="btn-ios">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+          Source Text (.txt) ↗
+        </a>
+        <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios btn-ios-accent">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          Toyota Manual (PDF) ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero Card -->
+    <div class="training-hero-card">
+      <div class="benefits-hero-content">
+        <div class="benefits-hero-header">
+          <div class="benefits-hero-icon" style="background: rgba(59, 130, 246, 0.18); border-color: rgba(59, 130, 246, 0.4);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path><line x1="9" y1="7" x2="15" y2="7"></line><line x1="9" y1="11" x2="13" y2="11"></line></svg>
+          </div>
+          <div class="benefits-hero-title-group">
+            <h1 style="color: var(--text-primary); font-size: 1.5rem; margin: 0;">OSHA Operator Training Program: 2020 Toyota 8FGU25</h1>
+            <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0; font-size: 0.9rem;">Powered Industrial Truck (PIT) Theoretical Instruction, Safe Work Protocols & Mandated Competency</p>
+          </div>
+        </div>
+        <p class="training-section-desc">
+          Under OSHA Standard <strong>29 CFR 1910.178</strong>, operator certification requires a mandatory tripartite curriculum: <strong>formal instruction</strong>, <strong>practical hands-on training</strong>, and <strong>site-specific evaluation</strong> of operator competency. This document establishes the core operational knowledge, propane fuel precautions, tip-over survival protocols, and machine dynamics for our 2020 Toyota 8FGU25.
+        </p>
+
+        <!-- Quick Jump Navigation Pills -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+          <a href="#prog-intro" class="btn-ios" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">1. Framework &amp; Risks</a>
+          <a href="#prog-mod1" class="btn-ios" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">2. Module 1: Truck &amp; Propane</a>
+          <a href="#prog-mod2" class="btn-ios" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">3. Module 2: Inspections &amp; Tip-Over</a>
+          <a href="#prog-mod3" class="btn-ios" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">4. Module 3: Maneuvering &amp; Mast</a>
+          <a href="#prog-mod4" class="btn-ios" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">5. Module 4: Evaluation &amp; OSHA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: Program Introduction and Regulatory Framework -->
+    <div class="training-module-card" id="prog-intro">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span class="training-module-badge">OSHA Regulatory Framework</span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">29 CFR 1910.178 Mandate</span>
+      </div>
+      <h2 class="training-module-title">1. Program Introduction &amp; Regulatory Framework</h2>
+      <p class="training-section-desc">
+        The implementation of a rigorous training program for Powered Industrial Trucks (PIT) is a strategic mandate essential for ensuring workplace safety and regulatory adherence. In accordance with <strong>OSHA standard 29 CFR 1910.178</strong>, this program serves as the theoretical foundation for safe operation. However, this written guide is only one component of a mandatory, tripartite certification process:
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem;">
+        <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 1rem;">
+          <div style="font-weight: 700; color: #60a5fa; font-size: 0.9rem; margin-bottom: 0.3rem;">1. Formal Instruction</div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">Classroom training, curriculum study, video instruction, written materials, and operational testing.</div>
+        </div>
+        <div style="background: rgba(141, 220, 4, 0.06); border: 1px solid rgba(141, 220, 4, 0.2); border-radius: 10px; padding: 1rem;">
+          <div style="font-weight: 700; color: var(--accent-green); font-size: 0.9rem; margin-bottom: 0.3rem;">2. Practical Training</div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">Hands-on demonstrations performed by our Operator Trainer and exercises performed by the trainee.</div>
+        </div>
+        <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 1rem;">
+          <div style="font-weight: 700; color: #f59e0b; font-size: 0.9rem; margin-bottom: 0.3rem;">3. Site-Specific Evaluation</div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">Direct observation and evaluation of operator competency inside the actual 4HGS warehouse environment.</div>
+        </div>
+      </div>
+
+      <!-- OSHA Compliance Responsibilities Table -->
+      <div style="margin-top: 0.5rem;">
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">OSHA Compliance Standards: Training Responsibilities</h3>
+        <div class="capacity-table-wrap">
+          <table class="capacity-table">
+            <thead>
+              <tr>
+                <th style="width: 250px;">Resource Provider</th>
+                <th>Training &amp; Compliance Components</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Online E-Learning / Program Guide</strong></td>
+                <td>Operating rules, safe work practices, vehicle fundamentals, stability physics, and general hazard awareness.</td>
+              </tr>
+              <tr>
+                <td><strong>Employer On-Site Requirement</strong></td>
+                <td>Hands-on training, practical evaluation of operator skills, workplace-specific hazard orientation, and final certification of competency.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Critical Risk Analysis Callout -->
+      <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 1rem; margin-top: 0.25rem;">
+        <h4 style="margin: 0 0 0.4rem 0; color: #f87171; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 2 22 22 22"></polygon><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Critical Risk Analysis: High-Lift Rider vs. Low-Lift Equipment
+        </h4>
+        <p style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          The 2020 Toyota 8FGU25 is a <strong>High-Lift Rider truck</strong>, presenting significantly higher risk profiles than motorized hand trucks or pallet jacks. While a hand truck operates on a flat plane with a low center of gravity, the 8FGU25's mast height creates a volatile <strong>"Stability Triangle."</strong> As the load is raised, the center of gravity moves upward and closer to the tipping line. The dynamic forces of travel speed and elevation transform this 4,000-lb rated vehicle into an immediate rollover pivot if stability physics are ignored.
+        </p>
+      </div>
+    </div>
+
+    <!-- Section 2: Module 1: Truck Fundamentals & Propane Safety -->
+    <div class="training-module-card" id="prog-mod1">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span class="training-module-badge">Module 1</span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Toyota 8FGU25 Engineering &amp; Fueling</span>
+      </div>
+      <h2 class="training-module-title">2. Module 1: Truck Fundamentals &amp; Propane Safety</h2>
+      <p class="training-section-desc">
+        Mastering vehicle-specific engineering is a strategic necessity to prevent mechanical failure and fuel-related catastrophes. Operators who fail to respect the technical statistics and power systems of the 8FGU25 risk both equipment damage and life-threatening exposure.
+      </p>
+
+      <!-- Technical Specifications Table -->
+      <div>
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">Technical Specifications &amp; Differentiators</h3>
+        <div class="capacity-table-wrap">
+          <table class="capacity-table">
+            <thead>
+              <tr>
+                <th style="width: 220px;">Feature</th>
+                <th>Specification</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Model</strong></td>
+                <td>8FGU25 (Internal Combustion / Liquid Propane Gas)</td>
+              </tr>
+              <tr>
+                <td><strong>Rated Capacity</strong></td>
+                <td>4,000 lbs at 24-in load center (with SSFP attachment) &bull; 4,500 lbs standard rating</td>
+              </tr>
+              <tr>
+                <td><strong>Tires</strong></td>
+                <td>Solid Pneumatic (Front: 7.00-12, Rear: 6.00-9)</td>
+              </tr>
+              <tr>
+                <td><strong>Mast Type</strong></td>
+                <td>FSV (Full-Free Lift Three-Stage Mast, Max Lift 189.0 in / 4800 mm)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Toyota-Specific Safety Systems -->
+      <div style="margin-top: 0.5rem;">
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">Toyota-Specific Safety Systems: SAS and OPSS</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.75rem;">
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 10px; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+              <span style="background: #3b82f6; color: white; border-radius: 4px; padding: 0.1rem 0.45rem; font-weight: 800; font-size: 0.72rem;">SAS</span>
+              <strong style="color: var(--text-primary); font-size: 0.88rem;">System of Active Stability</strong>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+              Monitors vehicle dynamics and lateral acceleration. When cornering forces threaten rollover, the patented rear axle <strong>swing-lock cylinder</strong> locks instantly, turning the swinging steer axle into a rigid, broad platform to prevent lateral tip-over.
+            </p>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 10px; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+              <span style="background: #10b981; color: white; border-radius: 4px; padding: 0.1rem 0.45rem; font-weight: 800; font-size: 0.72rem;">OPSS</span>
+              <strong style="color: var(--text-primary); font-size: 0.88rem;">Operator Presence Sensing System</strong>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+              Utilizes an electronic switch built into the driver's seat cushion. If the operator unseats or shifts position for more than 2 seconds, OPSS automatically disengages transmission drive and locks all hydraulic mast lift/lower/tilt functions.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Internal Combustion & Propane (LPG) Protocols -->
+      <div style="margin-top: 0.5rem;">
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">Internal Combustion &amp; Propane (LPG) Safety Protocols</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
+          <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 1rem;">
+            <h4 style="margin: 0 0 0.4rem 0; color: #fbbf24; font-size: 0.85rem;">Hazard Evaluation</h4>
+            <div class="checklist-item">
+              <span class="checklist-check" style="background: #f59e0b; color: #18181b;">!</span>
+              <div><strong>Cryogenic Burns:</strong> Liquid propane boils at -44°F. Mandatory PPE: <strong>gauntlet gloves</strong> and <strong>face shield</strong> must be worn during cylinder changeouts.</div>
+            </div>
+            <div class="checklist-item">
+              <span class="checklist-check" style="background: #f59e0b; color: #18181b;">!</span>
+              <div><strong>Carbon Monoxide (CO):</strong> Black exhaust smoke signals incomplete combustion and toxic CO buildup. Never operate in unventilated spaces.</div>
+            </div>
+            <div class="checklist-item">
+              <span class="checklist-check" style="background: #f59e0b; color: #18181b;">!</span>
+              <div><strong>Leak Detection:</strong> Test fittings using a soapy water solution; active bubbling confirms a dangerous leak. Never use an open flame.</div>
+            </div>
+          </div>
+          <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 1rem;">
+            <h4 style="margin: 0 0 0.4rem 0; color: #60a5fa; font-size: 0.85rem;">Refueling Requirements</h4>
+            <div class="checklist-item">
+              <span class="checklist-check">✓</span>
+              <div><strong>Cylinder Exchange:</strong> Always turn off the forklift engine and completely close the cylinder service valve before disconnecting.</div>
+            </div>
+            <div class="checklist-item">
+              <span class="checklist-check">✓</span>
+              <div><strong>Thermal Expansion:</strong> Never fill tanks past 80% maximum capacity. LPG expands as ambient temperature rises and can release through relief valves.</div>
+            </div>
+            <div class="checklist-item">
+              <span class="checklist-check">✓</span>
+              <div><strong>Sediment Prevention:</strong> Always refill the LP tank at the end of each day. This eliminates overnight condensation and stops sediment ingestion.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Module 2: Daily Inspections & Sit-Down Tip-Over Protocols -->
+    <div class="training-module-card" id="prog-mod2">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span class="training-module-badge">Module 2</span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">OSHA 1910.178(q)(1) Mandate</span>
+      </div>
+      <h2 class="training-module-title">3. Module 2: Daily Inspections &amp; Sit-Down Tip-Over Protocols</h2>
+      <p class="training-section-desc">
+        The pre-operation inspection is the primary line of defense against workplace fatalities. A defective vehicle is a severe legal liability: <strong>any truck not in safe operating condition must be removed from service immediately</strong> under 29 CFR 1910.178(q)(1).
+      </p>
+
+      <!-- Pre-Operation Checklist -->
+      <div>
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">Mandatory Pre-Operation Checklist</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.6rem;">
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Fluids:</strong> Verify engine oil, radiator coolant, and hydraulic fluid levels before startup.</div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Visual Integrity:</strong> Inspect high-pressure hydraulic hoses for cracking, abrasions, or fluid weeping.</div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Mast Safety:</strong> Check mast lift chains for tension. <em style="color: #f87171;">Warning: Never place hands inside mast assembly; use a stick or tool to test tension.</em></div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Forks &amp; Pins:</strong> Inspect for surface stress cracks, bent tines, and verify the top clip retaining pin and heel are locked.</div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Dashboard Gauges:</strong> Ensure warning lights (Oil Pressure, Engine Coolant Temp, Transmission Heat) extinguish after ignition.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sit-Down Tip-Over Response Protocol Callout -->
+      <div class="tip-over-callout">
+        <div class="tip-over-header">
+          <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path></svg>
+          Sit-Down Tip-Over Response: The Six-Step Protocol
+        </div>
+        <p style="font-size: 0.84rem; color: #fecaca; margin: 0 0 0.85rem 0; line-height: 1.5;">
+          If a lateral or forward tip-over occurs, your seatbelt is your life jacket. <strong>DO NOT ATTEMPT TO JUMP.</strong> The overhead guard falls faster than human reaction time, and jumping almost always leads to fatal crushing under the frame. Execute these 6 steps in order:
+        </p>
+        <div class="tip-over-steps">
+          <div class="tip-over-step-item">
+            <div class="tip-over-step-num">1</div>
+            <div><strong>Stay in the seat:</strong> Seatbelt must already be fastened prior to starting.</div>
+          </div>
+          <div class="tip-over-step-item">
+            <div class="tip-over-step-num">2</div>
+            <div><strong>Hold on tight:</strong> Grip the steering wheel firmly with both hands.</div>
+          </div>
+          <div class="tip-over-step-item">
+            <div class="tip-over-step-num">3</div>
+            <div><strong>Brace your feet:</strong> Push your feet down hard into the floorboard.</div>
+          </div>
+          <div class="tip-over-step-item">
+            <div class="tip-over-step-num">4</div>
+            <div><strong>Lean away:</strong> Lean in the opposite direction from the point of impact.</div>
+          </div>
+          <div class="tip-over-step-item" style="border-color: #ef4444; background: rgba(239, 68, 68, 0.35);">
+            <div class="tip-over-step-num" style="background: #b91c1c;">!</div>
+            <div><strong style="color: #ffffff;">DO NOT JUMP:</strong> Stay inside the protective roll cage envelope.</div>
+          </div>
+          <div class="tip-over-step-item">
+            <div class="tip-over-step-num">6</div>
+            <div><strong>Lean forward:</strong> Tuck your torso forward to protect your head and spine.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Module 3: Maneuvering, Load Handling & Workplace Hazards -->
+    <div class="training-module-card" id="prog-mod3">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span class="training-module-badge">Module 3</span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Maneuvering &amp; Mast Operations</span>
+      </div>
+      <h2 class="training-module-title">4. Module 3: Maneuvering, Load Handling &amp; Workplace Hazards</h2>
+      <p class="training-section-desc">
+        Environmental awareness and load physics are what separate a certified operator from a liability. Navigating warehouse aisles with elevated loads requires disciplined speed and pedal modulation.
+      </p>
+
+      <!-- Safe Traveling & Inching Control -->
+      <div>
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">Safe Traveling and Inching Control</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem;">
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Speed &amp; Horn:</strong> Maintain speed that allows stopping safely at all times. Sound the horn before blind doorways, intersections, and cross-aisles.</div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Inclines (&gt;10% Grade):</strong> Loaded forklifts must travel with load upgrade (forward uphill, reverse downhill). Forks pointed uphill.</div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Visibility Mandate:</strong> If forward cargo blocks the driver's field of view, reverse travel with load trailing is legally mandatory.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Master Trainer Command -->
+      <div class="trainer-quote-card">
+        <strong>Master Trainer Command for Inching:</strong>
+        <p style="margin: 0.35rem 0 0 0; font-size: 0.95rem; font-weight: 600;">
+          "Inching is for precision, the brake is for stopping — never ride the inching pedal during high-speed travel."
+        </p>
+      </div>
+
+      <!-- Mast Dynamics & Hierarchy Table -->
+      <div style="margin-top: 0.5rem;">
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">Mast Dynamics &amp; Hierarchy</h3>
+        <div class="capacity-table-wrap">
+          <table class="capacity-table">
+            <thead>
+              <tr>
+                <th style="width: 180px;">Mast Type</th>
+                <th>Lift Architecture &amp; Operational Envelope</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Simplex</strong></td>
+                <td>Single-stage mast with minimal free lift (4–6 in). Outer channels elevate immediately as forks lift.</td>
+              </tr>
+              <tr>
+                <td><strong>Duplex</strong></td>
+                <td>Two-stage mast with significant full free lift (50–60 in). Ideal for low doorways and boxcar clearance.</td>
+              </tr>
+              <tr>
+                <td><strong>Triplex (FSV)</strong><br><span style="font-size: 0.7rem; color: #60a5fa; font-weight: 700;">Equipped on 8FGU25</span></td>
+                <td>Standard three-stage mast with full free lift cylinder. Reaches 189 inches while keeping low collapsed height for standard door passages.</td>
+              </tr>
+              <tr>
+                <td><strong>Quad</strong></td>
+                <td>Four-stage mast designed for extreme ceiling heights; requires advanced derating precautions due to severe capacity reductions aloft.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Attachments and Mandatory Compliance -->
+      <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 1rem; margin-top: 0.5rem;">
+        <h4 style="margin: 0 0 0.4rem 0; color: #f59e0b; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path></svg>
+          Attachments &amp; Mandatory Compliance (29 CFR 1910.178(a)(4))
+        </h4>
+        <p style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.5; margin: 0 0 0.5rem 0;">
+          Adding attachments (side-shifters, fork positioners, roll clamps) shifts the load center forward and reduces the truck's effective rating. Under federal standard <strong>29 CFR 1910.178(a)(4)</strong>, modifications or additions that affect capacity or safe operation <strong>shall not be performed without prior written approval from the manufacturer</strong>.
+        </p>
+        <p style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          <strong>Administrative Requirement:</strong> Data plates, capacity tags, and warning decals must be updated to reflect the new derated capacity. An unloaded forklift operating with an attachment must be treated as "partially loaded."
+        </p>
+      </div>
+    </div>
+
+    <!-- Section 5: Module 4: Practical Demonstration, Evaluation & OSHA Certification -->
+    <div class="training-module-card" id="prog-mod4">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span class="training-module-badge">Module 4</span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">OSHA Certification &amp; Emergency Protocols</span>
+      </div>
+      <h2 class="training-module-title">5. Module 4: Practical Demonstration, Evaluation &amp; OSHA Certification</h2>
+      <p class="training-section-desc">
+        Certification is a legal finality. You are moving from theoretical knowledge to demonstrated competency in the actual work environment.
+      </p>
+
+      <!-- Administrative Mandates -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
+        <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; padding: 1rem;">
+          <h4 style="margin: 0 0 0.4rem 0; color: #f87171; font-size: 0.88rem;">Age Restriction (Federal Law)</h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+            Federal Department of Labor and OSHA regulations strictly prohibit any individual <strong>under 18 years of age</strong> from operating a powered industrial truck in non-agricultural operations. Zero exceptions.
+          </p>
+        </div>
+        <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 1rem;">
+          <h4 style="margin: 0 0 0.4rem 0; color: #60a5fa; font-size: 0.88rem;">Re-evaluation &amp; Refresher Triggers</h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+            Training is not static. Refresher training and immediate re-evaluation are required if: the operator is observed driving unsafely, is involved in an accident or near-miss, receives an unsatisfactory evaluation, or workplace/equipment conditions change.
+          </p>
+        </div>
+      </div>
+
+      <!-- Workplace Safety & Emergency Response -->
+      <div style="margin-top: 0.5rem;">
+        <h3 style="font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.6rem 0;">Workplace Safety &amp; Emergency Response</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.6rem;">
+          <div class="checklist-item">
+            <span class="checklist-check">✓</span>
+            <div><strong>Nightly Housekeeping:</strong> Sweeping aisles, clearing pallet debris, and immediately wiping grease/chemical spills are required to prevent loss of tire traction.</div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check" style="background: #3b82f6;">✓</span>
+            <div><strong>15-Minute Emergency Flush:</strong> In case of battery acid or liquid propane contact with skin or eyes, flush affected areas with clean water for <strong>at least 15 minutes</strong> and seek emergency medical care.</div>
+          </div>
+          <div class="checklist-item">
+            <span class="checklist-check" style="background: #ef4444;">✓</span>
+            <div><strong>Defective Vehicle Tagout:</strong> Any truck emitting hazardous sparks, fuel odor, smoke, or unusual driveline vibration must be tagged out and removed from service immediately.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Certification Summary -->
+      <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 1.2rem; margin-top: 0.5rem;">
+        <h4 style="margin: 0 0 0.35rem 0; color: #34d399; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Final Certification Summary
+        </h4>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; margin: 0;">
+          Professional forklift operation requires constant vigilance. Safety is maintained through rigorous pre-shift inspections, unwavering adherence to load physics, and the immediate refusal to operate any equipment that does not meet 100% of OSHA compliance standards.
+        </p>
+      </div>
+
+      <!-- Bottom Navigation Controls -->
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem;">
+        <button class="btn-ios btn-ios-accent" id="btn-bottom-return-forklift" type="button">
+          &larr; Return to Forklift Safety Portal
+        </button>
+        <button class="btn-ios" id="btn-bottom-return-dash" type="button">
+          Exit to Main Dashboard
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Attach nav handlers for training page
+  const btnBackForklift = document.getElementById('btn-back-to-forklift-from-training');
+  if (btnBackForklift) {
+    btnBackForklift.addEventListener('click', () => openForkliftSafetyPage());
+  }
+
+  const btnBackDash = document.getElementById('btn-back-to-dash-from-training');
+  if (btnBackDash) {
+    btnBackDash.addEventListener('click', () => closeForkliftTrainingPage());
+  }
+
+  const btnBottomReturnForklift = document.getElementById('btn-bottom-return-forklift');
+  if (btnBottomReturnForklift) {
+    btnBottomReturnForklift.addEventListener('click', () => openForkliftSafetyPage());
+  }
+
+  const btnBottomReturnDash = document.getElementById('btn-bottom-return-dash');
+  if (btnBottomReturnDash) {
+    btnBottomReturnDash.addEventListener('click', () => closeForkliftTrainingPage());
   }
 }
 
