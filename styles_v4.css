@@ -2775,5 +2775,30 @@ body.light-mode .toggle-switch input:checked + .toggle-slider {
   }
 }
 
+/* Grid container drop target styling for moving apps across sections */
+.editing .app-grid:empty {
+  min-height: 85px;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--border-radius-panel);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+}
 
+.editing .app-grid:empty::after {
+  content: 'Empty Section — Drag apps here';
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
 
+.app-grid.grid-drag-over {
+  border: 2px dashed var(--accent-green) !important;
+  border-radius: var(--border-radius-panel);
+  background: var(--accent-green-dim) !important;
+}
+
+body.light-mode .editing .app-grid:empty {
+  border-color: rgba(0, 0, 0, 0.15);
+}

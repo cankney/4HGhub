@@ -209,7 +209,7 @@ function ensureDefaultSectionsAndApps() {
 
   const usefulSectionId = primaryUsefulSection.id;
 
-  // 2. Ensure health-benefits app exists and is assigned to the unified Useful Links section
+  // 2. Ensure health-benefits app exists (preserve sectionId if already assigned to a valid section)
   const healthBenefitsApp = state.apps.find(a => a.id === 'health-benefits');
   if (!healthBenefitsApp) {
     state.apps.push({
@@ -222,11 +222,13 @@ function ensureDefaultSectionsAndApps() {
       allUsers: true
     });
   } else {
-    healthBenefitsApp.sectionId = usefulSectionId;
+    if (!healthBenefitsApp.sectionId || !state.sections.some(s => s.id === healthBenefitsApp.sectionId)) {
+      healthBenefitsApp.sectionId = usefulSectionId;
+    }
     healthBenefitsApp.allUsers = true;
   }
 
-  // 3. Ensure benefits-docs app exists and is assigned to the unified Useful Links section
+  // 3. Ensure benefits-docs app exists (preserve sectionId if already assigned to a valid section)
   const benefitsDocsApp = state.apps.find(a => a.id === 'benefits-docs');
   if (!benefitsDocsApp) {
     state.apps.push({
@@ -239,7 +241,9 @@ function ensureDefaultSectionsAndApps() {
       allUsers: true
     });
   } else {
-    benefitsDocsApp.sectionId = usefulSectionId;
+    if (!benefitsDocsApp.sectionId || !state.sections.some(s => s.id === benefitsDocsApp.sectionId)) {
+      benefitsDocsApp.sectionId = usefulSectionId;
+    }
     benefitsDocsApp.allUsers = true;
   }
 
@@ -1216,6 +1220,9 @@ function renderAppGrid() {
   if (sortedSections.length > 0) {
     const firstSec = sortedSections[0];
     gridsMap[firstSec.id] = mainGrid;
+    if (state.isEditing && isAdmin) {
+      setupGridContainerDragDrop(mainGrid, firstSec.id);
+    }
     
     // Update the title of the first section dynamically!
     const mainToolbarTitle = document.querySelector('#ios-toolbar .ios-view-title');
@@ -1325,6 +1332,9 @@ function renderAppGrid() {
     }
     
     gridsMap[section.id] = sectionGrid;
+    if (state.isEditing && isAdmin) {
+      setupGridContainerDragDrop(sectionGrid, section.id);
+    }
   }
 
   // Admin edit mode: "Add Section" button appended after all section grids
@@ -1600,8 +1610,8 @@ function setupDragDropEvents(element) {
         const dragApp = state.apps[draggedIndex];
         const targetApp = state.apps[targetIndex];
         
-        // Folders creation grouping on drag-over
-        if (dragApp.type === 'app' && targetApp.type === 'app') {
+        // Folders creation grouping on drag-over (only when in the same section)
+        if (dragApp.type === 'app' && targetApp.type === 'app' && dragApp.sectionId === targetApp.sectionId) {
           if (confirm(`Combine "${dragApp.name}" and "${targetApp.name}" into a folder?`)) {
             const folderId = `folder-${Date.now()}`;
             const newFolder = {
@@ -1610,7 +1620,8 @@ function setupDragDropEvents(element) {
               icon: 'folder',
               order: targetApp.order,
               type: 'folder',
-              appIds: [targetApp.id, dragApp.id]
+              appIds: [targetApp.id, dragApp.id],
+              sectionId: targetApp.sectionId || 'default'
             };
             
             state.apps.push(newFolder);
@@ -1620,6 +1631,12 @@ function setupDragDropEvents(element) {
             renderAppGrid();
             return;
           }
+        }
+
+        // If moved across sections, update sectionId
+        if (dragApp.sectionId !== targetApp.sectionId) {
+          dragApp.sectionId = targetApp.sectionId || 'default';
+          syncAppToFirestore(dragApp);
         }
 
         // Swap reordering
@@ -1641,6 +1658,55 @@ function setupDragDropEvents(element) {
     if (dragGhostEl) {
       dragGhostEl.remove();
       dragGhostEl = null;
+    }
+  });
+}
+
+function setupGridContainerDragDrop(gridEl, sectionId) {
+  gridEl.dataset.sectionId = sectionId;
+
+  gridEl.addEventListener('dragover', (e) => {
+    if (state.isEditing && draggedElement) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+  });
+
+  gridEl.addEventListener('dragenter', (e) => {
+    if (state.isEditing && draggedElement) {
+      gridEl.classList.add('grid-drag-over');
+    }
+  });
+
+  gridEl.addEventListener('dragleave', (e) => {
+    if (!gridEl.contains(e.relatedTarget)) {
+      gridEl.classList.remove('grid-drag-over');
+    }
+  });
+
+  gridEl.addEventListener('drop', (e) => {
+    gridEl.classList.remove('grid-drag-over');
+    if (!state.isEditing || !draggedElement) return;
+
+    // If dropped directly on an app-item child, the app-item's own drop handler will handle it
+    if (e.target.closest('.app-item')) return;
+
+    e.preventDefault();
+    const draggedId = draggedElement.dataset.id;
+    const dragApp = state.apps.find(a => a.id === draggedId);
+    if (!dragApp) return;
+
+    if (dragApp.sectionId !== sectionId) {
+      dragApp.sectionId = sectionId;
+      const sectionApps = state.apps.filter(a => a.sectionId === sectionId && a.id !== dragApp.id);
+      const maxOrder = sectionApps.length > 0 ? Math.max(...sectionApps.map(a => a.order || 0)) : -1;
+      dragApp.order = maxOrder + 1;
+
+      saveDatabase();
+      syncAppToFirestore(dragApp);
+      syncAllAppsOrderToFirestore();
+      renderAppGrid();
+      showToast(`Moved "${dragApp.name}" to section`);
     }
   });
 }
@@ -2405,7 +2471,25 @@ function loadAppIntoForm(app) {
   
   document.getElementById('edit-app-id').value = app.id;
   document.getElementById('app-name').value = app.name;
-  document.getElementById('app-link').value = app.link;
+  
+  const linkInput = document.getElementById('app-link');
+  const linkLabel = document.getElementById('app-link-label') || document.querySelector('label[for="app-link"]');
+  const isBuiltIn = (app.id === 'health-benefits' || app.id === 'benefits-docs' || !app.link);
+
+  linkInput.value = app.link || '';
+  if (isBuiltIn) {
+    linkInput.placeholder = 'Built-in Hub Feature (No URL needed)';
+    linkInput.required = false;
+    if (linkLabel) {
+      linkLabel.innerHTML = 'External URL Link <span style="font-size:0.75rem; color:var(--accent-green); font-weight:600; text-transform:none;">(Built-in Hub View)</span>';
+    }
+  } else {
+    linkInput.placeholder = 'https://billing.4hgs.com';
+    linkInput.required = true;
+    if (linkLabel) {
+      linkLabel.innerHTML = 'External URL Link';
+    }
+  }
   
   // Select icon
   document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
@@ -2425,6 +2509,16 @@ function resetAppCuratorForm() {
   document.getElementById('app-curator-form').reset();
   document.getElementById('edit-app-id').value = '';
   document.getElementById('btn-save-app').textContent = 'Save Application';
+
+  const linkInput = document.getElementById('app-link');
+  const linkLabel = document.getElementById('app-link-label') || document.querySelector('label[for="app-link"]');
+  if (linkInput) {
+    linkInput.placeholder = 'https://billing.4hgs.com';
+    linkInput.required = true;
+  }
+  if (linkLabel) {
+    linkLabel.innerHTML = 'External URL Link';
+  }
   
   // Select first icon as default
   document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
@@ -2752,14 +2846,23 @@ function handleAppSubmit(e) {
   const selectedIconEl = document.querySelector('.icon-option.selected');
   const icon = selectedIconEl ? selectedIconEl.dataset.icon : 'box';
   
-  if (!name || !link) return;
+  const existingApp = editId ? state.apps.find(a => a.id === editId) : null;
+  const isBuiltIn = existingApp && (existingApp.id === 'health-benefits' || existingApp.id === 'benefits-docs' || !existingApp.link);
+
+  if (!name) return;
+  if (!isBuiltIn && !link) {
+    showToast('Please provide an external URL link.', false);
+    return;
+  }
 
   if (editId) {
     // EDITING EXISTING APP
     const appIndex = state.apps.findIndex(a => a.id === editId);
     if (appIndex !== -1) {
       state.apps[appIndex].name = name;
-      state.apps[appIndex].link = link;
+      if (link || !isBuiltIn) {
+        state.apps[appIndex].link = link;
+      }
       state.apps[appIndex].icon = icon;
       state.apps[appIndex].sectionId = document.getElementById('app-section').value || 'default';
       showToast('Application updated successfully');
