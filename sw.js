@@ -1,4 +1,4 @@
-const CACHE_NAME = '4hghub-cache-v6';
+const CACHE_NAME = '4hghub-cache-v7';
 const ASSETS = [
   './',
   './index.html',
