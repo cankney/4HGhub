@@ -238,40 +238,63 @@
 
           <!-- TAB: Applications Manager -->
           <div class="dialog-tab-content" id="tab-apps">
-            <div class="user-list" id="apps-panel-list" style="max-height: 200px;">
-              <!-- Dynamic JS list of apps with Reorder and Edit/Delete controls -->
+            <div class="apps-manager-layout">
+              <!-- Left Column: Applications Directory -->
+              <div class="apps-manager-list-column">
+                <div class="apps-manager-list-header">
+                  <div class="apps-manager-header-title-wrap">
+                    <h4 class="apps-manager-col-title">Configured Applications</h4>
+                    <span class="apps-manager-badge" id="apps-total-count">0 Apps</span>
+                  </div>
+                  <div class="apps-search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="apps-search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="apps-filter-input" class="apps-filter-input" placeholder="Quick filter..." autocomplete="off">
+                  </div>
+                </div>
+                <div class="apps-scrollable-list" id="apps-panel-list">
+                  <!-- Dynamic JS list of apps with Reorder and Edit/Delete controls -->
+                </div>
+              </div>
+
+              <!-- Right Column: Add / Edit Application Form -->
+              <div class="apps-manager-form-column">
+                <div class="apps-form-card">
+                  <div class="apps-form-header">
+                    <h4 class="apps-manager-col-title" id="app-form-heading">Add New Application</h4>
+                    <p class="apps-form-subtext" id="app-form-subheading">Configure app details & dashboard section</p>
+                  </div>
+                  <form id="app-curator-form">
+                    <!-- Edit indicator storage -->
+                    <input type="hidden" id="edit-app-id" value="">
+                    
+                    <div class="form-group">
+                      <label for="app-name">App Name</label>
+                      <input type="text" id="app-name" class="form-control" placeholder="e.g. Invoicing Manager" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                      <label for="app-link" id="app-link-label">External URL Link</label>
+                      <input type="text" id="app-link" class="form-control" placeholder="https://billing.4hgs.com" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                      <label for="app-section">Dashboard Section</label>
+                      <select id="app-section" class="form-control" required>
+                        <!-- Will be populated dynamically by JS -->
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label id="icon-picker-label">Select Icon Style</label>
+                      <div class="icon-selector-grid" id="icon-selector-grid">
+                        <!-- Will be populated dynamically by JS -->
+                      </div>
+                    </div>
+                    <div class="form-actions" style="margin-top: 1.25rem;">
+                      <button type="button" class="btn-ios" id="btn-reset-app-form">Clear / New</button>
+                      <button type="submit" class="btn-ios btn-ios-accent" id="btn-save-app">Save Application</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
-            <form id="app-curator-form">
-              <!-- Edit indicator storage -->
-              <input type="hidden" id="edit-app-id" value="">
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="app-name">App Name</label>
-                  <input type="text" id="app-name" class="form-control" placeholder="e.g. Invoicing Manager" required autocomplete="off">
-                </div>
-                <div class="form-group">
-                  <label for="app-link" id="app-link-label">External URL Link</label>
-                  <input type="text" id="app-link" class="form-control" placeholder="https://billing.4hgs.com" autocomplete="off">
-                </div>
-              </div>
-              <div class="form-group">
-                <label id="icon-picker-label">Select Icon Style</label>
-                <div class="icon-selector-grid" id="icon-selector-grid">
-                  <!-- Will be populated dynamically by JS -->
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="app-section">Dashboard Section</label>
-                <select id="app-section" class="form-control" required>
-                  <!-- Will be populated dynamically by JS -->
-                </select>
-              </div>
-              <div class="form-actions">
-                <button type="button" class="btn-ios" id="btn-reset-app-form">Clear / New</button>
-                <button type="submit" class="btn-ios btn-ios-accent" id="btn-save-app">Save Application</button>
-              </div>
-            </form>
           </div>
 
           <!-- TAB: Dashboard Sections Manager -->

@@ -2472,6 +2472,11 @@ function loadAppIntoForm(app) {
   document.getElementById('edit-app-id').value = app.id;
   document.getElementById('app-name').value = app.name;
   
+  const heading = document.getElementById('app-form-heading');
+  const subheading = document.getElementById('app-form-subheading');
+  if (heading) heading.textContent = `Edit: ${app.name}`;
+  if (subheading) subheading.textContent = 'Update properties & dashboard section';
+
   const linkInput = document.getElementById('app-link');
   const linkLabel = document.getElementById('app-link-label') || document.querySelector('label[for="app-link"]');
   const isBuiltIn = (app.id === 'health-benefits' || app.id === 'benefits-docs' || !app.link);
@@ -2502,6 +2507,9 @@ function loadAppIntoForm(app) {
   if (select) select.value = app.sectionId || 'default';
   
   document.getElementById('btn-save-app').textContent = 'Update Application';
+
+  // Re-render list so the editing item is highlighted
+  renderAppsPanelList();
 }
 
 // Reset app curator form
@@ -2509,6 +2517,11 @@ function resetAppCuratorForm() {
   document.getElementById('app-curator-form').reset();
   document.getElementById('edit-app-id').value = '';
   document.getElementById('btn-save-app').textContent = 'Save Application';
+
+  const heading = document.getElementById('app-form-heading');
+  const subheading = document.getElementById('app-form-subheading');
+  if (heading) heading.textContent = 'Add New Application';
+  if (subheading) subheading.textContent = 'Configure app details & dashboard section';
 
   const linkInput = document.getElementById('app-link');
   const linkLabel = document.getElementById('app-link-label') || document.querySelector('label[for="app-link"]');
@@ -2527,6 +2540,8 @@ function resetAppCuratorForm() {
   
   const select = document.getElementById('app-section');
   if (select) select.value = 'default';
+
+  renderAppsPanelList();
 }
 
 // Render dynamic Icon selector grid inside Curator Form
@@ -2563,6 +2578,8 @@ function renderIconSelector() {
 }
 
 // Render Applications List with Reorder buttons inside settings
+let appsFilterQuery = '';
+
 function renderAppsPanelList() {
   const panel = document.getElementById('apps-panel-list');
   if (!panel) return;
@@ -2570,35 +2587,86 @@ function renderAppsPanelList() {
   panel.innerHTML = '';
   
   // Sort apps by order
-  const sortedApps = [...state.apps].sort((a, b) => a.order - b.order);
-  
+  let sortedApps = [...state.apps].sort((a, b) => a.order - b.order);
+
+  // Total count badge
+  const countBadge = document.getElementById('apps-total-count');
+  if (countBadge) {
+    countBadge.textContent = `${state.apps.length} Apps`;
+  }
+
+  // Bind filter input once
+  const filterInput = document.getElementById('apps-filter-input');
+  if (filterInput && !filterInput.dataset.bound) {
+    filterInput.dataset.bound = 'true';
+    filterInput.addEventListener('input', (e) => {
+      appsFilterQuery = e.target.value.trim().toLowerCase();
+      renderAppsPanelList();
+    });
+  }
+
+  if (appsFilterQuery) {
+    sortedApps = sortedApps.filter(a => {
+      const nameMatch = a.name.toLowerCase().includes(appsFilterQuery);
+      const linkMatch = a.link && a.link.toLowerCase().includes(appsFilterQuery);
+      const sectionObj = state.sections.find(s => s.id === a.sectionId);
+      const sectionMatch = sectionObj && sectionObj.name.toLowerCase().includes(appsFilterQuery);
+      return nameMatch || linkMatch || sectionMatch;
+    });
+  }
+
+  if (sortedApps.length === 0) {
+    panel.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-secondary); font-size: 0.85rem;">
+        ${appsFilterQuery ? 'No applications match your filter.' : 'No applications configured yet.'}
+      </div>
+    `;
+    return;
+  }
+
+  const currentEditId = document.getElementById('edit-app-id')?.value;
+
   sortedApps.forEach((app, index) => {
     const item = document.createElement('div');
-    item.className = 'user-list-item';
+    const isEditing = app.id === currentEditId;
+    item.className = 'app-panel-card' + (isEditing ? ' active-edit' : '');
+    item.dataset.id = app.id;
+
+    const section = state.sections.find(s => s.id === app.sectionId);
+    const sectionName = section ? section.name : 'Default';
+    const isFirst = index === 0;
+    const isLast = index === sortedApps.length - 1;
+
     item.innerHTML = `
-      <div class="user-item-info">
-        <span class="user-item-name" style="font-weight: 700;">
-          ${app.name} 
-          <span style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; background: ${app.type === 'folder' ? 'rgba(141,220,4,0.15)' : 'rgba(255,255,255,0.06)'}; color: ${app.type === 'folder' ? 'var(--accent-green)' : 'var(--text-secondary)'}; margin-left: 0.5rem; text-transform: uppercase;">
-            ${app.type}
+      <div class="app-panel-card-main">
+        <div class="app-panel-card-icon">
+          ${getIconMarkup(app)}
+        </div>
+        <div class="app-panel-card-details">
+          <div class="app-panel-card-title-row">
+            <span class="app-panel-card-name">${escapeHTML(app.name)}</span>
+            <span class="app-panel-section-tag">${escapeHTML(sectionName)}</span>
+            ${app.type === 'folder' ? '<span class="app-panel-type-tag">FOLDER</span>' : ''}
+            ${isEditing ? '<span class="app-panel-editing-tag">EDITING</span>' : ''}
+          </div>
+          <span class="app-panel-card-link" title="${escapeHTML(app.link || 'Internal View')}">
+            ${app.type === 'folder' ? `Contains ${(app.appIds || []).length} apps` : (escapeHTML(app.link) || 'Internal Hub View')}
           </span>
-        </span>
-        <span style="font-size: 0.75rem; color: var(--text-secondary); text-overflow: ellipsis; overflow: hidden; max-width: 250px; white-space: nowrap;">
-          ${app.type === 'folder' ? `Contains: ${(app.appIds || []).length} apps` : app.link}
-        </span>
+        </div>
       </div>
-      <div style="display: flex; gap: 0.35rem; align-items: center;">
-        <button class="btn-reorder-up" data-id="${app.id}" title="Move Up" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; ${index === 0 ? 'opacity: 0.35; cursor: not-allowed;' : ''}">▲</button>
-        <button class="btn-reorder-down" data-id="${app.id}" title="Move Down" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; ${index === sortedApps.length - 1 ? 'opacity: 0.35; cursor: not-allowed;' : ''}">▼</button>
-        <button class="btn-icon-edit-app" data-id="${app.id}" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">Edit</button>
-        <button class="btn-icon-delete-app" data-id="${app.id}" style="background: rgba(255,59,48,0.1); color: #ff3b30; border: 1px solid rgba(255,59,48,0.15); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">&times;</button>
+      <div class="app-panel-card-actions">
+        <button class="btn-reorder-up" data-id="${app.id}" title="Move Up" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.45rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer; ${isFirst ? 'opacity: 0.3; cursor: not-allowed;' : ''}" ${isFirst ? 'disabled' : ''}>▲</button>
+        <button class="btn-reorder-down" data-id="${app.id}" title="Move Down" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 0.25rem 0.45rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer; ${isLast ? 'opacity: 0.3; cursor: not-allowed;' : ''}" ${isLast ? 'disabled' : ''}>▼</button>
+        <button class="btn-icon-edit-app" data-id="${app.id}" style="background: ${isEditing ? 'var(--accent-green)' : 'rgba(141,220,4,0.1)'}; color: ${isEditing ? '#000' : 'var(--accent-green)'}; border: 1px solid rgba(141,220,4,0.3); padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">${isEditing ? 'Editing' : 'Edit'}</button>
+        <button class="btn-icon-delete-app" data-id="${app.id}" title="Delete Application" style="background: rgba(255,59,48,0.1); color: #ff3b30; border: 1px solid rgba(255,59,48,0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer;">&times;</button>
       </div>
     `;
     
     // Up click handler
     const btnUp = item.querySelector('.btn-reorder-up');
-    if (btnUp && index > 0) {
-      btnUp.addEventListener('click', () => {
+    if (btnUp && !isFirst) {
+      btnUp.addEventListener('click', (e) => {
+        e.stopPropagation();
         const prevApp = sortedApps[index - 1];
         const tempOrder = app.order;
         app.order = prevApp.order;
@@ -2614,8 +2682,9 @@ function renderAppsPanelList() {
     
     // Down click handler
     const btnDown = item.querySelector('.btn-reorder-down');
-    if (btnDown && index < sortedApps.length - 1) {
-      btnDown.addEventListener('click', () => {
+    if (btnDown && !isLast) {
+      btnDown.addEventListener('click', (e) => {
+        e.stopPropagation();
         const nextApp = sortedApps[index + 1];
         const tempOrder = app.order;
         app.order = nextApp.order;
@@ -2632,7 +2701,8 @@ function renderAppsPanelList() {
     // Edit click handler
     const btnEdit = item.querySelector('.btn-icon-edit-app');
     if (btnEdit) {
-      btnEdit.addEventListener('click', () => {
+      btnEdit.addEventListener('click', (e) => {
+        e.stopPropagation();
         loadAppIntoForm(app);
       });
     }
@@ -2640,7 +2710,8 @@ function renderAppsPanelList() {
     // Delete click handler
     const btnDelete = item.querySelector('.btn-icon-delete-app');
     if (btnDelete) {
-      btnDelete.addEventListener('click', () => {
+      btnDelete.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (confirm(`Are you sure you want to delete "${app.name}"?`)) {
           deleteApp(app.id);
           renderAppsPanelList();
