@@ -1742,7 +1742,8 @@ body.light-mode .useful-link-item:hover {
 
 /* Inline Panels Containers */
 .benefits-page-inline,
-.benefits-docs-page-inline {
+.benefits-docs-page-inline,
+.forklift-page-inline {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -3094,4 +3095,411 @@ body.light-mode .apps-form-card {
     position: static;
   }
 }
+
+/* ==========================================================================
+   FORKLIFT SAFETY & CERTIFICATION TRACKER STYLES
+   ========================================================================== */
+
+.forklift-hero-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(28, 25, 23, 0.9) 0%, rgba(35, 30, 26, 0.8) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+}
+
+.forklift-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #eab308, #10b981);
+}
+
+body.light-mode .forklift-hero-card {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 12px 36px rgba(245, 158, 11, 0.08);
+}
+
+.forklift-badge-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.forklift-badge-blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.forklift-badge-green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Machine Data Plate Spec Card */
+.dataplate-card {
+  background: #18181b;
+  border: 2px solid #3f3f46;
+  border-radius: 14px;
+  padding: 1.5rem;
+  position: relative;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+body.light-mode .dataplate-card {
+  background: #f4f4f5;
+  border-color: #d4d4d8;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.dataplate-rivet {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #a1a1aa 30%, #52525b 100%);
+  border-radius: 50%;
+  border: 1px solid #27272a;
+}
+.dataplate-rivet.tl { top: 10px; left: 10px; }
+.dataplate-rivet.tr { top: 10px; right: 10px; }
+.dataplate-rivet.bl { bottom: 10px; left: 10px; }
+.dataplate-rivet.br { bottom: 10px; right: 10px; }
+
+.dataplate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #52525b;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dataplate-brand {
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fafafa;
+  text-transform: uppercase;
+}
+
+body.light-mode .dataplate-brand {
+  color: #18181b;
+}
+
+.dataplate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.dataplate-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+}
+
+body.light-mode .dataplate-item {
+  background: #ffffff;
+  border-color: #e4e4e7;
+}
+
+.dataplate-item-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: #a1a1aa;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.dataplate-item-value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fbbf24;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body.light-mode .dataplate-item-value {
+  color: #b45309;
+}
+
+/* Capacity Load Chart Table */
+.capacity-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+  border: 1px solid #52525b;
+  border-radius: 8px;
+}
+
+.capacity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.capacity-table th {
+  background: #27272a;
+  color: #fafafa;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid #3f3f46;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+body.light-mode .capacity-table th {
+  background: #e4e4e7;
+  color: #18181b;
+  border-color: #d4d4d8;
+}
+
+.capacity-table td {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #3f3f46;
+  color: #e4e4e7;
+}
+
+body.light-mode .capacity-table td {
+  border-color: #e4e4e7;
+  color: #27272a;
+}
+
+.capacity-table tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.capacity-highlight {
+  font-weight: 800;
+  color: #34d399 !important;
+  font-size: 0.95rem;
+}
+
+body.light-mode .capacity-highlight {
+  color: #059669 !important;
+}
+
+/* Certification Tracker Cards */
+.cert-tracker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.cert-operator-card {
+  background: var(--bg-slate-light);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.cert-operator-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.cert-operator-card.certified {
+  border-left: 4px solid #10b981;
+}
+
+.cert-operator-card.trainer {
+  border-left: 4px solid #f59e0b;
+}
+
+.cert-operator-card.in-progress {
+  border-left: 4px solid #3b82f6;
+}
+
+.cert-operator-card.expiring {
+  border-left: 4px solid #ef4444;
+}
+
+.cert-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.cert-op-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cert-op-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.cert-op-avatar.trainer-avatar {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.cert-op-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cert-op-role-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.cert-countdown-box {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+body.light-mode .cert-countdown-box {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.countdown-digits {
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+  font-family: ui-monospace, monospace;
+}
+
+.countdown-digits.green { color: #10b981; }
+.countdown-digits.yellow { color: #f59e0b; }
+.countdown-digits.red { color: #ef4444; }
+.countdown-digits.blue { color: #3b82f6; }
+
+.countdown-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.cert-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--glass-border);
+  padding-top: 0.5rem;
+}
+
+.cert-meta-item strong {
+  color: var(--text-primary);
+}
+
+/* Safety Rule Cards */
+.safety-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.safety-rule-card {
+  background: var(--bg-slate-light);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.safety-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.safety-rule-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.safety-rule-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.safety-rule-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Checklist Items */
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.checklist-item:last-child {
+  border-bottom: none;
+}
+
+.checklist-check {
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
 

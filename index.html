@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="4HGS Hub">
-  <link rel="stylesheet" href="styles_v4.css?v=5.1.2">
+  <link rel="stylesheet" href="styles_v4.css?v=5.2.0">
   <link rel="icon" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon" href="assets/4hgs_logo.png">
 </head>
@@ -182,6 +182,11 @@
           <!-- Injected dynamically by renderBenefitsDocsPage() -->
         </div>
 
+        <!-- INLINE FORKLIFT SAFETY PANEL -->
+        <div class="forklift-page-inline" id="forklift-page-inline" style="display: none;">
+          <!-- Injected dynamically by renderForkliftSafetyPage() -->
+        </div>
+
         <!-- INLINE ADMIN CONFIGURATION PANEL (Replaces Popup!) -->
         <div class="admin-panel-inline" id="admin-panel-inline" style="display: none;">
           <div class="admin-panel-header">
@@ -199,6 +204,7 @@
             <button class="dialog-tab-btn" data-tab="tab-permissions" id="tab-btn-permissions" type="button">User Access Matrix</button>
             <button class="dialog-tab-btn" data-tab="tab-users" id="tab-btn-users" type="button">Users</button>
             <button class="dialog-tab-btn" data-tab="tab-broadcasts" id="tab-btn-broadcasts" type="button">Broadcast Manager</button>
+            <button class="dialog-tab-btn" data-tab="tab-forklift" id="tab-btn-forklift" type="button" style="display: none;">Forklift Safety</button>
             <button class="dialog-tab-btn" data-tab="tab-suggestions" id="tab-btn-suggestions" type="button" style="display: none;">Suggestions Inbox</button>
           </div>
 
@@ -402,6 +408,66 @@
             </form>
           </div>
 
+          <!-- TAB: Forklift Safety & Operator Manager -->
+          <div class="dialog-tab-content" id="tab-forklift">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <div>
+                <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Forklift Operators & Certification Tracking</h4>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Manage certified operators, trainees, and 3-year recertification dates for the Toyota 8FGU25.</p>
+              </div>
+              <span class="view-badge" id="forklift-admin-status-badge">4 Operators</span>
+            </div>
+
+            <div class="user-list" id="forklift-operators-panel-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 1.25rem;">
+              <!-- Will be dynamically populated by JS -->
+            </div>
+
+            <form id="forklift-operator-form" class="apps-form-card" style="padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-card-bg);">
+              <input type="hidden" id="edit-forklift-operator-id" value="">
+              
+              <h5 style="margin: 0 0 0.75rem 0; font-size: 0.9rem; color: var(--text-primary);" id="forklift-form-title">Add / Update Operator Record</h5>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="forklift-op-name">Operator Name</label>
+                  <input type="text" id="forklift-op-name" class="form-control" placeholder="e.g., John Doe" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="forklift-op-role">Operator Role</label>
+                  <select id="forklift-op-role" class="form-control" required>
+                    <option value="Operator Trainer">Operator Trainer (Certified)</option>
+                    <option value="Certified Operator">Certified Operator</option>
+                    <option value="Trainee">Trainee (In Certification Process)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="forklift-op-status">Certification Status</label>
+                  <select id="forklift-op-status" class="form-control" required>
+                    <option value="Certified">Certified</option>
+                    <option value="In Progress">Certification In Progress</option>
+                  </select>
+                </div>
+                <div class="form-group" id="forklift-cert-date-group">
+                  <label for="forklift-op-cert-date">Certification Date <span style="font-size: 0.75rem; color: var(--text-secondary);">(Recertification: +3 Years)</span></label>
+                  <input type="date" id="forklift-op-cert-date" class="form-control">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="forklift-op-notes">Training Notes / Evaluation Details</label>
+                <input type="text" id="forklift-op-notes" class="form-control" placeholder="e.g., Completed classroom safety & practical driving test" autocomplete="off">
+              </div>
+
+              <div class="form-actions" style="margin-top: 1rem;">
+                <button type="button" class="btn-ios" id="btn-reset-forklift-form">Clear / New</button>
+                <button type="submit" class="btn-ios btn-ios-accent" id="btn-save-forklift-operator">Save Operator Record</button>
+              </div>
+            </form>
+          </div>
+
           <!-- TAB: Suggestions Inbox -->
           <div class="dialog-tab-content" id="tab-suggestions">
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
@@ -442,6 +508,6 @@
   </footer>
 
   <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
-  <script type="module" src="app_v5.js?v=5.1.2"></script>
+  <script type="module" src="app_v5.js?v=5.2.0"></script>
 </body>
 </html>

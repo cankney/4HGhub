@@ -61,6 +61,8 @@ const SVG_ICONS = {
   'life-buoy': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line></svg>`,
   briefcase: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`,
   'file-text': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`,
+  'alert-triangle': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+  forklift: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"></circle><circle cx="17" cy="18" r="2.5"></circle><path d="M3 18h0.5M8.5 18H14.5M19.5 18H21"></path><path d="M5 15.5L8 7h6l2 8.5"></path><path d="M19 18V5h2"></path><path d="M21 15h3"></path></svg>`,
 
   // Theme Toggle Icons
   sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
@@ -84,8 +86,59 @@ const DEFAULT_APPS = [
   { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app', sectionId: 'default' },
   // Useful Links Section Apps (Visible to All Users)
   { id: 'health-benefits', name: 'Health Benefits', icon: 'shield', order: 0, type: 'app', sectionId: 'useful-links', allUsers: true },
-  { id: 'benefits-docs', name: 'Benefits Documents', icon: 'file-text', order: 1, type: 'app', sectionId: 'useful-links', allUsers: true }
+  { id: 'benefits-docs', name: 'Benefits Documents', icon: 'file-text', order: 1, type: 'app', sectionId: 'useful-links', allUsers: true },
+  { id: 'forklift-safety', name: 'Forklift Safety', icon: 'alert-triangle', order: 2, type: 'app', sectionId: 'useful-links', allUsers: true }
 ];
+
+const DEFAULT_FORKLIFT_CONFIG = {
+  model: 'Toyota 8FGU25',
+  serialNo: '90434',
+  mast: 'FSV',
+  attachment: 'SSFP',
+  backTilt: '6°',
+  truckWeight: '8,870 lb (4,020 kg) ±5%',
+  frontTread: '43.1 in (1095 mm)',
+  tireFr: '7.00-12 / Solid',
+  tireRr: '6.00-9 / Solid',
+  fuel: 'Liquid Propane Gas (LP)',
+  standardCapacity: '4,500 lbs @ 24" Load Center (189" Lift)',
+  reducedCapacity: '4,000 lbs @ 30" Load Center (189" Lift)',
+  manualPath: 'assets/forklift/Toyota_Forklift_Operators_Manual.pdf',
+  operators: [
+    {
+      id: 'op-1',
+      name: 'Cole Ankney',
+      role: 'Operator Trainer',
+      status: 'Certified',
+      certDate: '2025-06-15',
+      notes: 'Certified Forklift Operator Trainer — ANSI/ITSDF B56.1 & OSHA 29 CFR 1910.178 certified evaluator'
+    },
+    {
+      id: 'op-2',
+      name: 'John Smith',
+      role: 'Trainee',
+      status: 'In Progress',
+      certDate: '',
+      notes: 'Currently undergoing OSHA-compliant warehouse training and driving evaluation'
+    },
+    {
+      id: 'op-3',
+      name: 'Dave Miller',
+      role: 'Trainee',
+      status: 'In Progress',
+      certDate: '',
+      notes: 'Currently undergoing OSHA-compliant warehouse training and driving evaluation'
+    },
+    {
+      id: 'op-4',
+      name: 'Warehouse Operator 4',
+      role: 'Trainee',
+      status: 'In Progress',
+      certDate: '',
+      notes: 'Enrolled in certification training under Operator Trainer'
+    }
+  ]
+};
 
 const DEFAULT_USERS = [
   { id: 'XSGpEYIjdaTjxxAuuTZ6chMbe1I2', name: 'Cole Ankney', role: 'Admin', email: 'cole@4hgs.com' },
@@ -94,9 +147,9 @@ const DEFAULT_USERS = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs'],
-  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs'], 
-  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs']
+  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety'],
+  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety'], 
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -141,7 +194,8 @@ let state = {
   activeFolderId: null,
   theme: 'dark',
   appSortMode: localStorage.getItem('HGS_APP_SORT') || 'custom',     // 'custom' | 'name-asc' | 'name-desc' | 'recent'
-  sectionSortMode: localStorage.getItem('HGS_SECTION_SORT') || 'custom' // 'custom' | 'name-asc' | 'name-desc'
+  sectionSortMode: localStorage.getItem('HGS_SECTION_SORT') || 'custom', // 'custom' | 'name-asc' | 'name-desc'
+  forkliftConfig: null
 };
 
 let pollsUnsubscribe = null;
@@ -163,6 +217,7 @@ function initDatabase() {
   state.suggestions = [];
   state.users = DEFAULT_USERS;
   state.permissions = DEFAULT_PERMISSIONS;
+  state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
   
   ensureDefaultSectionsAndApps();
   state.apps.forEach(app => {
@@ -243,7 +298,26 @@ function ensureDefaultSectionsAndApps() {
     }
   }
 
-  // 4. Also clean up any other accidental duplicate sections in state.sections by id or name
+  // 4. Ensure forklift-safety app exists (preserve sectionId if already assigned to a valid section)
+  const forkliftSafetyApp = state.apps.find(a => a.id === 'forklift-safety');
+  if (!forkliftSafetyApp) {
+    state.apps.push({
+      id: 'forklift-safety',
+      name: 'Forklift Safety',
+      icon: 'alert-triangle',
+      order: 2,
+      type: 'app',
+      sectionId: usefulSectionId,
+      allUsers: true
+    });
+  } else {
+    forkliftSafetyApp.allUsers = true;
+    if (!forkliftSafetyApp.sectionId || !state.sections.some(s => s.id === forkliftSafetyApp.sectionId)) {
+      forkliftSafetyApp.sectionId = usefulSectionId;
+    }
+  }
+
+  // 5. Also clean up any other accidental duplicate sections in state.sections by id or name
   const seenNames = new Set();
   state.sections = state.sections.filter(s => {
     const norm = (s.name || '').trim().toLowerCase();
@@ -261,6 +335,7 @@ function saveDatabase() {
   localStorage.setItem('HGS_SECTIONS', JSON.stringify(state.sections));
   localStorage.setItem('HGS_POLLS', JSON.stringify(state.polls));
   localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify(state.suggestions));
+  localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(state.forkliftConfig));
   localStorage.setItem('HGS_THEME', state.theme);
 }
 
@@ -286,6 +361,9 @@ function loadDatabaseOfflineFallback() {
   if (!localStorage.getItem('HGS_SUGGESTIONS')) {
     localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify([]));
   }
+  if (!localStorage.getItem('HGS_FORKLIFT_CONFIG')) {
+    localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(DEFAULT_FORKLIFT_CONFIG));
+  }
 
   state.apps = JSON.parse(localStorage.getItem('HGS_APPS'));
   state.users = JSON.parse(localStorage.getItem('HGS_USERS'));
@@ -294,6 +372,7 @@ function loadDatabaseOfflineFallback() {
   state.sections = JSON.parse(localStorage.getItem('HGS_SECTIONS')) || DEFAULT_SECTIONS;
   state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || DEFAULT_POLLS;
   state.suggestions = JSON.parse(localStorage.getItem('HGS_SUGGESTIONS')) || [];
+  state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
   
   ensureDefaultSectionsAndApps();
   state.apps.forEach(app => {
@@ -515,6 +594,23 @@ async function loadDatabaseFromFirestore() {
     }
 
     state.activeUserId = activeUser.id;
+
+    // Load forklift safety configuration from Firestore or cache
+    try {
+      const forkliftDocRef = doc(db, "forkliftConfig", "main");
+      const forkliftDocSnap = await getDoc(forkliftDocRef);
+      if (forkliftDocSnap.exists()) {
+        state.forkliftConfig = forkliftDocSnap.data();
+      } else {
+        state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
+        if (isAdmin) {
+          await setDoc(forkliftDocRef, state.forkliftConfig);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not load forkliftConfig from Firestore, using local/default:", err);
+      state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
+    }
 
     // Apply migrations/sanity checks
     ensureDefaultSectionsAndApps();
@@ -1192,8 +1288,10 @@ function renderAppGrid() {
   const isBenefitsOpen = benefitsPanel && benefitsPanel.style.display === 'flex';
   const benefitsDocsPanel = document.getElementById('benefits-docs-page-inline');
   const isDocsOpen = benefitsDocsPanel && benefitsDocsPanel.style.display === 'flex';
+  const forkliftPanel = document.getElementById('forklift-page-inline');
+  const isForkliftOpen = forkliftPanel && forkliftPanel.style.display === 'flex';
   const topActions = document.getElementById('top-actions-bar');
-  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen;
+  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen;
   
   if (isAnyModalOpen) {
     mainGrid.style.display = 'none';
@@ -1431,6 +1529,8 @@ function renderAppGrid() {
               openBenefitsPage();
             } else if (item.id === 'benefits-docs') {
               openBenefitsDocsPage();
+            } else if (item.id === 'forklift-safety') {
+              openForkliftSafetyPage();
             } else if (item.link) {
               showToast(`Opening ${item.name}...`);
               setTimeout(() => window.open(item.link, '_blank'), 800);
@@ -1530,8 +1630,17 @@ function openFolderDrawer(folderId) {
       });
     } else {
       appItem.addEventListener('click', () => {
-        showToast(`Opening ${app.name}...`);
-        setTimeout(() => window.open(app.link, '_blank'), 800);
+        closeFolderDrawer();
+        if (app.id === 'health-benefits') {
+          openBenefitsPage();
+        } else if (app.id === 'benefits-docs') {
+          openBenefitsDocsPage();
+        } else if (app.id === 'forklift-safety') {
+          openForkliftSafetyPage();
+        } else if (app.link) {
+          showToast(`Opening ${app.name}...`);
+          setTimeout(() => window.open(app.link, '_blank'), 800);
+        }
       });
     }
 
@@ -1774,6 +1883,7 @@ function openAdminPortal() {
   if (state.isEditing) toggleEditMode(false);
   closeBenefitsPage(false);
   closeBenefitsDocsPage(false);
+  closeForkliftSafetyPage(false);
 
   // Switch display elements
   document.getElementById('main-app-grid').style.display = 'none';
@@ -1796,7 +1906,7 @@ function openAdminPortal() {
   const isPrivileged = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
   const isAdmin = activeUser && isPrivileged;
   
-  const adminTabs = ['tab-btn-apps', 'tab-btn-sections', 'tab-btn-permissions', 'tab-btn-users', 'tab-btn-broadcasts', 'tab-btn-suggestions'];
+  const adminTabs = ['tab-btn-apps', 'tab-btn-sections', 'tab-btn-permissions', 'tab-btn-users', 'tab-btn-broadcasts', 'tab-btn-forklift', 'tab-btn-suggestions'];
   adminTabs.forEach(tabId => {
     const tabBtn = document.getElementById(tabId);
     if (tabBtn) {
@@ -1816,6 +1926,7 @@ function openAdminPortal() {
     renderSectionsPanelList();
     renderAppSectionSelect();
     renderSuggestionsPanelList();
+    renderForkliftAdminTab();
   }
 }
 
@@ -1923,6 +2034,7 @@ function openBenefitsPage() {
   const adminPanel = document.getElementById('admin-panel-inline');
   if (adminPanel) adminPanel.style.display = 'none';
   closeBenefitsDocsPage(false);
+  closeForkliftSafetyPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -1962,6 +2074,7 @@ function openBenefitsDocsPage(initialFilter = 'all') {
   const adminPanel = document.getElementById('admin-panel-inline');
   if (adminPanel) adminPanel.style.display = 'none';
   closeBenefitsPage(false);
+  closeForkliftSafetyPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2474,6 +2587,764 @@ function renderBenefitsDocsPage() {
   });
 }
 
+// --- Forklift Safety & 3-Year Certification Controller & Views ---
+
+function addThreeYears(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  const d = new Date(year, month, day);
+  if (isNaN(d.getTime())) return null;
+  d.setFullYear(d.getFullYear() + 3);
+  return d;
+}
+
+function getOperatorRecertData(op) {
+  if (op.status !== 'Certified' || !op.certDate) {
+    return {
+      status: 'in-progress',
+      statusText: 'In Progress',
+      statusBadgeClass: 'forklift-badge-blue',
+      countdownText: 'In Training',
+      countdownSub: 'Certification in progress',
+      countdownClass: 'blue',
+      certFormatted: 'In Training',
+      recertFormatted: 'Pending evaluation',
+      daysRemaining: null
+    };
+  }
+
+  const recertDate = addThreeYears(op.certDate);
+  if (!recertDate) {
+    return {
+      status: 'unknown',
+      statusText: 'Unknown Date',
+      statusBadgeClass: 'forklift-badge-amber',
+      countdownText: 'N/A',
+      countdownSub: 'Check certification date',
+      countdownClass: 'yellow',
+      certFormatted: op.certDate,
+      recertFormatted: 'N/A',
+      daysRemaining: null
+    };
+  }
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(recertDate.getFullYear(), recertDate.getMonth(), recertDate.getDate());
+  const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  const certParts = op.certDate.split('-');
+  const certDateObj = new Date(parseInt(certParts[0], 10), parseInt(certParts[1], 10) - 1, parseInt(certParts[2], 10));
+  const certFormatted = certDateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const recertFormatted = recertDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+  if (diffDays < 0) {
+    return {
+      status: 'expired',
+      statusText: 'Recert Overdue',
+      statusBadgeClass: 'badge-danger',
+      countdownText: 'EXPIRED',
+      countdownSub: `${Math.abs(diffDays)} days past due`,
+      countdownClass: 'red',
+      certFormatted,
+      recertFormatted,
+      daysRemaining: diffDays
+    };
+  }
+
+  let countdownClass = 'green';
+  let statusBadgeClass = 'forklift-badge-green';
+  if (diffDays <= 30) {
+    countdownClass = 'red';
+    statusBadgeClass = 'badge-danger';
+  } else if (diffDays <= 180) {
+    countdownClass = 'yellow';
+    statusBadgeClass = 'forklift-badge-amber';
+  }
+
+  return {
+    status: 'certified',
+    statusText: 'Certified',
+    statusBadgeClass,
+    countdownText: `${diffDays} Days`,
+    countdownSub: 'Until 3-Yr Recertification',
+    countdownClass,
+    certFormatted,
+    recertFormatted,
+    daysRemaining: diffDays
+  };
+}
+
+function openForkliftSafetyPage() {
+  if (state.isEditing) toggleEditMode(false);
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel) adminPanel.style.display = 'none';
+  closeBenefitsPage(false);
+  closeBenefitsDocsPage(false);
+
+  document.getElementById('main-app-grid').style.display = 'none';
+  document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
+  
+  const forkliftPanel = document.getElementById('forklift-page-inline');
+  if (forkliftPanel) {
+    forkliftPanel.style.display = 'flex';
+    renderForkliftSafetyPage();
+    const shell = document.querySelector('.ios-screen-content');
+    if (shell) shell.scrollTop = 0;
+  }
+}
+
+function closeForkliftSafetyPage(restoreGrid = true) {
+  const forkliftPanel = document.getElementById('forklift-page-inline');
+  if (forkliftPanel) forkliftPanel.style.display = 'none';
+
+  if (restoreGrid) {
+    document.getElementById('main-app-grid').style.display = 'grid';
+    document.getElementById('ios-toolbar').style.display = 'flex';
+    
+    const subsequentContainer = document.getElementById('subsequent-sections-container');
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
+    
+    renderAppGrid();
+  }
+}
+
+function renderForkliftSafetyPage() {
+  const container = document.getElementById('forklift-page-inline');
+  if (!container) return;
+
+  const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+  const operators = (cfg.operators && cfg.operators.length > 0) ? cfg.operators : DEFAULT_FORKLIFT_CONFIG.operators;
+
+  container.innerHTML = `
+    <!-- Top Nav Header -->
+    <div class="view-nav-header">
+      <div class="view-nav-actions-left">
+        <button class="btn-ios" id="btn-back-from-forklift" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
+          Back to Dashboard
+        </button>
+        <span class="view-badge forklift-badge-amber">
+          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          ${escapeHTML(cfg.model || 'Toyota 8FGU25')} • S/N ${escapeHTML(cfg.serialNo || '90434')}
+        </span>
+      </div>
+      <div class="view-nav-actions-right">
+        <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios btn-ios-accent">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          Operators Manual (PDF) ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero Card -->
+    <div class="forklift-hero-card">
+      <div class="benefits-hero-content">
+        <div class="benefits-hero-header">
+          <div class="benefits-hero-icon" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.35);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+          <div class="benefits-hero-title-group">
+            <h1 style="color: var(--text-primary); font-size: 1.5rem; margin: 0;">Toyota 8FGU25 Forklift Safety & Operation</h1>
+            <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0; font-size: 0.9rem;">OSHA 29 CFR 1910.178 Powered Industrial Truck Standards • 4HGS Warehouse Protocols</p>
+          </div>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          Safe forklift operation protects our team, prevents severe tip-overs, and guarantees warehouse integrity. This portal houses verified machine technical data plate specifications, active operator certifications with a 3-year renewal countdown, essential safety rules from the official Toyota Operator's Manual, and daily pre-shift inspection checklists.
+        </p>
+        <div class="benefits-hero-actions">
+          <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-hero-primary" style="background: #f59e0b; color: #18181b; border: none; font-weight: 700;">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+            Open Official Toyota Operator's Manual (PDF)
+          </a>
+          <a href="#forklift-operators-section" class="btn-hero-secondary" id="btn-hero-scroll-operators">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path></svg>
+            View Operator Certifications
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Machine Data Plate & Technical Specs Card -->
+    <div class="benefits-section-header">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      <h2>Machine Data Plate & Technical Specifications</h2>
+    </div>
+
+    <div class="dataplate-card">
+      <div class="dataplate-rivet tl"></div>
+      <div class="dataplate-rivet tr"></div>
+      <div class="dataplate-rivet bl"></div>
+      <div class="dataplate-rivet br"></div>
+
+      <div class="dataplate-header">
+        <div class="dataplate-brand">TOYOTA FORKLIFT TRUCK • DATA PLATE</div>
+        <div style="font-size: 0.75rem; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+          F2 ENGLISH 57846-U2173-71
+        </div>
+      </div>
+
+      <div class="dataplate-grid">
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Model</div>
+          <div class="dataplate-item-value">8FGU25</div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Serial Number</div>
+          <div class="dataplate-item-value">90434</div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Mast Type</div>
+          <div class="dataplate-item-value">FSV <span style="font-size: 0.72rem; color: #a1a1aa; font-weight: normal;">(3-Stage Free-Lift)</span></div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Attachment</div>
+          <div class="dataplate-item-value">SSFP <span style="font-size: 0.72rem; color: #a1a1aa; font-weight: normal;">(Side-Shift Positioner)</span></div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Truck Weight (±5%)</div>
+          <div class="dataplate-item-value">8,870 lb <span style="font-size: 0.75rem; color: #a1a1aa; font-weight: 500;">/ 4,020 kg</span></div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Fuel / Power Type</div>
+          <div class="dataplate-item-value">LP <span style="font-size: 0.72rem; color: #a1a1aa; font-weight: normal;">(Liquid Propane)</span></div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Front Tread</div>
+          <div class="dataplate-item-value">43.1 in <span style="font-size: 0.75rem; color: #a1a1aa; font-weight: 500;">/ 1095 mm</span></div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Back Tilt Angle</div>
+          <div class="dataplate-item-value">6° Back Tilt</div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Front Tire Size</div>
+          <div class="dataplate-item-value">7.00-12 / Solid</div>
+        </div>
+        <div class="dataplate-item">
+          <div class="dataplate-item-label">Rear Tire Size</div>
+          <div class="dataplate-item-value">6.00-9 / Solid</div>
+        </div>
+      </div>
+
+      <!-- Capacity Load Chart Table -->
+      <div style="font-size: 0.78rem; font-weight: 700; color: #fafafa; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em;">
+        Rated Capacity with Vertical Mast Equipped at Max Lift Height 'C' (189.0 in / 4800 mm)
+      </div>
+      
+      <div class="capacity-table-wrap">
+        <table class="capacity-table">
+          <thead>
+            <tr>
+              <th>Load Center (A & B)</th>
+              <th>Max Lift Height (C)</th>
+              <th>Rated Capacity</th>
+              <th>Stability & Operational Condition</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>24 in</strong> (600 mm)</td>
+              <td><strong>189.0 in</strong> (4800 mm)</td>
+              <td class="capacity-highlight">4,500 lb (2,040 kg)</td>
+              <td>Standard rated capacity with vertical mast & centered load</td>
+            </tr>
+            <tr>
+              <td><strong>30 in</strong> (760 mm)</td>
+              <td><strong>189.0 in</strong> (4800 mm)</td>
+              <td class="capacity-highlight">4,000 lb (1,815 kg)</td>
+              <td>Extended load center capacity (reduced by 500 lbs)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 0.9rem; font-size: 0.75rem; color: #d97706; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; padding: 0.5rem 0.75rem; line-height: 1.4;">
+        <strong>WARNING:</strong> IMPROPER OPERATION OR MAINTENANCE COULD RESULT IN INJURY OR DEATH. TRAINED OPERATORS ONLY. READ OPERATOR'S MANUAL FIRST. THIS FORKLIFT TRUCK MEETS OR EXCEEDS DESIGN SPECIFICATIONS OF ANSI/ITSDF B56.1 IN EFFECT ON THE DATE OF MANUFACTURE.
+      </div>
+    </div>
+
+    <!-- Operator Certification & 3-Year Recertification Section -->
+    <div class="benefits-section-header" id="forklift-operators-section">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      <h2>Operator Certification & 3-Year Recertification Tracker</h2>
+    </div>
+
+    <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+      <strong style="color: #60a5fa;">OSHA 29 CFR 1910.178(l)(4)(iii) Mandate:</strong> An evaluation of each powered industrial truck operator's performance must be conducted at least once every <strong>3 years</strong>. 4HGS maintains active certified operators, trainees currently in certification, and an Operator Trainer.
+    </div>
+
+    <div class="cert-tracker-grid">
+      ${operators.map(op => {
+        const data = getOperatorRecertData(op);
+        const isTrainer = op.role === 'Operator Trainer';
+        const cardClass = isTrainer ? 'trainer' : (data.status === 'certified' ? 'certified' : (data.status === 'expired' ? 'expiring' : 'in-progress'));
+        const initials = op.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'OP';
+
+        return `
+          <div class="cert-operator-card ${cardClass}">
+            <div class="cert-card-header">
+              <div class="cert-op-info">
+                <div class="cert-op-avatar ${isTrainer ? 'trainer-avatar' : ''}">
+                  ${isTrainer ? '★' : initials}
+                </div>
+                <div>
+                  <h3 class="cert-op-title">${escapeHTML(op.name)}</h3>
+                  <div class="cert-op-role-tag">
+                    ${isTrainer ? '<span style="color:#f59e0b; font-weight:700;">Operator Trainer</span>' : escapeHTML(op.role || 'Operator')}
+                  </div>
+                </div>
+              </div>
+              <span class="view-badge ${data.statusBadgeClass}" style="font-size: 0.7rem; padding: 0.2rem 0.55rem;">
+                ${escapeHTML(data.statusText)}
+              </span>
+            </div>
+
+            <!-- Countdown Box -->
+            <div class="cert-countdown-box">
+              <div>
+                <div class="countdown-label">3-Year Recertification</div>
+                <div class="countdown-digits ${data.countdownClass}">${data.countdownText}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">${data.countdownSub}</div>
+                ${data.daysRemaining !== null && data.daysRemaining >= 0 ? `
+                  <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.15rem;">Rule: Hardcoded 3 Yrs</div>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Meta dates -->
+            <div class="cert-meta-row">
+              <div class="cert-meta-item">
+                Certified: <strong>${escapeHTML(data.certFormatted)}</strong>
+              </div>
+              <div class="cert-meta-item">
+                Next Due: <strong>${escapeHTML(data.recertFormatted)}</strong>
+              </div>
+            </div>
+
+            ${op.notes ? `
+              <div style="font-size: 0.75rem; color: var(--text-secondary); background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--glass-border);">
+                ${escapeHTML(op.notes)}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <!-- Toyota 8-Series Critical Safety Rules Grid -->
+    <div class="benefits-section-header" style="margin-top: 1.5rem;">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path></svg>
+      <h2>Core Safety Rules (Toyota Operator's Manual & OSHA)</h2>
+    </div>
+
+    <div class="safety-rules-grid">
+      <!-- Rule 1: Toyota SAS -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12h8"></path></svg>
+          </div>
+          Toyota System of Active Stability (SAS)
+        </div>
+        <p class="safety-rule-desc">
+          The 8FGU25 includes Toyota's patented SAS: active control rear stabilizer cylinder locks the swing axle during sharp turns to resist lateral tip-over, and active mast front tilt angle/speed controls automatically limit forward tilt with heavy loads. Never rely solely on SAS to overcome reckless driving.
+        </p>
+      </div>
+
+      <!-- Rule 2: Stability Triangle -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 22 22 22"></polygon></svg>
+          </div>
+          Stability Triangle & Center of Gravity
+        </div>
+        <p class="safety-rule-desc">
+          The forklift's center of gravity shifts upward and forward as a load is elevated. Always travel with forks <strong>6 to 8 inches off the ground</strong> and mast tilted back. Elevating a load while traveling, turning, or on an incline dramatically destabilizes the truck and invites instant rollover.
+        </p>
+      </div>
+
+      <!-- Rule 3: Load Center & Capacity -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+          </div>
+          Load Center & SSFP Attachment Limit
+        </div>
+        <p class="safety-rule-desc">
+          Rated for <strong>4,500 lbs at 24" load center</strong>. If a load extends beyond 24" (e.g. 30"), maximum capacity drops to <strong>4,000 lbs</strong>. Side-shifting (SSFP attachment) off-center also shifts the lateral center of gravity; always re-center forks before traveling.
+        </p>
+      </div>
+
+      <!-- Rule 4: Seatbelt & Tip-Over Survival -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          Mandatory Seatbelt & Tip-Over Survival
+        </div>
+        <p class="safety-rule-desc">
+          Seatbelts must be buckled before engine ignition. In a tip-over: <strong>NEVER JUMP</strong>. The overhead guard will crush operators who jump. Hold tightly to the steering wheel, brace your feet firmly against the floorboard, and lean away from the point of impact inside the cage.
+        </p>
+      </div>
+
+      <!-- Rule 5: Strict No Riders -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
+          </div>
+          Zero Passengers / No Riders Permitted
+        </div>
+        <p class="safety-rule-desc">
+          The Toyota 8FGU25 is designed exclusively for a single operator. Riding on forks, pallets, side steps, or the rear counterweight is strictly prohibited under OSHA 1910.178(m)(3). Never lift personnel with forks unless utilizing an approved, securely tethered safety platform.
+        </p>
+      </div>
+
+      <!-- Rule 6: Ramps & Inclines -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="20" x2="23" y2="4"></line><polyline points="8 4 23 4 23 19"></polyline></svg>
+          </div>
+          Ramps, Grades & Travel Direction
+        </div>
+        <p class="safety-rule-desc">
+          When carrying a load on any slope, grade, or truck dock ramp: <strong>Forks must always point uphill</strong>. Drive forward up grades; descend in reverse with mast tilted back. When unladen, forks point downhill. Never turn or travel across a ramp diagonally.
+        </p>
+      </div>
+
+      <!-- Rule 7: Pedestrian & Blind Spots -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </div>
+          Pedestrian Right-of-Way & Horn Sounding
+        </div>
+        <p class="safety-rule-desc">
+          Pedestrians always have absolute right-of-way. Always sound horn before entering doorways, blind corners, and cross-aisles. Maintain a minimum distance of 3 truck lengths behind other warehouse equipment. If a forward load blocks visibility, travel in reverse.
+        </p>
+      </div>
+
+      <!-- Rule 8: LP Gas Safety -->
+      <div class="safety-rule-card">
+        <div class="safety-rule-header">
+          <div class="safety-rule-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+          </div>
+          LP Gas Cylinder Exchange & Storage
+        </div>
+        <p class="safety-rule-desc">
+          Swap LP tanks only in designated, well-ventilated locations. Shut off engine and turn valve fully closed before disconnecting. Inspect rubber O-ring in coupling for dry rot or cuts. Engage alignment pin on tank bracket to keep pressure relief valve pointing upward at 12 o'clock.
+        </p>
+      </div>
+    </div>
+
+    <!-- Pre-Shift Inspection Checklist Section -->
+    <div class="benefits-section-header" style="margin-top: 1.5rem;">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      <h2>Daily Pre-Shift Inspection Protocol (OSHA 1910.178)</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+      <!-- Cold / Walkaround Inspection -->
+      <div class="safety-rule-card">
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #fbbf24; display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          Phase 1: Pre-Start Walkaround (Engine Off)
+        </h4>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Solid Tires & Wheels:</strong> Inspect front 7.00-12 and rear 6.00-9 solid tires for deep chunking, bond separation, and missing lug nuts.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Forks & Lock Pins:</strong> Check both fork tines for cracks, bending, heel wear, and verify both fork locking pins are fully seated in notch.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Mast Chains & Carriage:</strong> Inspect lift chains for equal tension, lubrication, and check hydraulic hoses for weeping or fraying.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>LP Tank & Bracket:</strong> Verify LP cylinder clamp is tight, indexing pin is engaged, quick-disconnect is hand-tight, and smell for ethyl mercaptan.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Fluids & Ground Check:</strong> Check ground beneath forklift for engine oil, hydraulic fluid, or coolant puddles.</div>
+        </div>
+      </div>
+
+      <!-- Operational Inspection -->
+      <div class="safety-rule-card">
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #34d399; display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Phase 2: Operational Systems (Engine Running)
+        </h4>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Seatbelt & Interlock:</strong> Confirm seatbelt locks when tugged sharply; verify engine interlock shuts off drive if operator leaves seat.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Audio & Visual Alarms:</strong> Test horn button on steering wheel hub; test backup warning beeper and headlights / strobe.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Hydraulic Levers:</strong> Actuate lift, tilt, and SSFP side-shifter through full travel. Check for smooth response and no chatter.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Service & Parking Brake:</strong> Check pedal firmness; test forward/reverse inching; verify parking brake holds firm on incline.</div>
+        </div>
+        <div class="checklist-item">
+          <span class="checklist-check">✓</span>
+          <div><strong>Steering Play:</strong> Confirm power steering turns smoothly lock-to-lock without bind or excessive free play.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Download Banner -->
+    <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.08) 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; color: #f59e0b; flex-shrink: 0;">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+        </div>
+        <div>
+          <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Need Full Maintenance or Operational Specifications?</h4>
+          <p style="margin: 0.2rem 0 0 0; font-size: 0.82rem; color: var(--text-secondary);">The complete 200+ page factory manual covers maintenance schedules, fuse boxes, SAS diagnostic codes, and hydraulic specs.</p>
+        </div>
+      </div>
+      <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios btn-ios-accent" style="white-space: nowrap;">
+        Download Operators Manual (PDF) &rarr;
+      </a>
+    </div>
+  `;
+
+  // Attach nav handlers
+  const btnBack = document.getElementById('btn-back-from-forklift');
+  if (btnBack) {
+    btnBack.addEventListener('click', () => closeForkliftSafetyPage());
+  }
+
+  const btnScrollOps = document.getElementById('btn-hero-scroll-operators');
+  if (btnScrollOps) {
+    btnScrollOps.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.getElementById('forklift-operators-section');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+}
+
+// --- Admin Forklift Settings Tab Controller ---
+
+function renderForkliftAdminTab() {
+  const panel = document.getElementById('forklift-operators-panel-list');
+  const badge = document.getElementById('forklift-admin-status-badge');
+  if (!panel) return;
+
+  const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+  const ops = cfg.operators || [];
+
+  if (badge) {
+    badge.textContent = `${ops.length} Operator${ops.length === 1 ? '' : 's'}`;
+  }
+
+  if (ops.length === 0) {
+    panel.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">No operators configured. Add an operator using the form below.</div>';
+    return;
+  }
+
+  panel.innerHTML = ops.map(op => {
+    const data = getOperatorRecertData(op);
+    const isTrainer = op.role === 'Operator Trainer';
+    return `
+      <div class="user-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--glass-border); gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+          <div class="cert-op-avatar ${isTrainer ? 'trainer-avatar' : ''}" style="width: 36px; height: 36px; font-size: 0.8rem;">
+            ${isTrainer ? '★' : op.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+          </div>
+          <div style="min-width: 0;">
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${escapeHTML(op.name)}
+              ${isTrainer ? '<span style="font-size:0.7rem; margin-left: 0.4rem; padding: 0.1rem 0.4rem; border-radius: 4px; background: rgba(245,158,11,0.2); color: #f59e0b;">Trainer</span>' : ''}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem;">
+              Role: <strong>${escapeHTML(op.role || 'Operator')}</strong> &bull; Status: <span class="${data.statusBadgeClass}" style="padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.7rem;">${escapeHTML(op.status)}</span>
+              ${op.status === 'Certified' && op.certDate ? ` &bull; Cert: <strong>${escapeHTML(data.certFormatted)}</strong> &bull; Recert: <strong>${escapeHTML(data.recertFormatted)}</strong> (${data.countdownText})` : ''}
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
+          <button type="button" class="btn-ios btn-edit-forklift-op" data-id="${op.id}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;">Edit</button>
+          <button type="button" class="btn-ios btn-delete-forklift-op" data-id="${op.id}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: #ff3b30; border-color: rgba(255,59,48,0.3);">&times;</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attach edit & delete handlers
+  panel.querySelectorAll('.btn-edit-forklift-op').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const opId = btn.dataset.id;
+      const op = (state.forkliftConfig && state.forkliftConfig.operators) ? state.forkliftConfig.operators.find(o => o.id === opId) : null;
+      if (op) loadForkliftOperatorIntoForm(op);
+    });
+  });
+
+  panel.querySelectorAll('.btn-delete-forklift-op').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deleteForkliftOperator(btn.dataset.id);
+    });
+  });
+}
+
+function loadForkliftOperatorIntoForm(op) {
+  document.getElementById('edit-forklift-operator-id').value = op.id;
+  document.getElementById('forklift-op-name').value = op.name || '';
+  document.getElementById('forklift-op-role').value = op.role || 'Certified Operator';
+  document.getElementById('forklift-op-status').value = op.status || 'Certified';
+  document.getElementById('forklift-op-cert-date').value = op.certDate || '';
+  document.getElementById('forklift-op-notes').value = op.notes || '';
+
+  const certGroup = document.getElementById('forklift-cert-date-group');
+  if (certGroup) {
+    certGroup.style.display = op.status === 'Certified' ? 'block' : 'none';
+  }
+
+  const title = document.getElementById('forklift-form-title');
+  if (title) title.textContent = `Edit Operator: ${op.name}`;
+
+  const saveBtn = document.getElementById('btn-save-forklift-operator');
+  if (saveBtn) saveBtn.textContent = 'Update Operator Record';
+}
+
+function resetForkliftOperatorForm() {
+  document.getElementById('edit-forklift-operator-id').value = '';
+  const form = document.getElementById('forklift-operator-form');
+  if (form) form.reset();
+
+  const certGroup = document.getElementById('forklift-cert-date-group');
+  if (certGroup) certGroup.style.display = 'block';
+
+  const title = document.getElementById('forklift-form-title');
+  if (title) title.textContent = 'Add / Update Operator Record';
+
+  const saveBtn = document.getElementById('btn-save-forklift-operator');
+  if (saveBtn) saveBtn.textContent = 'Save Operator Record';
+}
+
+async function handleForkliftOperatorSubmit(e) {
+  e.preventDefault();
+  const editId = document.getElementById('edit-forklift-operator-id').value;
+  const name = document.getElementById('forklift-op-name').value.trim();
+  const role = document.getElementById('forklift-op-role').value;
+  const status = document.getElementById('forklift-op-status').value;
+  const certDate = document.getElementById('forklift-op-cert-date').value;
+  const notes = document.getElementById('forklift-op-notes').value.trim();
+
+  if (!name) {
+    showToast('Please enter an operator name.', false);
+    return;
+  }
+
+  if (status === 'Certified' && !certDate) {
+    showToast('Please enter the initial certification date for certified operators.', false);
+    return;
+  }
+
+  if (!state.forkliftConfig) {
+    state.forkliftConfig = JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_CONFIG));
+  }
+  if (!state.forkliftConfig.operators) {
+    state.forkliftConfig.operators = [];
+  }
+
+  if (editId) {
+    const idx = state.forkliftConfig.operators.findIndex(o => o.id === editId);
+    if (idx !== -1) {
+      state.forkliftConfig.operators[idx] = {
+        ...state.forkliftConfig.operators[idx],
+        name,
+        role,
+        status,
+        certDate: status === 'Certified' ? certDate : '',
+        notes
+      };
+      showToast(`Updated operator record for ${name}`);
+    }
+  } else {
+    const newOp = {
+      id: `op-${Date.now()}`,
+      name,
+      role,
+      status,
+      certDate: status === 'Certified' ? certDate : '',
+      notes
+    };
+    state.forkliftConfig.operators.push(newOp);
+    showToast(`Added operator record for ${name}`);
+  }
+
+  saveDatabase();
+  await syncForkliftConfigToFirestore();
+  resetForkliftOperatorForm();
+  renderForkliftAdminTab();
+
+  const forkliftPanel = document.getElementById('forklift-page-inline');
+  if (forkliftPanel && forkliftPanel.style.display === 'flex') {
+    renderForkliftSafetyPage();
+  }
+}
+
+async function deleteForkliftOperator(opId) {
+  if (!state.forkliftConfig || !state.forkliftConfig.operators) return;
+  const op = state.forkliftConfig.operators.find(o => o.id === opId);
+  const name = op ? op.name : 'Operator';
+
+  if (!confirm(`Are you sure you want to remove the operator record for "${name}"?`)) {
+    return;
+  }
+
+  state.forkliftConfig.operators = state.forkliftConfig.operators.filter(o => o.id !== opId);
+  saveDatabase();
+  await syncForkliftConfigToFirestore();
+  renderForkliftAdminTab();
+
+  const forkliftPanel = document.getElementById('forklift-page-inline');
+  if (forkliftPanel && forkliftPanel.style.display === 'flex') {
+    renderForkliftSafetyPage();
+  }
+
+  showToast(`Removed operator record for ${name}`);
+}
+
+async function syncForkliftConfigToFirestore() {
+  if (!auth.currentUser || !state.forkliftConfig) return;
+  try {
+    await setDoc(doc(db, "forkliftConfig", "main"), state.forkliftConfig);
+  } catch (err) {
+    console.error("Failed to sync forkliftConfig to Firestore:", err);
+  }
+}
+
 // Pre-fill App curator form for Editing Apps
 function loadAppIntoForm(app) {
   openAdminPortal();
@@ -2489,7 +3360,7 @@ function loadAppIntoForm(app) {
 
   const linkInput = document.getElementById('app-link');
   const linkLabel = document.getElementById('app-link-label') || document.querySelector('label[for="app-link"]');
-  const isBuiltIn = (app.id === 'health-benefits' || app.id === 'benefits-docs' || !app.link);
+  const isBuiltIn = (app.id === 'health-benefits' || app.id === 'benefits-docs' || app.id === 'forklift-safety' || !app.link);
 
   linkInput.value = app.link || '';
   if (isBuiltIn) {
@@ -2936,7 +3807,7 @@ function handleAppSubmit(e) {
   const icon = selectedIconEl ? selectedIconEl.dataset.icon : 'box';
   
   const existingApp = editId ? state.apps.find(a => a.id === editId) : null;
-  const isBuiltIn = existingApp && (existingApp.id === 'health-benefits' || existingApp.id === 'benefits-docs' || !existingApp.link);
+  const isBuiltIn = existingApp && (existingApp.id === 'health-benefits' || existingApp.id === 'benefits-docs' || existingApp.id === 'forklift-safety' || !existingApp.link);
 
   if (!name) return;
   if (!isBuiltIn && !link) {
@@ -3509,6 +4380,21 @@ function bindEventHandlers() {
   document.getElementById('broadcast-curator-form').addEventListener('submit', handleBroadcastSubmit);
   document.getElementById('section-curator-form').addEventListener('submit', handleSectionSubmit);
   document.getElementById('btn-save-permissions').addEventListener('click', handlePermissionsSave);
+
+  // Forklift safety admin events
+  const btnResetForklift = document.getElementById('btn-reset-forklift-form');
+  if (btnResetForklift) btnResetForklift.addEventListener('click', resetForkliftOperatorForm);
+  const forkliftForm = document.getElementById('forklift-operator-form');
+  if (forkliftForm) forkliftForm.addEventListener('submit', handleForkliftOperatorSubmit);
+  const forkliftStatusSelect = document.getElementById('forklift-op-status');
+  if (forkliftStatusSelect) {
+    forkliftStatusSelect.addEventListener('change', (e) => {
+      const certGroup = document.getElementById('forklift-cert-date-group');
+      if (certGroup) {
+        certGroup.style.display = e.target.value === 'Certified' ? 'block' : 'none';
+      }
+    });
+  }
 
   // Folder modal closure elements
   document.getElementById('btn-close-folder').addEventListener('click', closeFolderDrawer);

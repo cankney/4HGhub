@@ -167,6 +167,12 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow delete: if isAdmin();
     }
+
+    // Forklift safety configuration and operator records
+    match /forkliftConfig/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
   }
 }
 
