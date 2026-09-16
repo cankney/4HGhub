@@ -3317,22 +3317,6 @@ body.light-mode .capacity-highlight {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
-.cert-operator-card.certified {
-  border-left: 4px solid #10b981;
-}
-
-.cert-operator-card.trainer {
-  border-left: 4px solid #f59e0b;
-}
-
-.cert-operator-card.in-progress {
-  border-left: 4px solid #3b82f6;
-}
-
-.cert-operator-card.expiring {
-  border-left: 4px solid #ef4444;
-}
-
 .cert-card-header {
   display: flex;
   justify-content: space-between;
