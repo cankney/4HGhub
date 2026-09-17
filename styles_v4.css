@@ -1224,6 +1224,10 @@ body.light-mode .toast {
     order: 2; /* Widgets go underneath! */
     margin-top: 1rem;
   }
+  /* Exclude widgets on mobile/tablet when built-in pages are open */
+  body.subpage-open .widgets-panel {
+    display: none !important;
+  }
   .clock-widget {
     display: none; /* Hide clock widget since mobile has status time bar */
   }

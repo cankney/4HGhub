@@ -1498,6 +1498,7 @@ function renderAppGrid() {
   const isForkliftHistoryOpen = forkliftHistoryPanel && forkliftHistoryPanel.style.display === 'flex';
   const topActions = document.getElementById('top-actions-bar');
   const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen || isForkliftTrainingOpen || isForkliftChecklistOpen || isForkliftHistoryOpen;
+  document.body.classList.toggle('subpage-open', Boolean(isAnyModalOpen));
   
   if (isAnyModalOpen) {
     mainGrid.style.display = 'none';
@@ -2087,6 +2088,34 @@ function deleteApp(appId) {
   showToast('Application deleted successfully');
 }
 
+// --- Scroll Helper: Always start built-in pages at the top ---
+function scrollToPageTop() {
+  try {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  } catch (e) {
+    window.scrollTo(0, 0);
+  }
+  if (document.documentElement) document.documentElement.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
+  const shell = document.querySelector('.ios-screen-content');
+  if (shell) shell.scrollTop = 0;
+  const iosShell = document.getElementById('ios-shell');
+  if (iosShell) iosShell.scrollTop = 0;
+  const inlinePages = [
+    'admin-panel-inline',
+    'benefits-page-inline',
+    'benefits-docs-page-inline',
+    'forklift-page-inline',
+    'forklift-training-page-inline',
+    'forklift-checklist-page-inline',
+    'forklift-checklist-history-page-inline'
+  ];
+  inlinePages.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.scrollTop = 0;
+  });
+}
+
 // --- Inline Admin Navigation Controller (Replaces popup dialog!) ---
 
 function openAdminPortal() {
@@ -2109,6 +2138,10 @@ function openAdminPortal() {
   if (topActions) topActions.style.display = 'none';
   
   document.getElementById('admin-panel-inline').style.display = 'flex';
+  document.body.classList.add('subpage-open');
+  scrollToPageTop();
+  requestAnimationFrame(() => scrollToPageTop());
+  setTimeout(() => scrollToPageTop(), 20);
   
   // Pre-fill profile settings
   loadProfileIntoForm();
@@ -2151,7 +2184,9 @@ function closeAdminPortal() {
   const subsequentContainer = document.getElementById('subsequent-sections-container');
   if (subsequentContainer) subsequentContainer.style.display = 'block';
   
+  document.body.classList.remove('subpage-open');
   renderAppGrid();
+  scrollToPageTop();
 }
 
 // --- Health Benefits & Benefits Documents Controllers & Catalogs ---
@@ -2264,9 +2299,11 @@ function openBenefitsPage() {
   const benefitsPanel = document.getElementById('benefits-page-inline');
   if (benefitsPanel) {
     benefitsPanel.style.display = 'flex';
+    document.body.classList.add('subpage-open');
     renderBenefitsPage();
-    const shell = document.querySelector('.ios-screen-content');
-    if (shell) shell.scrollTop = 0;
+    scrollToPageTop();
+    requestAnimationFrame(() => scrollToPageTop());
+    setTimeout(() => scrollToPageTop(), 20);
   }
 }
 
@@ -2275,6 +2312,7 @@ function closeBenefitsPage(restoreGrid = true) {
   if (benefitsPanel) benefitsPanel.style.display = 'none';
 
   if (restoreGrid) {
+    document.body.classList.remove('subpage-open');
     document.getElementById('main-app-grid').style.display = 'grid';
     document.getElementById('ios-toolbar').style.display = 'flex';
     
@@ -2282,6 +2320,7 @@ function closeBenefitsPage(restoreGrid = true) {
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     
     renderAppGrid();
+    scrollToPageTop();
   }
 }
 
@@ -2307,11 +2346,13 @@ function openBenefitsDocsPage(initialFilter = 'all') {
   const docsPanel = document.getElementById('benefits-docs-page-inline');
   if (docsPanel) {
     docsPanel.style.display = 'flex';
+    document.body.classList.add('subpage-open');
     currentDocsFilter = initialFilter;
     currentDocsSearch = '';
     renderBenefitsDocsPage();
-    const shell = document.querySelector('.ios-screen-content');
-    if (shell) shell.scrollTop = 0;
+    scrollToPageTop();
+    requestAnimationFrame(() => scrollToPageTop());
+    setTimeout(() => scrollToPageTop(), 20);
   }
 }
 
@@ -2320,6 +2361,7 @@ function closeBenefitsDocsPage(restoreGrid = true) {
   if (docsPanel) docsPanel.style.display = 'none';
 
   if (restoreGrid) {
+    document.body.classList.remove('subpage-open');
     document.getElementById('main-app-grid').style.display = 'grid';
     document.getElementById('ios-toolbar').style.display = 'flex';
     
@@ -2327,6 +2369,7 @@ function closeBenefitsDocsPage(restoreGrid = true) {
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     
     renderAppGrid();
+    scrollToPageTop();
   }
 }
 
@@ -2342,10 +2385,6 @@ function renderBenefitsPage() {
           <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
           Back to Dashboard
         </button>
-        <span class="view-badge">
-          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          Active Plan • 2026
-        </span>
       </div>
       <div class="view-nav-actions-right">
         <button class="btn-ios btn-ios-accent" id="btn-benefits-to-docs" type="button">
@@ -2363,6 +2402,12 @@ function renderBenefitsPage() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
           </div>
           <div class="benefits-hero-title-group">
+            <div style="margin-bottom: 0.35rem;">
+              <span class="view-badge" style="display: inline-flex;">
+                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Active Plan • 2026
+              </span>
+            </div>
             <h1>4HGS Health Benefits Plan</h1>
             <p>Allied Health &bull; HSA Freedom Traditional $4,000 Plan &bull; Plan Year 2026</p>
           </div>
@@ -2703,21 +2748,21 @@ function renderBenefitsDocsPage() {
         <button class="btn-ios" id="btn-back-to-dash-from-docs" type="button">
           Dashboard
         </button>
-        <span class="view-badge">
-          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
-          Benefits Documents Library
-        </span>
-      </div>
-      <div class="view-nav-actions-right">
-        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">
-          Showing ${filteredDocs.length} of ${countAll} Files
-        </span>
       </div>
     </div>
 
     <!-- Documents Page Header -->
-    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">
+    <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.25rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+        <span class="view-badge">
+          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+          Benefits Documents Library
+        </span>
+        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">
+          Showing ${filteredDocs.length} of ${countAll} Files
+        </span>
+      </div>
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin: 0;">
         Benefits & Section 125 Documents
       </h1>
       <p style="font-size: 0.9rem; color: var(--text-secondary);">
@@ -2929,9 +2974,11 @@ function openForkliftSafetyPage() {
   const forkliftPanel = document.getElementById('forklift-page-inline');
   if (forkliftPanel) {
     forkliftPanel.style.display = 'flex';
+    document.body.classList.add('subpage-open');
     renderForkliftSafetyPage();
-    const shell = document.querySelector('.ios-screen-content');
-    if (shell) shell.scrollTop = 0;
+    scrollToPageTop();
+    requestAnimationFrame(() => scrollToPageTop());
+    setTimeout(() => scrollToPageTop(), 20);
   }
 }
 
@@ -2943,6 +2990,7 @@ function closeForkliftSafetyPage(restoreGrid = true) {
   if (forkliftTrainingPanel) forkliftTrainingPanel.style.display = 'none';
 
   if (restoreGrid) {
+    document.body.classList.remove('subpage-open');
     document.getElementById('main-app-grid').style.display = 'grid';
     document.getElementById('ios-toolbar').style.display = 'flex';
     
@@ -2950,6 +2998,7 @@ function closeForkliftSafetyPage(restoreGrid = true) {
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     
     renderAppGrid();
+    scrollToPageTop();
   }
 }
 
@@ -2968,10 +3017,6 @@ function renderForkliftSafetyPage() {
           <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
           Back to Dashboard
         </button>
-        <span class="view-badge forklift-badge-amber">
-          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-          ${escapeHTML(cfg.model || 'Toyota 8FGU25')} • S/N ${escapeHTML(cfg.serialNo || '90434')}
-        </span>
       </div>
       <div class="view-nav-actions-right">
         <button class="btn-ios btn-ios-accent" id="btn-forklift-to-checklist" type="button" style="background: rgba(141, 220, 4, 0.15); color: var(--accent-green); border: 1px solid rgba(141, 220, 4, 0.35);">
@@ -2997,6 +3042,12 @@ function renderForkliftSafetyPage() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           </div>
           <div class="benefits-hero-title-group">
+            <div style="margin-bottom: 0.35rem;">
+              <span class="view-badge forklift-badge-amber" style="display: inline-flex;">
+                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                ${escapeHTML(cfg.model || 'Toyota 8FGU25')} • S/N ${escapeHTML(cfg.serialNo || '90434')}
+              </span>
+            </div>
             <h1 style="color: var(--text-primary); font-size: 1.5rem; margin: 0;">Toyota 8FGU25 Forklift Safety & Operation</h1>
             <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0; font-size: 0.9rem;">OSHA 29 CFR 1910.178 Powered Industrial Truck Standards • 4HGS Warehouse Protocols</p>
           </div>
@@ -3473,9 +3524,11 @@ function openForkliftTrainingPage() {
   const trainingPanel = document.getElementById('forklift-training-page-inline');
   if (trainingPanel) {
     trainingPanel.style.display = 'flex';
+    document.body.classList.add('subpage-open');
     renderForkliftTrainingPage();
-    const shell = document.querySelector('.ios-screen-content');
-    if (shell) shell.scrollTop = 0;
+    scrollToPageTop();
+    requestAnimationFrame(() => scrollToPageTop());
+    setTimeout(() => scrollToPageTop(), 20);
   }
 }
 
@@ -3484,6 +3537,7 @@ function closeForkliftTrainingPage(restoreGrid = true) {
   if (trainingPanel) trainingPanel.style.display = 'none';
 
   if (restoreGrid) {
+    document.body.classList.remove('subpage-open');
     document.getElementById('main-app-grid').style.display = 'grid';
     document.getElementById('ios-toolbar').style.display = 'flex';
     
@@ -3491,6 +3545,7 @@ function closeForkliftTrainingPage(restoreGrid = true) {
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     
     renderAppGrid();
+    scrollToPageTop();
   }
 }
 
@@ -3509,10 +3564,6 @@ function renderForkliftTrainingPage() {
         <button class="btn-ios" id="btn-back-to-dash-from-training" type="button">
           Dashboard
         </button>
-        <span class="view-badge" style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3);">
-          <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          OSHA 29 CFR 1910.178 • 2020 Toyota 8FGU25
-        </span>
       </div>
       <div class="view-nav-actions-right">
         <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios btn-ios-accent">
@@ -3530,6 +3581,12 @@ function renderForkliftTrainingPage() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path><line x1="9" y1="7" x2="15" y2="7"></line><line x1="9" y1="11" x2="13" y2="11"></line></svg>
           </div>
           <div class="benefits-hero-title-group">
+            <div style="margin-bottom: 0.35rem;">
+              <span class="view-badge" style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); display: inline-flex;">
+                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                OSHA 29 CFR 1910.178 • 2020 Toyota 8FGU25
+              </span>
+            </div>
             <h1 style="color: var(--text-primary); font-size: 1.5rem; margin: 0;">OSHA Operator Training Program: 2020 Toyota 8FGU25</h1>
             <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0; font-size: 0.9rem;">Powered Industrial Truck (PIT) Theoretical Instruction, Safe Work Protocols & Mandated Competency</p>
           </div>
@@ -4006,9 +4063,11 @@ function openForkliftChecklistPage() {
   const panel = document.getElementById('forklift-checklist-page-inline');
   if (panel) {
     panel.style.display = 'flex';
+    document.body.classList.add('subpage-open');
     renderForkliftChecklistPage();
-    const shell = document.querySelector('.ios-screen-content');
-    if (shell) shell.scrollTop = 0;
+    scrollToPageTop();
+    requestAnimationFrame(() => scrollToPageTop());
+    setTimeout(() => scrollToPageTop(), 20);
   }
 }
 
@@ -4017,6 +4076,7 @@ function closeForkliftChecklistPage(restoreGrid = true) {
   if (panel) panel.style.display = 'none';
 
   if (restoreGrid) {
+    document.body.classList.remove('subpage-open');
     document.getElementById('main-app-grid').style.display = 'grid';
     document.getElementById('ios-toolbar').style.display = 'flex';
     
@@ -4024,6 +4084,7 @@ function closeForkliftChecklistPage(restoreGrid = true) {
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     
     renderAppGrid();
+    scrollToPageTop();
   }
 }
 
@@ -4049,9 +4110,11 @@ function openForkliftChecklistHistoryPage() {
   const panel = document.getElementById('forklift-checklist-history-page-inline');
   if (panel) {
     panel.style.display = 'flex';
+    document.body.classList.add('subpage-open');
     renderForkliftChecklistHistoryPage();
-    const shell = document.querySelector('.ios-screen-content');
-    if (shell) shell.scrollTop = 0;
+    scrollToPageTop();
+    requestAnimationFrame(() => scrollToPageTop());
+    setTimeout(() => scrollToPageTop(), 20);
   }
 }
 
@@ -4060,6 +4123,7 @@ function closeForkliftChecklistHistoryPage(restoreGrid = true) {
   if (panel) panel.style.display = 'none';
 
   if (restoreGrid) {
+    document.body.classList.remove('subpage-open');
     document.getElementById('main-app-grid').style.display = 'grid';
     document.getElementById('ios-toolbar').style.display = 'flex';
     
@@ -4067,6 +4131,7 @@ function closeForkliftChecklistHistoryPage(restoreGrid = true) {
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     
     renderAppGrid();
+    scrollToPageTop();
   }
 }
 
@@ -4131,9 +4196,6 @@ function renderForkliftChecklistPage() {
           <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
           Forklift Safety Hub
         </button>
-        <span class="view-badge forklift-badge-amber">
-          Toyota 8FGU25 • S/N 90434
-        </span>
       </div>
       <div class="view-nav-actions-right">
         <button class="btn-ios btn-ios-accent" id="btn-view-checklist-history" type="button" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);">
@@ -4154,10 +4216,15 @@ function renderForkliftChecklistPage() {
 
     <!-- Metadata Card -->
     <div class="checklist-meta-card">
-      <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-        <svg style="width: 18px; height: 18px; color: var(--accent-green);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>
-        Daily Pre-Shift Inspection Record
-      </h3>
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 18px; height: 18px; color: var(--accent-green);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>
+          Daily Pre-Shift Inspection Record
+        </h3>
+        <span class="view-badge forklift-badge-amber">
+          Toyota 8FGU25 • S/N 90434
+        </span>
+      </div>
       <div class="checklist-meta-grid">
         <div class="form-group">
           <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Date of Inspection</label>
@@ -4605,14 +4672,23 @@ async function renderForkliftChecklistHistoryPage() {
           <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
           Forklift Safety Hub
         </button>
-        <span class="view-badge forklift-badge-amber">
-          Forklift #90434 Inspection Logs
-        </span>
       </div>
       <div class="view-nav-actions-right">
         <button class="btn-ios btn-ios-accent" id="btn-start-new-checklist" type="button" style="background: rgba(141, 220, 4, 0.15); color: var(--accent-green); border: 1px solid rgba(141, 220, 4, 0.35);">
           + New Daily Inspection
         </button>
+      </div>
+    </div>
+
+    <!-- History Sub-Content Header -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+      <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+        <h1 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin: 0;">
+          Inspection History &amp; Logs
+        </h1>
+        <span class="view-badge forklift-badge-amber">
+          Forklift #90434 Inspection Logs
+        </span>
       </div>
     </div>
 
