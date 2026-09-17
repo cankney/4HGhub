@@ -883,6 +883,49 @@ body.light-mode .folder-drawer-close:hover {
   box-shadow: 0 0 10px var(--accent-green-dim);
 }
 
+/* Date Input Normalization & WebKit / iOS Safari Fixes */
+input[type="date"].form-control,
+input[type="date"] {
+  height: 46px;
+  min-height: 46px;
+  max-height: 46px;
+  line-height: normal;
+  padding: 0 0.85rem;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  color-scheme: dark;
+}
+
+body.light-mode input[type="date"].form-control,
+body.light-mode input[type="date"] {
+  color-scheme: light;
+}
+
+/* Fix iOS Safari ::-webkit-date-and-time-value centering & vertical bloating */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left !important;
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: normal !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Calendar indicator icon styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.85);
+  opacity: 0.75;
+  margin-left: auto;
+}
+
+body.light-mode input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.75;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3832,9 +3875,47 @@ body.light-mode .trainer-quote-card {
 
 .checklist-meta-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-top: 0.75rem;
+  align-items: end;
+}
+
+.checklist-meta-grid .form-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-bottom: 0;
+}
+
+.checklist-meta-grid .form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.checklist-meta-grid .form-control {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  box-sizing: border-box !important;
+  padding: 0 0.85rem !important;
+  border-radius: 8px;
+  line-height: normal !important;
+}
+
+@media (max-width: 900px) {
+  .checklist-meta-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .checklist-meta-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Checklist Notice / Safety Instructions Banner */

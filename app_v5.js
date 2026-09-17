@@ -4174,7 +4174,8 @@ function renderForkliftChecklistPage() {
   const keyOffItems = activeItems.filter(i => i.group === 'keyOff');
   const keyOnItems = activeItems.filter(i => i.group === 'keyOn');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const answeredCount = activeItems.filter(i => !!currentChecklistStatus[i.id]).length;
   const totalCount = activeItems.length;
 
@@ -4222,31 +4223,31 @@ function renderForkliftChecklistPage() {
           Daily Pre-Shift Inspection Record
         </h3>
         <span class="view-badge forklift-badge-amber">
-          Toyota 8FGU25 • S/N 90434
+          ${escapeHTML(cfg.model || 'Toyota 8FGU25')} • S/N ${escapeHTML(cfg.serialNo || '90434')}
         </span>
       </div>
       <div class="checklist-meta-grid">
         <div class="form-group">
-          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Date of Inspection</label>
-          <input type="date" id="checklist-input-date" class="form-control" value="${todayStr}" style="font-size: 0.9rem;">
+          <label>Date of Inspection</label>
+          <input type="date" id="checklist-input-date" class="form-control" value="${todayStr}">
         </div>
 
         <div class="form-group">
-          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Operator Name</label>
-          <select id="checklist-input-operator" class="form-control" style="font-size: 0.9rem;">
+          <label>Operator Name</label>
+          <select id="checklist-input-operator" class="form-control">
             ${opsList.map(op => `<option value="${escapeHTML(op.name)}" ${op.name === currentChecklistOperator ? 'selected' : ''}>${escapeHTML(op.name)} (${escapeHTML(op.role || 'Operator')})</option>`).join('')}
             ${!opsList.some(o => o.name === currentChecklistOperator) ? `<option value="${escapeHTML(currentChecklistOperator)}" selected>${escapeHTML(currentChecklistOperator)}</option>` : ''}
           </select>
         </div>
 
         <div class="form-group">
-          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Truck Serial / ID#</label>
-          <input type="text" class="form-control" value="Toyota 8FGU25 (S/N: 90434)" readonly style="opacity: 0.8; cursor: not-allowed; font-weight: 600;">
+          <label>Truck Serial / ID#</label>
+          <input type="text" class="form-control" value="${escapeHTML(cfg.model || 'Toyota 8FGU25')} (S/N: ${escapeHTML(cfg.serialNo || '90434')})" readonly style="opacity: 0.85; cursor: not-allowed; font-weight: 600;" title="${escapeHTML(cfg.model || 'Toyota 8FGU25')} (S/N: ${escapeHTML(cfg.serialNo || '90434')})">
         </div>
 
         <div class="form-group">
-          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Hour Meter Reading</label>
-          <input type="number" step="0.1" id="checklist-input-hour-meter" class="form-control" placeholder="e.g. 1248.5" value="${escapeHTML(currentChecklistHourMeter)}" style="font-size: 0.9rem;" required>
+          <label>Hour Meter Reading</label>
+          <input type="number" step="0.1" id="checklist-input-hour-meter" class="form-control" placeholder="e.g. 1248.5" value="${escapeHTML(currentChecklistHourMeter)}" required>
         </div>
       </div>
     </div>
@@ -4526,7 +4527,9 @@ async function handleChecklistSubmit() {
     submitBtn.innerHTML = 'Submitting Inspection...';
   }
 
-  const dateVal = document.getElementById('checklist-input-date').value || new Date().toISOString().split('T')[0];
+  const dNow = new Date();
+  const localTodayStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
+  const dateVal = document.getElementById('checklist-input-date').value || localTodayStr;
   const operatorVal = document.getElementById('checklist-input-operator').value.trim();
   const notesVal = document.getElementById('checklist-problems-notes').value.trim();
   const activeUser = getActiveUser();
