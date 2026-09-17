@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="4HGS Hub">
-  <link rel="stylesheet" href="styles_v4.css?v=5.2.7">
+  <link rel="stylesheet" href="styles_v4.css?v=5.2.8">
   <link rel="icon" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon" href="assets/4hgs_logo.png">
 </head>
@@ -317,6 +317,14 @@
                       <label for="app-section">Dashboard Section</label>
                       <select id="app-section" class="form-control" required>
                         <!-- Will be populated dynamically by JS -->
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="app-device-target">Device Target / Visibility</label>
+                      <select id="app-device-target" class="form-control">
+                        <option value="all">All Devices (Desktop & Mobile)</option>
+                        <option value="desktop">Desktop Only</option>
+                        <option value="mobile">Mobile & Tablet Only</option>
                       </select>
                     </div>
                     <div class="form-group">
@@ -631,6 +639,6 @@
   </footer>
 
   <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
-  <script type="module" src="app_v5.js?v=5.2.7"></script>
+  <script type="module" src="app_v5.js?v=5.2.8"></script>
 </body>
 </html>

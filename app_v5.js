@@ -301,7 +301,9 @@ function initDatabase() {
     ensureDefaultSectionsAndApps();
     state.apps.forEach(app => {
       if (!app.sectionId) app.sectionId = 'default';
+      if (!app.deviceTarget) app.deviceTarget = 'all';
     });
+    applyUserCustomAppOrder();
   }
 }
 
@@ -663,6 +665,12 @@ async function loadDatabaseFromFirestore() {
 
     // Assign apps, sections, broadcasts, and polls
     state.apps = appsList.length > 0 ? appsList : (state.apps.length > 0 ? state.apps : DEFAULT_APPS);
+    state.apps.forEach(app => {
+      if (!app.deviceTarget) app.deviceTarget = 'all';
+    });
+    if (!isAdmin) {
+      applyUserCustomAppOrder();
+    }
     state.sections = sectionsList.length > 0 ? sectionsList : (state.sections.length > 0 ? state.sections : DEFAULT_SECTIONS);
     state.broadcasts = broadcastsList;
 
@@ -1163,6 +1171,68 @@ function getActiveUser() {
   return state.users.find(u => u.id === state.activeUserId) || null;
 }
 
+// --- Device Detection & Target Visibility Helpers ---
+function isMobileOrTabletDevice() {
+  const userAgent = navigator.userAgent || '';
+  const isTouchDevice = navigator.maxTouchPoints > 1 || 'ontouchstart' in window;
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  const isIPadOS = isTouchDevice && /Macintosh/i.test(userAgent);
+  
+  return isMobileUA || isIPadOS || (isTouchDevice && window.innerWidth <= 1024) || window.innerWidth <= 860;
+}
+
+function appMatchesCurrentDevice(app) {
+  if (!app) return false;
+  const target = app.deviceTarget || 'all';
+  if (target === 'all') return true;
+  const isMobile = isMobileOrTabletDevice();
+  if (target === 'mobile') return isMobile;
+  if (target === 'desktop') return !isMobile;
+  return true;
+}
+
+// Re-render when device viewport crosses the desktop/mobile threshold
+let lastIsMobileView = isMobileOrTabletDevice();
+window.addEventListener('resize', () => {
+  const current = isMobileOrTabletDevice();
+  if (current !== lastIsMobileView) {
+    lastIsMobileView = current;
+    renderAppGrid();
+  }
+});
+
+// --- Custom App Ordering Persistence ---
+function applyUserCustomAppOrder() {
+  if (!state.activeUserId) return;
+  try {
+    const saved = localStorage.getItem(`HGS_USER_APP_ORDER_${state.activeUserId}`);
+    if (saved) {
+      const orderMap = JSON.parse(saved);
+      state.apps.forEach(app => {
+        if (orderMap[app.id] !== undefined) {
+          app.order = orderMap[app.id];
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Error applying user custom app order:", e);
+  }
+}
+
+function saveUserCustomAppOrder() {
+  if (!state.activeUserId) return;
+  try {
+    const orderMap = {};
+    state.apps.forEach(app => {
+      orderMap[app.id] = app.order;
+    });
+    localStorage.setItem(`HGS_USER_APP_ORDER_${state.activeUserId}`, JSON.stringify(orderMap));
+  } catch (e) {
+    console.warn("Error saving user custom app order:", e);
+  }
+}
+
+
 // Dynamic Icon rendering helper
 function getIconMarkup(item) {
   if (item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/') || item.icon.includes('.') || item.icon.includes('/'))) {
@@ -1520,7 +1590,7 @@ function renderAppGrid() {
   if (sortedSections.length > 0) {
     const firstSec = sortedSections[0];
     gridsMap[firstSec.id] = mainGrid;
-    if (state.isEditing && isAdmin) {
+    if (state.isEditing) {
       setupGridContainerDragDrop(mainGrid, firstSec.id);
     }
     
@@ -1632,7 +1702,7 @@ function renderAppGrid() {
     }
     
     gridsMap[section.id] = sectionGrid;
-    if (state.isEditing && isAdmin) {
+    if (state.isEditing) {
       setupGridContainerDragDrop(sectionGrid, section.id);
     }
   }
@@ -1666,22 +1736,29 @@ function renderAppGrid() {
     const isSubApp = state.apps.some(a => a.type === 'folder' && a.appIds && a.appIds.includes(item.id));
     if (isSubApp && item.type === 'app') return;
 
+    // Filter by current device target (Desktop vs Mobile/Tablet)
+    if (!appMatchesCurrentDevice(item)) return;
+
     const appItem = document.createElement('div');
     appItem.className = 'app-item';
     if (item.type === 'folder') appItem.classList.add('folder-item');
     appItem.dataset.id = item.id;
     
-    // Support drag and drop HTML5 APIs in edit mode
+    // Support drag and drop HTML5 and touch APIs in edit mode for ALL users
     if (state.isEditing) {
       appItem.setAttribute('draggable', 'true');
       setupDragDropEvents(appItem);
+      setupTouchDragDropEvents(appItem);
     }
 
     const hasAccess = activeUserHasAccess(item.id);
     
     // FOLDERS
     if (item.type === 'folder') {
-      const accessibleSubApps = item.appIds.filter(subId => activeUserHasAccess(subId));
+      const accessibleSubApps = item.appIds.filter(subId => {
+        const sub = state.apps.find(a => a.id === subId);
+        return sub && activeUserHasAccess(subId) && appMatchesCurrentDevice(sub);
+      });
       const hasFolderAccess = accessibleSubApps.length > 0 || isAdmin;
       
       if (!hasFolderAccess && !state.isEditing) return;
@@ -1749,8 +1826,8 @@ function renderAppGrid() {
       }
     }
 
-    // Edit Mode delete/edit buttons
-    if (state.isEditing) {
+    // Edit Mode delete/edit buttons (Privileged Admins only)
+    if (state.isEditing && isAdmin) {
       const wrapper = appItem.querySelector('.app-icon-wrapper');
       
       wrapper.innerHTML += `
@@ -1772,6 +1849,14 @@ function renderAppGrid() {
           loadAppIntoForm(item);
         });
       }
+    }
+
+    // Device target indicator in edit mode
+    if (state.isEditing && item.deviceTarget && item.deviceTarget !== 'all') {
+      const dBadge = document.createElement('span');
+      dBadge.className = 'app-device-badge';
+      dBadge.textContent = item.deviceTarget === 'desktop' ? 'Desktop' : 'Mobile';
+      appItem.appendChild(dBadge);
     }
 
     // Append to the correct grid based on sectionId (falls back to the first section id if not matching)
@@ -1819,6 +1904,7 @@ function openFolderDrawer(folderId) {
     
     const hasAccess = activeUserHasAccess(app.id);
     if (!hasAccess && (!activeUser || activeUser.role !== 'Admin')) return; 
+    if (!appMatchesCurrentDevice(app)) return; 
 
     const appItem = document.createElement('div');
     appItem.className = 'app-item';
@@ -1879,9 +1965,83 @@ function handleFolderRename(e) {
   }
 }
 
-// --- Drag & Drop Reordering Logic (HTML5 DnD APIs) ---
+// --- Drag & Drop Reordering Logic (HTML5 DnD & Mobile/Tablet Touch APIs) ---
 let draggedElement = null;
 let dragGhostEl = null;
+
+function handleAppReorder(draggedId, targetId) {
+  if (!draggedId || !targetId || draggedId === targetId) return;
+
+  const draggedIndex = state.apps.findIndex(a => a.id === draggedId);
+  const targetIndex = state.apps.findIndex(a => a.id === targetId);
+  if (draggedIndex === -1 || targetIndex === -1) return;
+
+  const dragApp = state.apps[draggedIndex];
+  const targetApp = state.apps[targetIndex];
+
+  const dragSec = dragApp.sectionId || 'default';
+  const targetSec = targetApp.sectionId || 'default';
+
+  // Strict constraint: Apps must always stay in their respective sections!
+  if (dragSec !== targetSec) {
+    showToast('Apps can only be arranged within their own section.', false);
+    return;
+  }
+
+  // Folder drop handling (if dropping an app directly onto an existing folder)
+  if (dragApp.type === 'app' && targetApp.type === 'folder') {
+    if (confirm(`Add "${dragApp.name}" to folder "${targetApp.name}"?`)) {
+      targetApp.appIds = targetApp.appIds || [];
+      if (!targetApp.appIds.includes(dragApp.id)) {
+        targetApp.appIds.push(dragApp.id);
+      }
+      saveDatabase();
+      const activeUser = getActiveUser();
+      const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+      const isAdmin = activeUser && (r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief'));
+      if (isAdmin) {
+        syncAppToFirestore(targetApp);
+      }
+      saveUserCustomAppOrder();
+      renderAppGrid();
+      showToast(`Added to "${targetApp.name}"`);
+      return;
+    }
+  }
+
+  // Reordering within the section
+  const sectionApps = state.apps
+    .filter(a => (a.sectionId || 'default') === dragSec)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  const fromIdx = sectionApps.findIndex(a => a.id === dragApp.id);
+  const toIdx = sectionApps.findIndex(a => a.id === targetApp.id);
+
+  if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
+    const [moved] = sectionApps.splice(fromIdx, 1);
+    sectionApps.splice(toIdx, 0, moved);
+
+    sectionApps.forEach((app, idx) => {
+      app.order = idx;
+    });
+  }
+
+  // Active sort mode switches to 'custom' so manual arrangement is preserved
+  state.appSortMode = 'custom';
+  localStorage.setItem('HGS_APP_SORT', 'custom');
+
+  saveDatabase();
+  const activeUser = getActiveUser();
+  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+  const isAdmin = activeUser && (r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief'));
+  if (isAdmin) {
+    syncAllAppsOrderToFirestore();
+  }
+  saveUserCustomAppOrder();
+
+  renderAppGrid();
+  showToast('App layout updated');
+}
 
 function setupDragDropEvents(element) {
   element.addEventListener('dragstart', (e) => {
@@ -1908,13 +2068,22 @@ function setupDragDropEvents(element) {
   });
 
   element.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (!state.isEditing || !draggedElement) return;
+    const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
+    const targetApp = state.apps.find(a => a.id === element.dataset.id);
+    if (dragApp && targetApp && (dragApp.sectionId || 'default') === (targetApp.sectionId || 'default')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    } else {
+      e.dataTransfer.dropEffect = 'none';
+    }
   });
 
   element.addEventListener('dragenter', (e) => {
-    e.preventDefault();
-    if (element !== draggedElement) {
+    if (!state.isEditing || !draggedElement || element === draggedElement) return;
+    const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
+    const targetApp = state.apps.find(a => a.id === element.dataset.id);
+    if (dragApp && targetApp && (dragApp.sectionId || 'default') === (targetApp.sectionId || 'default')) {
       element.classList.add('drag-over');
       element.classList.add('drag-target-pulse');
       setTimeout(() => element.classList.remove('drag-target-pulse'), 300);
@@ -1929,56 +2098,8 @@ function setupDragDropEvents(element) {
     e.preventDefault();
     element.classList.remove('drag-over');
     
-    if (element !== draggedElement) {
-      const draggedId = draggedElement.dataset.id;
-      const targetId = element.dataset.id;
-      
-      const draggedIndex = state.apps.findIndex(a => a.id === draggedId);
-      const targetIndex = state.apps.findIndex(a => a.id === targetId);
-      
-      if (draggedIndex !== -1 && targetIndex !== -1) {
-        const dragApp = state.apps[draggedIndex];
-        const targetApp = state.apps[targetIndex];
-        
-        // Folders creation grouping on drag-over (only when in the same section)
-        if (dragApp.type === 'app' && targetApp.type === 'app' && dragApp.sectionId === targetApp.sectionId) {
-          if (confirm(`Combine "${dragApp.name}" and "${targetApp.name}" into a folder?`)) {
-            const folderId = `folder-${Date.now()}`;
-            const newFolder = {
-              id: folderId,
-              name: 'New Folder',
-              icon: 'folder',
-              order: targetApp.order,
-              type: 'folder',
-              appIds: [targetApp.id, dragApp.id],
-              sectionId: targetApp.sectionId || 'default'
-            };
-            
-            state.apps.push(newFolder);
-            saveDatabase();
-            syncAppToFirestore(newFolder);
-            showToast('New Folder Created!');
-            renderAppGrid();
-            return;
-          }
-        }
-
-        // If moved across sections, update sectionId
-        if (dragApp.sectionId !== targetApp.sectionId) {
-          dragApp.sectionId = targetApp.sectionId || 'default';
-          syncAppToFirestore(dragApp);
-        }
-
-        // Swap reordering
-        const tempOrder = state.apps[draggedIndex].order;
-        state.apps[draggedIndex].order = state.apps[targetIndex].order;
-        state.apps[targetIndex].order = tempOrder;
-        
-        saveDatabase();
-        syncAllAppsOrderToFirestore();
-        renderAppGrid();
-        showToast('App layout updated');
-      }
+    if (draggedElement && element !== draggedElement) {
+      handleAppReorder(draggedElement.dataset.id, element.dataset.id);
     }
   });
 
@@ -1992,19 +2113,131 @@ function setupDragDropEvents(element) {
   });
 }
 
+// Touch Drag & Drop support for mobile and tablet devices
+let touchDragEl = null;
+let touchGhostEl = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let isTouchDragging = false;
+let currentHoverEl = null;
+
+function setupTouchDragDropEvents(element) {
+  element.addEventListener('touchstart', (e) => {
+    if (!state.isEditing) return;
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchDragEl = element;
+    isTouchDragging = false;
+  }, { passive: true });
+
+  element.addEventListener('touchmove', (e) => {
+    if (!state.isEditing || !touchDragEl) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+
+    if (!isTouchDragging && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      isTouchDragging = true;
+      touchDragEl.classList.add('dragging');
+
+      touchGhostEl = touchDragEl.cloneNode(true);
+      touchGhostEl.className = 'touch-drag-ghost';
+      touchGhostEl.classList.remove('dragging');
+      touchGhostEl.style.width = `${touchDragEl.offsetWidth}px`;
+      touchGhostEl.style.height = `${touchDragEl.offsetHeight}px`;
+      document.body.appendChild(touchGhostEl);
+    }
+
+    if (isTouchDragging) {
+      if (e.cancelable) e.preventDefault();
+
+      if (touchGhostEl) {
+        touchGhostEl.style.left = `${touch.clientX - touchDragEl.offsetWidth / 2}px`;
+        touchGhostEl.style.top = `${touch.clientY - touchDragEl.offsetHeight / 2}px`;
+      }
+
+      const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetItem = elUnder ? elUnder.closest('.app-item') : null;
+
+      if (currentHoverEl && currentHoverEl !== targetItem) {
+        currentHoverEl.classList.remove('drag-over');
+      }
+
+      if (targetItem && targetItem !== touchDragEl) {
+        const dragApp = state.apps.find(a => a.id === touchDragEl.dataset.id);
+        const targetApp = state.apps.find(a => a.id === targetItem.dataset.id);
+        if (dragApp && targetApp && (dragApp.sectionId || 'default') === (targetApp.sectionId || 'default')) {
+          targetItem.classList.add('drag-over');
+          currentHoverEl = targetItem;
+        } else {
+          currentHoverEl = null;
+        }
+      } else {
+        currentHoverEl = null;
+      }
+    }
+  }, { passive: false });
+
+  element.addEventListener('touchend', (e) => {
+    if (!state.isEditing || !touchDragEl) return;
+
+    if (isTouchDragging) {
+      touchDragEl.classList.remove('dragging');
+      if (touchGhostEl) {
+        touchGhostEl.remove();
+        touchGhostEl = null;
+      }
+
+      if (currentHoverEl) {
+        currentHoverEl.classList.remove('drag-over');
+        const draggedId = touchDragEl.dataset.id;
+        const targetId = currentHoverEl.dataset.id;
+        handleAppReorder(draggedId, targetId);
+        currentHoverEl = null;
+      }
+    }
+
+    touchDragEl = null;
+    isTouchDragging = false;
+  });
+
+  element.addEventListener('touchcancel', () => {
+    if (touchDragEl) touchDragEl.classList.remove('dragging');
+    if (touchGhostEl) {
+      touchGhostEl.remove();
+      touchGhostEl = null;
+    }
+    if (currentHoverEl) {
+      currentHoverEl.classList.remove('drag-over');
+      currentHoverEl = null;
+    }
+    touchDragEl = null;
+    isTouchDragging = false;
+  });
+}
+
 function setupGridContainerDragDrop(gridEl, sectionId) {
   gridEl.dataset.sectionId = sectionId;
 
   gridEl.addEventListener('dragover', (e) => {
     if (state.isEditing && draggedElement) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
+      const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
+      if (dragApp && (dragApp.sectionId || 'default') === (sectionId || 'default')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      } else {
+        e.dataTransfer.dropEffect = 'none';
+      }
     }
   });
 
   gridEl.addEventListener('dragenter', (e) => {
     if (state.isEditing && draggedElement) {
-      gridEl.classList.add('grid-drag-over');
+      const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
+      if (dragApp && (dragApp.sectionId || 'default') === (sectionId || 'default')) {
+        gridEl.classList.add('grid-drag-over');
+      }
     }
   });
 
@@ -2026,17 +2259,40 @@ function setupGridContainerDragDrop(gridEl, sectionId) {
     const dragApp = state.apps.find(a => a.id === draggedId);
     if (!dragApp) return;
 
-    if (dragApp.sectionId !== sectionId) {
-      dragApp.sectionId = sectionId;
-      const sectionApps = state.apps.filter(a => a.sectionId === sectionId && a.id !== dragApp.id);
-      const maxOrder = sectionApps.length > 0 ? Math.max(...sectionApps.map(a => a.order || 0)) : -1;
-      dragApp.order = maxOrder + 1;
+    const dragSec = dragApp.sectionId || 'default';
+    const targetSec = sectionId || 'default';
+
+    // Strict constraint: Apps must always stay in their respective sections!
+    if (dragSec !== targetSec) {
+      showToast('Apps can only be arranged within their own section.', false);
+      return;
+    }
+
+    // Move to end of this section
+    const sectionApps = state.apps
+      .filter(a => (a.sectionId || 'default') === dragSec)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const fromIdx = sectionApps.findIndex(a => a.id === dragApp.id);
+    if (fromIdx !== -1 && fromIdx !== sectionApps.length - 1) {
+      const [moved] = sectionApps.splice(fromIdx, 1);
+      sectionApps.push(moved);
+      sectionApps.forEach((app, idx) => {
+        app.order = idx;
+      });
+
+      state.appSortMode = 'custom';
+      localStorage.setItem('HGS_APP_SORT', 'custom');
 
       saveDatabase();
-      syncAppToFirestore(dragApp);
-      syncAllAppsOrderToFirestore();
+      const activeUser = getActiveUser();
+      const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+      const isAdmin = activeUser && (r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief'));
+      if (isAdmin) {
+        syncAllAppsOrderToFirestore();
+      }
+      saveUserCustomAppOrder();
       renderAppGrid();
-      showToast(`Moved "${dragApp.name}" to section`);
+      showToast('App moved to end of section');
     }
   });
 }
@@ -5716,6 +5972,9 @@ function loadAppIntoForm(app) {
   
   const select = document.getElementById('app-section');
   if (select) select.value = app.sectionId || 'default';
+
+  const targetSelect = document.getElementById('app-device-target');
+  if (targetSelect) targetSelect.value = app.deviceTarget || 'all';
   
   document.getElementById('btn-save-app').textContent = 'Update Application';
 
@@ -5751,6 +6010,9 @@ function resetAppCuratorForm() {
   
   const select = document.getElementById('app-section');
   if (select) select.value = 'default';
+
+  const targetSelect = document.getElementById('app-device-target');
+  if (targetSelect) targetSelect.value = 'all';
 
   renderAppsPanelList();
 }
@@ -5857,6 +6119,8 @@ function renderAppsPanelList() {
           <div class="app-panel-card-title-row">
             <span class="app-panel-card-name">${escapeHTML(app.name)}</span>
             <span class="app-panel-section-tag">${escapeHTML(sectionName)}</span>
+            ${app.deviceTarget === 'desktop' ? '<span class="app-panel-device-tag desktop-tag">DESKTOP ONLY</span>' : ''}
+            ${app.deviceTarget === 'mobile' ? '<span class="app-panel-device-tag mobile-tag">MOBILE ONLY</span>' : ''}
             ${app.type === 'folder' ? '<span class="app-panel-type-tag">FOLDER</span>' : ''}
             ${isEditing ? '<span class="app-panel-editing-tag">EDITING</span>' : ''}
           </div>
@@ -6145,6 +6409,8 @@ function handleAppSubmit(e) {
     return;
   }
 
+  const deviceTarget = document.getElementById('app-device-target') ? document.getElementById('app-device-target').value : 'all';
+
   if (editId) {
     // EDITING EXISTING APP
     const appIndex = state.apps.findIndex(a => a.id === editId);
@@ -6155,6 +6421,7 @@ function handleAppSubmit(e) {
       }
       state.apps[appIndex].icon = icon;
       state.apps[appIndex].sectionId = document.getElementById('app-section').value || 'default';
+      state.apps[appIndex].deviceTarget = deviceTarget;
       showToast('Application updated successfully');
       syncAppToFirestore(state.apps[appIndex]);
     }
@@ -6167,7 +6434,8 @@ function handleAppSubmit(e) {
       icon: icon,
       order: state.apps.length,
       type: 'app',
-      sectionId: document.getElementById('app-section').value || 'default'
+      sectionId: document.getElementById('app-section').value || 'default',
+      deviceTarget: deviceTarget
     };
     state.apps.push(newApp);
     
