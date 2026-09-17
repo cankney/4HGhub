@@ -4808,13 +4808,13 @@ function openChecklistSubmissionDetail(submission) {
   overlay.innerHTML = `
     <div class="forklift-checklist-modal-content">
       <div class="forklift-checklist-modal-header">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div class="modal-header-title-wrap">
           <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">Forklift Daily Pre-Shift Inspection Report</h3>
           <span class="view-badge" style="font-size: 0.75rem; ${isFlagged ? 'background: rgba(239, 68, 68, 0.15); color: #ef4444;' : 'background: rgba(16, 185, 129, 0.15); color: #10b981;'}">
             ${isFlagged ? '⚠️ NOT SATISFACTORY' : '✓ PASSED'}
           </span>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div class="modal-header-actions-wrap">
           <button type="button" class="btn-ios" id="btn-print-checklist-modal">
             <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24-1.077-.47-2.181-.47-3.329 0-4.97 4.03-9 9-9s9 4.03 9 9c0 1.148-.23 2.252-.47 3.329M6.72 13.829A9.006 9.006 0 0012 21a9.006 9.006 0 005.28-7.171M6.72 13.829h10.56M12 9v6m-3-3h6"></path></svg>
             Print / Save PDF
@@ -4825,7 +4825,7 @@ function openChecklistSubmissionDetail(submission) {
 
       <div class="forklift-checklist-modal-body">
         <!-- Certificate Header Grid -->
-        <div style="border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem; background: rgba(0,0,0,0.15); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+        <div class="modal-cert-header-grid">
           <div><span style="color: var(--text-secondary);">Date:</span> <strong>${escapeHTML(submission.date)}</strong></div>
           <div><span style="color: var(--text-secondary);">Operator:</span> <strong>${escapeHTML(submission.operatorName)}</strong></div>
           <div><span style="color: var(--text-secondary);">Truck ID#:</span> <strong>Toyota 8FGU25 (S/N: 90434)</strong></div>
@@ -4834,7 +4834,7 @@ function openChecklistSubmissionDetail(submission) {
         </div>
 
         <!-- Two Columns of Inspection Items -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+        <div class="modal-inspection-grid">
           <!-- Key Off Table -->
           <div style="border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;">
             <div style="background: rgba(245, 158, 11, 0.12); padding: 0.6rem 0.85rem; font-weight: 700; font-size: 0.85rem; color: #f59e0b; border-bottom: 1px solid var(--glass-border);">
@@ -6014,10 +6014,10 @@ function renderPermissionsMatrix() {
       const row = document.createElement('div');
       row.className = 'matrix-app-row';
       row.innerHTML = `
-        <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div class="matrix-app-row-info">
           <div class="matrix-app-icon">${SVG_ICONS[app.icon] || SVG_ICONS.box}</div>
-          <span style="font-size:0.85rem;font-weight:600;">${escapeHTML(app.name)}</span>
-          ${app.type === 'folder' ? '<span style="font-size:0.65rem;color:var(--accent-green);font-weight:700;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(141,220,4,0.12);">FOLDER</span>' : ''}
+          <span class="matrix-app-name" style="font-size:0.85rem;font-weight:600;">${escapeHTML(app.name)}</span>
+          ${app.type === 'folder' ? '<span style="font-size:0.65rem;color:var(--accent-green);font-weight:700;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(141,220,4,0.12);flex-shrink:0;">FOLDER</span>' : ''}
         </div>
         <label class="toggle-switch" title="${isOn ? 'Revoke access' : 'Grant access'}">
           <input type="checkbox" class="matrix-toggle" data-user="${matrixActiveUserId}" data-app="${app.id}" ${isOn ? 'checked' : ''}>

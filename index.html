@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="4HGS Hub">
-  <link rel="stylesheet" href="styles_v4.css?v=5.2.4">
+  <link rel="stylesheet" href="styles_v4.css?v=5.2.5">
   <link rel="icon" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon" href="assets/4hgs_logo.png">
 </head>
@@ -442,12 +442,12 @@
 
           <!-- TAB: Forklift Safety & Operator Manager -->
           <div class="dialog-tab-content" id="tab-forklift">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div class="admin-section-header-flex">
               <div>
                 <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Forklift Operators & Certification Tracking</h4>
                 <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Manage certified operators, trainees, and 3-year recertification dates for the Toyota 8FGU25.</p>
               </div>
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <button type="button" class="btn-ios" id="btn-sync-forklift-cloud" title="Sync local forklift data directly to Cloud Firestore" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.35rem;">
                   <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path></svg>
                   Sync to Cloud
@@ -507,7 +507,7 @@
 
             <!-- SUPERVISOR PRE-AUTHORIZED SIGNATURE SECTION -->
             <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <div class="admin-section-header-flex">
                 <div>
                   <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Supervisor Auto-Signature for Daily Checklists</h4>
                   <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">This signature and approval stamp is automatically loaded and attached onto completed daily checklists.</p>
@@ -558,7 +558,7 @@
 
             <!-- CHECKLIST ITEMS TEMPLATE EDITOR SECTION -->
             <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <div class="admin-section-header-flex">
                 <div>
                   <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Checklist Template Items & Ordering</h4>
                   <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Rearrange, edit, toggle, or add inspection points. Synced in real-time to all devices.</p>
@@ -584,7 +584,7 @@
                 <!-- Dynamically populated by renderChecklistItemsEditor() -->
               </div>
 
-              <div class="form-actions" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+              <div class="form-actions checklist-template-actions" style="margin-top: 1rem;">
                 <button type="button" class="btn-ios" id="btn-reset-checklist-template" style="font-size: 0.8rem;">Reset to Default (DailyChecklist.doc)</button>
                 <button type="button" class="btn-ios btn-ios-accent" id="btn-save-checklist-template">Save Checklist Template</button>
               </div>
@@ -631,6 +631,6 @@
   </footer>
 
   <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
-  <script type="module" src="app_v5.js?v=5.2.4"></script>
+  <script type="module" src="app_v5.js?v=5.2.5"></script>
 </body>
 </html>

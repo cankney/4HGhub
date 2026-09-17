@@ -253,6 +253,7 @@ body.light-mode .navbar .btn-ios:hover {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 body.logged-out .top-actions-bar {
@@ -719,18 +720,17 @@ body.light-mode .folder-mini-icon {
 
 /* Folders Drawer Popovers */
 .ios-folder-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(10, 11, 14, 0.65);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 80;
+  z-index: 1000;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
@@ -751,6 +751,8 @@ body.light-mode .ios-folder-overlay {
   border-radius: var(--border-radius-panel);
   width: 90%;
   max-width: 440px;
+  max-height: 85vh;
+  overflow-y: auto;
   padding: 2rem;
   transform: scale(0.9);
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -839,6 +841,8 @@ body.light-mode .folder-drawer-close:hover {
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--glass-border);
   padding-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .admin-panel-title {
@@ -1238,16 +1242,152 @@ body.light-mode .toast {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
+  .top-actions-inner {
+    gap: 0.4rem;
+  }
+  .top-actions-inner .btn-ios {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
   .folder-drawer {
-    padding: 1.25rem;
+    padding: 1.25rem 1rem;
+    max-width: min(92vw, 380px);
+  }
+  .folder-drawer-header {
+    margin-bottom: 1.25rem;
+  }
+  .folder-drawer-title {
+    font-size: 1.15rem;
+    width: 65%;
   }
   .folder-drawer-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem 0.75rem;
+    gap: 1.25rem 0.5rem;
+    justify-items: center;
+  }
+  .folder-drawer .app-item {
+    width: 100%;
+    max-width: 80px;
+  }
+  .folder-drawer .app-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 0.4rem;
+  }
+  .folder-drawer .app-icon svg,
+  .folder-drawer .app-favicon-img,
+  .folder-drawer .app-icon-fallback svg {
+    width: 32px;
+    height: 32px;
+  }
+  .folder-drawer .app-title {
+    font-size: 0.75rem;
+    max-width: 80px;
+  }
+  /* App Grid standard 3-column mobile layout */
+  .app-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem 0.6rem;
+    padding: 0.25rem 0;
+  }
+  .app-item {
+    width: 100%;
+    max-width: 90px;
+  }
+  .app-icon-wrapper {
+    width: 68px;
+    height: 68px;
+    margin-bottom: 0.5rem;
+  }
+  .app-icon svg,
+  .app-favicon-img,
+  .app-icon-fallback svg {
+    width: 34px;
+    height: 34px;
+  }
+  .app-title {
+    font-size: 0.75rem;
+    max-width: 90px;
+    line-height: 1.25;
+  }
+  /* Enhanced touch targets for edit mode badges */
+  .app-delete-btn,
+  .app-edit-btn {
+    width: 26px;
+    height: 26px;
+    top: -8px;
+  }
+  .app-delete-btn {
+    left: -8px;
+    font-size: 16px;
+  }
+  .app-edit-btn {
+    right: -8px;
+    font-size: 12px;
+  }
+  /* Screen toolbar responsive wrapping */
+  .ios-toolbar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  .ios-view-title {
+    font-size: 1.25rem;
+  }
+  .sort-controls {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+  /* Admin panel headers and search input */
+  .admin-panel-title {
+    font-size: 1.15rem;
+  }
+  .apps-search-wrap {
+    width: 100%;
+  }
+  .apps-filter-input {
+    width: 100% !important;
+  }
+  /* Sub-view navigation headers */
+  .view-nav-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .view-nav-actions-left,
+  .view-nav-actions-right {
+    width: 100%;
+    gap: 0.5rem;
+  }
+  .view-nav-actions-left .btn-ios,
+  .view-nav-actions-right .btn-ios {
+    font-size: 0.8rem;
+    padding: 0.45rem 0.8rem;
+  }
+  /* Toast container centered on mobile */
+  .toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    align-items: center;
+  }
+  .toast {
+    width: 100%;
+    max-width: 380px;
+    justify-content: center;
+    text-align: center;
   }
 }
 
 @media (max-width: 576px) {
+  .sync-label {
+    display: none !important;
+  }
+  .sync-indicator {
+    padding: 0.35rem 0.5rem;
+  }
   .brand-title {
     font-size: 1.05rem;
   }
@@ -1278,6 +1418,37 @@ body.light-mode .toast {
   }
   .nav-actions {
     gap: 6px;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-title {
+    font-size: 0.95rem;
+  }
+  .brand-logo {
+    width: 28px;
+    height: 28px;
+  }
+  .user-profile-name {
+    max-width: 65px;
+    font-size: 0.72rem;
+  }
+  .user-profile-widget {
+    padding: 0.3rem 0.45rem;
+    gap: 0.3rem;
+  }
+  .navbar .container {
+    padding: 0 0.5rem;
+  }
+  .navbar-inner {
+    gap: 4px;
+  }
+  .nav-actions {
+    gap: 4px;
+  }
+  .btn-icon {
+    width: 32px;
+    height: 32px;
   }
 }
 
@@ -1770,6 +1941,7 @@ body.light-mode .useful-link-item:hover {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .view-badge {
@@ -4015,7 +4187,74 @@ body.light-mode .forklift-checklist-modal-content {
   filter: grayscale(0.8);
 }
 
-/* Mobile Responsiveness for Checklist */
+/* Modal Classes and Inspection Grid */
+.modal-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.modal-header-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.modal-cert-header-grid {
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.15);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.modal-inspection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Admin Section Header & Checklist Template Actions */
+.admin-section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.checklist-template-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* User Permission Matrix Row Ellipsis */
+.matrix-app-row-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.matrix-app-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Mobile Responsiveness for Checklist & Modals */
 @media (max-width: 640px) {
   .checklist-item-row {
     flex-direction: column;
@@ -4038,6 +4277,44 @@ body.light-mode .forklift-checklist-modal-content {
   .checklist-history-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .forklift-checklist-modal-content {
+    max-height: 94vh;
+    border-radius: 14px;
+  }
+  .forklift-checklist-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+  .modal-header-actions-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .forklift-checklist-modal-body {
+    padding: 1rem 0.85rem;
+    gap: 1rem;
+  }
+  .modal-inspection-grid {
+    grid-template-columns: 1fr;
+  }
+  .modal-cert-header-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .admin-section-header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .checklist-template-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .checklist-template-actions .btn-ios {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
   }
 }
 
