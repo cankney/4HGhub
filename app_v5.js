@@ -1779,7 +1779,6 @@ function renderAppGrid() {
             }
           }
         });
-      }
     }
 
     // Edit Mode delete/edit buttons (Privileged Admins only)
