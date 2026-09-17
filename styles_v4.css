@@ -612,6 +612,7 @@ body.light-mode .app-item:hover .app-icon {
   cursor: grab !important;
   user-select: none !important;
   -webkit-user-select: none !important;
+  touch-action: none !important;
 }
 
 .ios-shell.editing .app-item:active {
@@ -4625,7 +4626,7 @@ body.light-mode .app-device-badge {
   border: 1px solid rgba(46, 125, 50, 0.4);
 }
 
-/* Touch Drag Ghost for Mobile and Tablet Devices */
+/* Touch/Pointer Drag Ghost for Desktop, Mobile and Tablet Devices */
 .touch-drag-ghost {
   position: fixed !important;
   pointer-events: none !important;
@@ -4633,8 +4634,16 @@ body.light-mode .app-device-badge {
   opacity: 0.92;
   box-shadow: 0 0 24px rgba(141, 220, 4, 0.6), 0 12px 30px rgba(0, 0, 0, 0.5);
   border-radius: var(--border-radius-panel);
-  transform: scale(1.1);
-  transition: transform 0.05s ease;
+  transform: scale(1.08);
+  transition: none !important;
 }
+
+body.app-is-dragging,
+body.app-is-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
 
 

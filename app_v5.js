@@ -1590,6 +1590,7 @@ function renderAppGrid() {
   if (sortedSections.length > 0) {
     const firstSec = sortedSections[0];
     gridsMap[firstSec.id] = mainGrid;
+    mainGrid.dataset.sectionId = firstSec.id;
     if (state.isEditing) {
       setupGridContainerDragDrop(mainGrid, firstSec.id);
     }
@@ -1668,6 +1669,7 @@ function renderAppGrid() {
     }
     
     gridsMap[section.id] = sectionGrid;
+    sectionGrid.dataset.sectionId = section.id;
     if (state.isEditing) {
       setupGridContainerDragDrop(sectionGrid, section.id);
     }
@@ -1710,11 +1712,9 @@ function renderAppGrid() {
     if (item.type === 'folder') appItem.classList.add('folder-item');
     appItem.dataset.id = item.id;
     
-    // Support drag and drop HTML5 and touch APIs in edit mode for ALL users
+    // Support unified drag and drop in edit mode for ALL users
     if (state.isEditing) {
-      appItem.setAttribute('draggable', 'true');
-      setupDragDropEvents(appItem);
-      setupTouchDragDropEvents(appItem);
+      setupUnifiedAppDrag(appItem);
     }
 
     const hasAccess = activeUserHasAccess(item.id);
@@ -1931,9 +1931,9 @@ function handleFolderRename(e) {
   }
 }
 
-// --- Drag & Drop Reordering Logic (HTML5 DnD & Mobile/Tablet Touch APIs) ---
-let draggedElement = null;
-let dragGhostEl = null;
+// --- Drag & Drop Reordering Logic (Unified Pointer Engine for Desktop Mouse & Mobile Touch) ---
+let appPointerDragState = null;
+let isGlobalPointerListenersInitialized = false;
 
 function handleAppReorder(draggedId, targetId) {
   if (!draggedId || !targetId || draggedId === targetId) return;
@@ -2009,243 +2009,251 @@ function handleAppReorder(draggedId, targetId) {
   showToast('App layout updated');
 }
 
-function setupDragDropEvents(element) {
-  element.addEventListener('dragstart', (e) => {
-    draggedElement = element;
-    element.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    try {
-      e.dataTransfer.setData('text/plain', element.dataset.id);
-    } catch (err) {}
-  });
+function handleAppMoveToEndOfSection(draggedId, targetSectionId) {
+  if (!draggedId || !targetSectionId) return;
 
-  element.addEventListener('dragover', (e) => {
-    if (!state.isEditing || !draggedElement) return;
-    const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
-    const targetApp = state.apps.find(a => a.id === element.dataset.id);
-    if (dragApp && targetApp && (dragApp.sectionId || 'default') === (targetApp.sectionId || 'default')) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    } else {
-      e.dataTransfer.dropEffect = 'none';
+  const dragApp = state.apps.find(a => a.id === draggedId);
+  if (!dragApp) return;
+
+  const dragSec = dragApp.sectionId || 'default';
+  const targetSec = targetSectionId || 'default';
+
+  // Strict constraint: Apps must always stay in their respective sections!
+  if (dragSec !== targetSec) {
+    showToast('Apps can only be arranged within their own section.', false);
+    return;
+  }
+
+  const sectionApps = state.apps
+    .filter(a => (a.sectionId || 'default') === dragSec)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  const fromIdx = sectionApps.findIndex(a => a.id === dragApp.id);
+  if (fromIdx !== -1 && fromIdx !== sectionApps.length - 1) {
+    const [moved] = sectionApps.splice(fromIdx, 1);
+    sectionApps.push(moved);
+    sectionApps.forEach((app, idx) => {
+      app.order = idx;
+    });
+
+    state.appSortMode = 'custom';
+    localStorage.setItem('HGS_APP_SORT', 'custom');
+
+    saveDatabase();
+    const activeUser = getActiveUser();
+    const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+    const isAdmin = activeUser && (r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief'));
+    if (isAdmin) {
+      syncAllAppsOrderToFirestore();
     }
-  });
+    saveUserCustomAppOrder();
+    renderAppGrid();
+    showToast('App moved to end of section');
+  }
+}
 
-  element.addEventListener('dragenter', (e) => {
-    if (!state.isEditing || !draggedElement || element === draggedElement) return;
-    const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
-    const targetApp = state.apps.find(a => a.id === element.dataset.id);
-    if (dragApp && targetApp && (dragApp.sectionId || 'default') === (targetApp.sectionId || 'default')) {
-      element.classList.add('drag-over');
-    }
-  });
+function initGlobalPointerDragListeners() {
+  if (isGlobalPointerListenersInitialized) return;
+  isGlobalPointerListenersInitialized = true;
 
-  element.addEventListener('dragleave', (e) => {
-    if (!element.contains(e.relatedTarget)) {
-      element.classList.remove('drag-over');
-    }
-  });
+  window.addEventListener('pointermove', onGlobalPointerMove, { passive: false });
+  window.addEventListener('pointerup', onGlobalPointerUp);
+  window.addEventListener('pointercancel', onGlobalPointerCancel);
+}
 
-  element.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    element.classList.remove('drag-over');
-    
-    const dragId = (draggedElement && draggedElement.dataset.id) || e.dataTransfer.getData('text/plain');
-    if (dragId && element.dataset.id && dragId !== element.dataset.id) {
-      handleAppReorder(dragId, element.dataset.id);
-    }
-  });
+function setupUnifiedAppDrag(element) {
+  initGlobalPointerDragListeners();
+  element.setAttribute('draggable', 'false');
+  element.addEventListener('dragstart', (e) => e.preventDefault());
 
-  element.addEventListener('dragend', () => {
-    element.classList.remove('dragging');
-    document.querySelectorAll('.app-item.drag-over').forEach(el => el.classList.remove('drag-over'));
-    draggedElement = null;
+  element.addEventListener('pointerdown', (e) => {
+    if (!state.isEditing) return;
+    // Only primary mouse button (left-click), touch, or pen
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // Don't start drag when clicking delete/edit buttons or interactive inputs
+    if (e.target.closest('.app-delete-btn, .app-edit-btn, button, input, textarea')) return;
+
+    appPointerDragState = {
+      pointerId: e.pointerId,
+      sourceEl: element,
+      startX: e.clientX,
+      startY: e.clientY,
+      offsetX: 0,
+      offsetY: 0,
+      isDragging: false,
+      ghostEl: null,
+      hoverItem: null,
+      hoverGrid: null
+    };
   });
 }
 
-// Touch Drag & Drop support for mobile and tablet devices
-let touchDragEl = null;
-let touchGhostEl = null;
-let touchStartX = 0;
-let touchStartY = 0;
-let isTouchDragging = false;
-let currentHoverEl = null;
+function onGlobalPointerMove(e) {
+  if (!appPointerDragState) return;
+  if (e.pointerId !== appPointerDragState.pointerId) return;
 
-function setupTouchDragDropEvents(element) {
-  element.addEventListener('touchstart', (e) => {
-    if (!state.isEditing) return;
-    const touch = e.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-    touchDragEl = element;
-    isTouchDragging = false;
-  }, { passive: true });
+  const dx = e.clientX - appPointerDragState.startX;
+  const dy = e.clientY - appPointerDragState.startY;
 
-  element.addEventListener('touchmove', (e) => {
-    if (!state.isEditing || !touchDragEl) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - touchStartX;
-    const dy = touch.clientY - touchStartY;
+  if (!appPointerDragState.isDragging) {
+    if (Math.hypot(dx, dy) >= 6) {
+      appPointerDragState.isDragging = true;
+      document.body.classList.add('app-is-dragging');
+      appPointerDragState.sourceEl.classList.add('dragging');
 
-    if (!isTouchDragging && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-      isTouchDragging = true;
-      touchDragEl.classList.add('dragging');
+      const rect = appPointerDragState.sourceEl.getBoundingClientRect();
+      const ghost = appPointerDragState.sourceEl.cloneNode(true);
+      ghost.className = 'touch-drag-ghost';
+      ghost.classList.remove('dragging');
+      ghost.querySelectorAll('.app-delete-btn, .app-edit-btn').forEach(b => b.remove());
+      ghost.style.width = `${rect.width}px`;
+      ghost.style.height = `${rect.height}px`;
+      ghost.style.left = `${rect.left}px`;
+      ghost.style.top = `${rect.top}px`;
+      document.body.appendChild(ghost);
 
-      touchGhostEl = touchDragEl.cloneNode(true);
-      touchGhostEl.className = 'touch-drag-ghost';
-      touchGhostEl.classList.remove('dragging');
-      touchGhostEl.style.width = `${touchDragEl.offsetWidth}px`;
-      touchGhostEl.style.height = `${touchDragEl.offsetHeight}px`;
-      document.body.appendChild(touchGhostEl);
+      appPointerDragState.ghostEl = ghost;
+      appPointerDragState.offsetX = e.clientX - rect.left;
+      appPointerDragState.offsetY = e.clientY - rect.top;
+    }
+  }
+
+  if (appPointerDragState.isDragging) {
+    if (e.cancelable) e.preventDefault();
+
+    // Auto-scroll when dragging near top or bottom edges
+    if (e.clientY < 60) {
+      window.scrollBy({ top: -10, behavior: 'auto' });
+    } else if (e.clientY > window.innerHeight - 60) {
+      window.scrollBy({ top: 10, behavior: 'auto' });
     }
 
-    if (isTouchDragging) {
-      if (e.cancelable) e.preventDefault();
+    if (appPointerDragState.ghostEl) {
+      appPointerDragState.ghostEl.style.left = `${e.clientX - appPointerDragState.offsetX}px`;
+      appPointerDragState.ghostEl.style.top = `${e.clientY - appPointerDragState.offsetY}px`;
+    }
 
-      if (touchGhostEl) {
-        touchGhostEl.style.left = `${touch.clientX - touchDragEl.offsetWidth / 2}px`;
-        touchGhostEl.style.top = `${touch.clientY - touchDragEl.offsetHeight / 2}px`;
-      }
+    const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+    const targetItem = elUnder ? elUnder.closest('.app-item') : null;
+    const targetGrid = elUnder ? elUnder.closest('.app-grid') : null;
 
-      const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
-      const targetItem = elUnder ? elUnder.closest('.app-item') : null;
+    const dragApp = state.apps.find(a => a.id === appPointerDragState.sourceEl.dataset.id);
+    const dragSec = dragApp ? (dragApp.sectionId || 'default') : 'default';
 
-      if (currentHoverEl && currentHoverEl !== targetItem) {
-        currentHoverEl.classList.remove('drag-over');
-      }
+    if (targetItem && targetItem !== appPointerDragState.sourceEl) {
+      const targetApp = state.apps.find(a => a.id === targetItem.dataset.id);
+      const targetSec = targetApp ? (targetApp.sectionId || 'default') : 'default';
 
-      if (targetItem && targetItem !== touchDragEl) {
-        const dragApp = state.apps.find(a => a.id === touchDragEl.dataset.id);
-        const targetApp = state.apps.find(a => a.id === targetItem.dataset.id);
-        if (dragApp && targetApp && (dragApp.sectionId || 'default') === (targetApp.sectionId || 'default')) {
+      if (dragSec === targetSec) {
+        if (appPointerDragState.hoverItem !== targetItem) {
+          if (appPointerDragState.hoverItem) appPointerDragState.hoverItem.classList.remove('drag-over');
           targetItem.classList.add('drag-over');
-          currentHoverEl = targetItem;
-        } else {
-          currentHoverEl = null;
+          appPointerDragState.hoverItem = targetItem;
+        }
+        if (appPointerDragState.hoverGrid) {
+          appPointerDragState.hoverGrid.classList.remove('grid-drag-over');
+          appPointerDragState.hoverGrid = null;
         }
       } else {
-        currentHoverEl = null;
+        if (appPointerDragState.hoverItem) {
+          appPointerDragState.hoverItem.classList.remove('drag-over');
+          appPointerDragState.hoverItem = null;
+        }
+        if (appPointerDragState.hoverGrid) {
+          appPointerDragState.hoverGrid.classList.remove('grid-drag-over');
+          appPointerDragState.hoverGrid = null;
+        }
+      }
+    } else if (targetGrid) {
+      const gridSec = targetGrid.dataset.sectionId || 'default';
+      if (dragSec === gridSec) {
+        if (appPointerDragState.hoverGrid !== targetGrid) {
+          if (appPointerDragState.hoverGrid) appPointerDragState.hoverGrid.classList.remove('grid-drag-over');
+          targetGrid.classList.add('grid-drag-over');
+          appPointerDragState.hoverGrid = targetGrid;
+        }
+        if (appPointerDragState.hoverItem) {
+          appPointerDragState.hoverItem.classList.remove('drag-over');
+          appPointerDragState.hoverItem = null;
+        }
+      } else {
+        if (appPointerDragState.hoverGrid) {
+          appPointerDragState.hoverGrid.classList.remove('grid-drag-over');
+          appPointerDragState.hoverGrid = null;
+        }
+      }
+    } else {
+      if (appPointerDragState.hoverItem) {
+        appPointerDragState.hoverItem.classList.remove('drag-over');
+        appPointerDragState.hoverItem = null;
+      }
+      if (appPointerDragState.hoverGrid) {
+        appPointerDragState.hoverGrid.classList.remove('grid-drag-over');
+        appPointerDragState.hoverGrid = null;
       }
     }
-  }, { passive: false });
+  }
+}
 
-  element.addEventListener('touchend', (e) => {
-    if (!state.isEditing || !touchDragEl) return;
+function onGlobalPointerUp(e) {
+  if (!appPointerDragState) return;
+  if (e.pointerId !== appPointerDragState.pointerId) return;
 
-    if (isTouchDragging) {
-      touchDragEl.classList.remove('dragging');
-      if (touchGhostEl) {
-        touchGhostEl.remove();
-        touchGhostEl = null;
-      }
+  const { isDragging, sourceEl, ghostEl, hoverItem, hoverGrid } = appPointerDragState;
 
-      if (currentHoverEl) {
-        currentHoverEl.classList.remove('drag-over');
-        const draggedId = touchDragEl.dataset.id;
-        const targetId = currentHoverEl.dataset.id;
-        handleAppReorder(draggedId, targetId);
-        currentHoverEl = null;
-      }
+  if (isDragging) {
+    document.body.classList.remove('app-is-dragging');
+    if (sourceEl) sourceEl.classList.remove('dragging');
+    if (ghostEl) {
+      ghostEl.remove();
+    }
+    if (hoverItem) {
+      hoverItem.classList.remove('drag-over');
+    }
+    if (hoverGrid) {
+      hoverGrid.classList.remove('grid-drag-over');
     }
 
-    touchDragEl = null;
-    isTouchDragging = false;
-  });
+    if (hoverItem && hoverItem !== sourceEl) {
+      handleAppReorder(sourceEl.dataset.id, hoverItem.dataset.id);
+    } else if (hoverGrid) {
+      handleAppMoveToEndOfSection(sourceEl.dataset.id, hoverGrid.dataset.sectionId);
+    }
+  }
 
-  element.addEventListener('touchcancel', () => {
-    if (touchDragEl) touchDragEl.classList.remove('dragging');
-    if (touchGhostEl) {
-      touchGhostEl.remove();
-      touchGhostEl = null;
-    }
-    if (currentHoverEl) {
-      currentHoverEl.classList.remove('drag-over');
-      currentHoverEl = null;
-    }
-    touchDragEl = null;
-    isTouchDragging = false;
-  });
+  appPointerDragState = null;
+}
+
+function onGlobalPointerCancel(e) {
+  if (!appPointerDragState) return;
+  if (e.pointerId !== appPointerDragState.pointerId) return;
+
+  document.body.classList.remove('app-is-dragging');
+  if (appPointerDragState.sourceEl) appPointerDragState.sourceEl.classList.remove('dragging');
+  if (appPointerDragState.ghostEl) {
+    appPointerDragState.ghostEl.remove();
+  }
+  if (appPointerDragState.hoverItem) {
+    appPointerDragState.hoverItem.classList.remove('drag-over');
+  }
+  if (appPointerDragState.hoverGrid) {
+    appPointerDragState.hoverGrid.classList.remove('grid-drag-over');
+  }
+
+  appPointerDragState = null;
+}
+
+// Aliases for backwards compatibility
+function setupDragDropEvents(element) {
+  setupUnifiedAppDrag(element);
+}
+
+function setupTouchDragDropEvents(element) {
+  setupUnifiedAppDrag(element);
 }
 
 function setupGridContainerDragDrop(gridEl, sectionId) {
   gridEl.dataset.sectionId = sectionId;
-
-  gridEl.addEventListener('dragover', (e) => {
-    if (state.isEditing && draggedElement) {
-      const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
-      if (dragApp && (dragApp.sectionId || 'default') === (sectionId || 'default')) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-      } else {
-        e.dataTransfer.dropEffect = 'none';
-      }
-    }
-  });
-
-  gridEl.addEventListener('dragenter', (e) => {
-    if (state.isEditing && draggedElement) {
-      const dragApp = state.apps.find(a => a.id === draggedElement.dataset.id);
-      if (dragApp && (dragApp.sectionId || 'default') === (sectionId || 'default')) {
-        gridEl.classList.add('grid-drag-over');
-      }
-    }
-  });
-
-  gridEl.addEventListener('dragleave', (e) => {
-    if (!gridEl.contains(e.relatedTarget)) {
-      gridEl.classList.remove('grid-drag-over');
-    }
-  });
-
-  gridEl.addEventListener('drop', (e) => {
-    gridEl.classList.remove('grid-drag-over');
-    if (!state.isEditing || !draggedElement) return;
-
-    // If dropped directly on an app-item child, the app-item's own drop handler will handle it
-    if (e.target.closest('.app-item')) return;
-
-    e.preventDefault();
-    const draggedId = draggedElement.dataset.id;
-    const dragApp = state.apps.find(a => a.id === draggedId);
-    if (!dragApp) return;
-
-    const dragSec = dragApp.sectionId || 'default';
-    const targetSec = sectionId || 'default';
-
-    // Strict constraint: Apps must always stay in their respective sections!
-    if (dragSec !== targetSec) {
-      showToast('Apps can only be arranged within their own section.', false);
-      return;
-    }
-
-    // Move to end of this section
-    const sectionApps = state.apps
-      .filter(a => (a.sectionId || 'default') === dragSec)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const fromIdx = sectionApps.findIndex(a => a.id === dragApp.id);
-    if (fromIdx !== -1 && fromIdx !== sectionApps.length - 1) {
-      const [moved] = sectionApps.splice(fromIdx, 1);
-      sectionApps.push(moved);
-      sectionApps.forEach((app, idx) => {
-        app.order = idx;
-      });
-
-      state.appSortMode = 'custom';
-      localStorage.setItem('HGS_APP_SORT', 'custom');
-
-      saveDatabase();
-      const activeUser = getActiveUser();
-      const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
-      const isAdmin = activeUser && (r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief'));
-      if (isAdmin) {
-        syncAllAppsOrderToFirestore();
-      }
-      saveUserCustomAppOrder();
-      renderAppGrid();
-      showToast('App moved to end of section');
-    }
-  });
 }
 
 
