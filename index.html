@@ -420,7 +420,13 @@
                 <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Forklift Operators & Certification Tracking</h4>
                 <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Manage certified operators, trainees, and 3-year recertification dates for the Toyota 8FGU25.</p>
               </div>
-              <span class="view-badge" id="forklift-admin-status-badge">4 Operators</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button type="button" class="btn-ios" id="btn-sync-forklift-cloud" title="Sync local forklift data directly to Cloud Firestore" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path></svg>
+                  Sync to Cloud
+                </button>
+                <span class="view-badge" id="forklift-admin-status-badge">4 Operators</span>
+              </div>
             </div>
 
             <div class="user-list" id="forklift-operators-panel-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 1.25rem;">
@@ -513,6 +519,6 @@
   </footer>
 
   <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
-  <script type="module" src="app_v5.js?v=5.2.2"></script>
+  <script type="module" src="app_v5.js?v=5.2.3"></script>
 </body>
 </html>

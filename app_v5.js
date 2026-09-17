@@ -200,6 +200,7 @@ let state = {
 
 let pollsUnsubscribe = null;
 let suggestionsUnsubscribe = null;
+let forkliftUnsubscribe = null;
 
 // Database Persistence Helpers
 function initDatabase() {
@@ -600,7 +601,16 @@ async function loadDatabaseFromFirestore() {
       const forkliftDocRef = doc(db, "forkliftConfig", "main");
       const forkliftDocSnap = await getDoc(forkliftDocRef);
       if (forkliftDocSnap.exists()) {
-        state.forkliftConfig = forkliftDocSnap.data();
+        const remoteCfg = forkliftDocSnap.data();
+        const localCfg = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG'));
+        // If admin has custom local operators and remote doesn't have custom data yet, sync admin's local records to cloud
+        if (isAdmin && hasCustomForkliftData(localCfg) && !hasCustomForkliftData(remoteCfg)) {
+          state.forkliftConfig = localCfg;
+          await setDoc(forkliftDocRef, state.forkliftConfig);
+        } else {
+          state.forkliftConfig = remoteCfg;
+          localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(state.forkliftConfig));
+        }
       } else {
         state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
         if (isAdmin) {
@@ -620,6 +630,9 @@ async function loadDatabaseFromFirestore() {
  
     // Start real-time polls subscription
     subscribeToPolls();
+
+    // Start real-time forklift configuration subscription
+    subscribeToForkliftConfig();
 
     // Start real-time suggestions subscription if admin
     if (isAdmin) {
@@ -2594,6 +2607,15 @@ function renderBenefitsDocsPage() {
 
 // --- Forklift Safety & 3-Year Certification Controller & Views ---
 
+function hasCustomForkliftData(cfg) {
+  if (!cfg || !Array.isArray(cfg.operators) || cfg.operators.length === 0) return false;
+  const defaultNames = ['Cole Ankney', 'John Smith', 'Dave Miller', 'Warehouse Operator 4'];
+  const hasNonDefaultName = cfg.operators.some(o => o.name && !defaultNames.includes(o.name));
+  const hasDifferentCount = cfg.operators.length !== DEFAULT_FORKLIFT_CONFIG.operators.length;
+  const hasCustomNotesOrCerts = cfg.operators.some(o => o.status === 'Certified' && o.certDate && o.name !== 'Cole Ankney');
+  return hasNonDefaultName || hasDifferentCount || hasCustomNotesOrCerts;
+}
+
 function addThreeYears(dateStr) {
   if (!dateStr) return null;
   const parts = dateStr.split('-');
@@ -3783,6 +3805,24 @@ function renderForkliftAdminTab() {
       deleteForkliftOperator(btn.dataset.id);
     });
   });
+
+  const syncBtn = document.getElementById('btn-sync-forklift-cloud');
+  if (syncBtn) {
+    syncBtn.onclick = async () => {
+      syncBtn.disabled = true;
+      const originalHtml = syncBtn.innerHTML;
+      syncBtn.textContent = 'Syncing...';
+      try {
+        await syncForkliftConfigToFirestore();
+        showToast('Forklift records synced to cloud database!');
+      } catch (err) {
+        // error toast already handled in syncForkliftConfigToFirestore
+      } finally {
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = originalHtml;
+      }
+    };
+  }
 }
 
 function loadForkliftOperatorIntoForm(op) {
@@ -3909,8 +3949,48 @@ async function syncForkliftConfigToFirestore() {
   if (!auth.currentUser || !state.forkliftConfig) return;
   try {
     await setDoc(doc(db, "forkliftConfig", "main"), state.forkliftConfig);
+    console.log("Forklift config successfully synced to Firestore.");
   } catch (err) {
     console.error("Failed to sync forkliftConfig to Firestore:", err);
+    showToast("Error syncing forklift records to cloud: " + (err.message || err), false);
+    throw err;
+  }
+}
+
+function subscribeToForkliftConfig() {
+  if (forkliftUnsubscribe) {
+    forkliftUnsubscribe();
+    forkliftUnsubscribe = null;
+  }
+
+  try {
+    const forkliftDocRef = doc(db, "forkliftConfig", "main");
+    forkliftUnsubscribe = onSnapshot(forkliftDocRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const remoteData = snapshot.data();
+        if (remoteData) {
+          state.forkliftConfig = remoteData;
+          localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(remoteData));
+          
+          // Re-render Forklift Safety view if open
+          const forkliftPanel = document.getElementById('forklift-page-inline');
+          if (forkliftPanel && forkliftPanel.style.display === 'flex') {
+            renderForkliftSafetyPage();
+          }
+
+          // Re-render admin tab if currently open
+          const adminPanel = document.getElementById('admin-panel-inline');
+          const tabForklift = document.getElementById('tab-forklift');
+          if (adminPanel && adminPanel.style.display === 'flex' && tabForklift && tabForklift.classList.contains('active')) {
+            renderForkliftAdminTab();
+          }
+        }
+      }
+    }, (error) => {
+      console.warn("Forklift real-time subscription error:", error);
+    });
+  } catch (err) {
+    console.warn("Failed to start forklift subscription:", err);
   }
 }
 
@@ -5030,6 +5110,10 @@ function initFirebaseAuth() {
       if (suggestionsUnsubscribe) {
         suggestionsUnsubscribe();
         suggestionsUnsubscribe = null;
+      }
+      if (forkliftUnsubscribe) {
+        forkliftUnsubscribe();
+        forkliftUnsubscribe = null;
       }
       state.activeUserId = null;
       state.suggestions = [];
