@@ -3872,7 +3872,6 @@ function renderForkliftTrainingPage() {
 let forkliftChecklistsUnsubscribe = null;
 let lastSeenChecklistAlertTimestamp = Date.now();
 let currentChecklistStatus = {}; // itemId -> 'OK' | 'NS' | 'NA'
-let currentChecklistShift = '1';
 let currentChecklistOperator = '';
 let currentChecklistHourMeter = '';
 let currentChecklistNotes = '';
@@ -4061,15 +4060,6 @@ function renderForkliftChecklistPage() {
         </div>
 
         <div class="form-group">
-          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Shift Number</label>
-          <div class="shift-selector">
-            <button type="button" class="shift-btn ${currentChecklistShift === '1' ? 'active' : ''}" data-shift="1">Shift 1</button>
-            <button type="button" class="shift-btn ${currentChecklistShift === '2' ? 'active' : ''}" data-shift="2">Shift 2</button>
-            <button type="button" class="shift-btn ${currentChecklistShift === '3' ? 'active' : ''}" data-shift="3">Shift 3</button>
-          </div>
-        </div>
-
-        <div class="form-group">
           <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Operator Name</label>
           <select id="checklist-input-operator" class="form-control" style="font-size: 0.9rem;">
             ${opsList.map(op => `<option value="${escapeHTML(op.name)}" ${op.name === currentChecklistOperator ? 'selected' : ''}>${escapeHTML(op.name)} (${escapeHTML(op.role || 'Operator')})</option>`).join('')}
@@ -4208,15 +4198,6 @@ function attachChecklistFormEvents() {
 
   const btnHistory = document.getElementById('btn-view-checklist-history');
   if (btnHistory) btnHistory.addEventListener('click', () => openForkliftChecklistHistoryPage());
-
-  // Shift buttons
-  container.querySelectorAll('.shift-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      container.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentChecklistShift = btn.dataset.shift;
-    });
-  });
 
   // Operator select
   const opSelect = document.getElementById('checklist-input-operator');
@@ -4383,7 +4364,6 @@ async function handleChecklistSubmit() {
 
   const submissionDoc = {
     date: dateVal,
-    shift: currentChecklistShift,
     operatorName: operatorVal,
     truckId: '90434',
     truckModel: cfg.model || 'Toyota 8FGU25',
@@ -4467,12 +4447,12 @@ function renderSubmissionSuccessScreen(submission) {
       <p style="margin: 0 0 1.5rem 0; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
         ${isFlagged ? 
           `<strong>${submission.flaggedCount} Not Satisfactory items</strong> were flagged. Supervisor ${escapeHTML(submission.supervisorName)} has been notified. Take truck out of service until technician maintenance.` :
-          `Toyota 8FGU25 (S/N: 90434) has passed pre-shift inspection for Shift ${escapeHTML(submission.shift)}. Supervisor auto-signature has been applied.`
+          `Toyota 8FGU25 (S/N: 90434) has passed pre-shift inspection. Supervisor auto-signature has been applied.`
         }
       </p>
 
       <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem; text-align: left; margin-bottom: 1.5rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem;">
-        <div><strong>Date & Shift:</strong> ${escapeHTML(submission.date)} • Shift ${escapeHTML(submission.shift)}</div>
+        <div><strong>Date:</strong> ${escapeHTML(submission.date)}</div>
         <div><strong>Operator:</strong> ${escapeHTML(submission.operatorName)}</div>
         <div><strong>Hour Meter:</strong> ${escapeHTML(submission.hourMeter)} hrs</div>
         <div><strong>Supervisor Signature:</strong> ✓ Pre-Authorized by ${escapeHTML(submission.supervisorName)}</div>
@@ -4658,7 +4638,6 @@ function filterAndRenderHistoryCards() {
           <div style="flex: 1; min-width: 0;">
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${escapeHTML(item.date)}</span>
-              <span class="view-badge" style="font-size: 0.72rem; padding: 0.15rem 0.45rem;">Shift ${escapeHTML(item.shift || '1')}</span>
               <span class="view-badge" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; ${isFlagged ? 'background: rgba(239, 68, 68, 0.15); color: #ef4444;' : 'background: rgba(16, 185, 129, 0.15); color: #10b981;'}">
                 ${isFlagged ? `⚠️ ${item.flaggedCount || 1} NOT SATISFACTORY` : '✓ PASSED'}
               </span>
@@ -4743,7 +4722,6 @@ function openChecklistSubmissionDetail(submission) {
         <!-- Certificate Header Grid -->
         <div style="border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem; background: rgba(0,0,0,0.15); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
           <div><span style="color: var(--text-secondary);">Date:</span> <strong>${escapeHTML(submission.date)}</strong></div>
-          <div><span style="color: var(--text-secondary);">Shift #:</span> <strong>${escapeHTML(submission.shift)}</strong></div>
           <div><span style="color: var(--text-secondary);">Operator:</span> <strong>${escapeHTML(submission.operatorName)}</strong></div>
           <div><span style="color: var(--text-secondary);">Truck ID#:</span> <strong>Toyota 8FGU25 (S/N: 90434)</strong></div>
           <div><span style="color: var(--text-secondary);">Hour Meter:</span> <strong>${escapeHTML(submission.hourMeter)} hrs</strong></div>
