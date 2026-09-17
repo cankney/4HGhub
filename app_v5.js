@@ -1607,44 +1607,10 @@ function renderAppGrid() {
       }
     }
 
-    // Employee sort controls (non-admin, logged-in, not editing)
+    // Remove sort dropdowns from toolbar (reordering via drag layout is sufficient)
     const mainToolbar = document.getElementById('ios-toolbar');
     const existingSortCtrl = mainToolbar ? mainToolbar.querySelector('.sort-controls') : null;
     if (existingSortCtrl) existingSortCtrl.remove();
-
-    if (state.activeUserId && !isAdmin && !state.isEditing && mainToolbar) {
-      const sortCtrl = document.createElement('div');
-      sortCtrl.className = 'sort-controls';
-      sortCtrl.innerHTML = `
-        <label class="sort-label">Apps:
-          <select id="app-sort-select" class="sort-select">
-            <option value="custom"${state.appSortMode === 'custom' ? ' selected' : ''}>Default</option>
-            <option value="name-asc"${state.appSortMode === 'name-asc' ? ' selected' : ''}>A → Z</option>
-            <option value="name-desc"${state.appSortMode === 'name-desc' ? ' selected' : ''}>Z → A</option>
-            <option value="recent"${state.appSortMode === 'recent' ? ' selected' : ''}>Recently Added</option>
-          </select>
-        </label>
-        <label class="sort-label">Sections:
-          <select id="section-sort-select" class="sort-select">
-            <option value="custom"${state.sectionSortMode === 'custom' ? ' selected' : ''}>Default</option>
-            <option value="name-asc"${state.sectionSortMode === 'name-asc' ? ' selected' : ''}>A → Z</option>
-            <option value="name-desc"${state.sectionSortMode === 'name-desc' ? ' selected' : ''}>Z → A</option>
-          </select>
-        </label>
-      `;
-      mainToolbar.appendChild(sortCtrl);
-
-      sortCtrl.querySelector('#app-sort-select').addEventListener('change', (e) => {
-        state.appSortMode = e.target.value;
-        localStorage.setItem('HGS_APP_SORT', state.appSortMode);
-        renderAppGrid();
-      });
-      sortCtrl.querySelector('#section-sort-select').addEventListener('change', (e) => {
-        state.sectionSortMode = e.target.value;
-        localStorage.setItem('HGS_SECTION_SORT', state.sectionSortMode);
-        renderAppGrid();
-      });
-    }
   }
 
   // Create grid containers for subsequent sections
@@ -2048,23 +2014,9 @@ function setupDragDropEvents(element) {
     draggedElement = element;
     element.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-
-    // Build ghost clone with glow + position badge
-    dragGhostEl = element.cloneNode(true);
-    dragGhostEl.classList.add('drag-ghost');
-    dragGhostEl.classList.remove('dragging');
-
-    // Compute position badge (position among visible sortable items)
-    const allVisible = Array.from(document.querySelectorAll('.app-grid .app-item'));
-    const pos = allVisible.indexOf(element) + 1;
-    const badge = document.createElement('div');
-    badge.className = 'drag-position-badge';
-    badge.textContent = `${pos} of ${allVisible.length}`;
-    dragGhostEl.style.position = 'relative';
-    dragGhostEl.appendChild(badge);
-
-    document.body.appendChild(dragGhostEl);
-    e.dataTransfer.setDragImage(dragGhostEl, dragGhostEl.offsetWidth / 2, dragGhostEl.offsetHeight / 2);
+    try {
+      e.dataTransfer.setData('text/plain', element.dataset.id);
+    } catch (err) {}
   });
 
   element.addEventListener('dragover', (e) => {
@@ -2085,31 +2037,30 @@ function setupDragDropEvents(element) {
     const targetApp = state.apps.find(a => a.id === element.dataset.id);
     if (dragApp && targetApp && (dragApp.sectionId || 'default') === (targetApp.sectionId || 'default')) {
       element.classList.add('drag-over');
-      element.classList.add('drag-target-pulse');
-      setTimeout(() => element.classList.remove('drag-target-pulse'), 300);
     }
   });
 
-  element.addEventListener('dragleave', () => {
-    element.classList.remove('drag-over');
+  element.addEventListener('dragleave', (e) => {
+    if (!element.contains(e.relatedTarget)) {
+      element.classList.remove('drag-over');
+    }
   });
 
   element.addEventListener('drop', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     element.classList.remove('drag-over');
     
-    if (draggedElement && element !== draggedElement) {
-      handleAppReorder(draggedElement.dataset.id, element.dataset.id);
+    const dragId = (draggedElement && draggedElement.dataset.id) || e.dataTransfer.getData('text/plain');
+    if (dragId && element.dataset.id && dragId !== element.dataset.id) {
+      handleAppReorder(dragId, element.dataset.id);
     }
   });
 
   element.addEventListener('dragend', () => {
     element.classList.remove('dragging');
+    document.querySelectorAll('.app-item.drag-over').forEach(el => el.classList.remove('drag-over'));
     draggedElement = null;
-    if (dragGhostEl) {
-      dragGhostEl.remove();
-      dragGhostEl = null;
-    }
   });
 }
 

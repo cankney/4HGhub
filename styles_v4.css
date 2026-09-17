@@ -608,6 +608,37 @@ body.light-mode .app-item:hover .app-icon {
   animation: wobble 0.28s ease-in-out infinite alternate;
 }
 
+.ios-shell.editing .app-item {
+  cursor: grab !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.ios-shell.editing .app-item:active {
+  cursor: grabbing !important;
+}
+
+.ios-shell.editing .app-item * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.ios-shell.editing .app-item img {
+  pointer-events: none !important;
+  -webkit-user-drag: none !important;
+}
+
+.ios-shell.editing .app-item .app-title,
+.ios-shell.editing .app-item .app-icon-wrapper {
+  pointer-events: none !important;
+}
+
+.ios-shell.editing .app-item .app-delete-btn,
+.ios-shell.editing .app-item .app-edit-btn {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
 /* Wobble Delete & Pencil Buttons styled as interactive buttons */
 .app-delete-btn, .app-edit-btn {
   position: absolute;
