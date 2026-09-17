@@ -1727,7 +1727,7 @@ function renderAppGrid() {
       });
       const hasFolderAccess = accessibleSubApps.length > 0 || isAdmin;
       
-      if (!hasFolderAccess && !state.isEditing) return;
+      if (!hasFolderAccess) return;
 
       appItem.innerHTML = `
         <div class="app-icon-wrapper">
@@ -1747,16 +1747,12 @@ function renderAppGrid() {
         <div class="app-title">${item.name}</div>
       `;
 
-      if (!hasFolderAccess) {
-        appItem.classList.add('locked');
-      } else {
-        appItem.addEventListener('click', (e) => {
-          if (!state.isEditing) openFolderDrawer(item.id);
-        });
-      }
+      appItem.addEventListener('click', (e) => {
+        if (!state.isEditing) openFolderDrawer(item.id);
+      });
     } else {
       // Regular Application
-      if (!hasAccess && !state.isEditing) return; 
+      if (!hasAccess) return; 
 
       appItem.innerHTML = `
         <div class="app-icon-wrapper">
@@ -1767,14 +1763,8 @@ function renderAppGrid() {
         <div class="app-title">${item.name}</div>
       `;
 
-      if (!hasAccess) {
-        appItem.classList.add('locked');
-        appItem.addEventListener('click', () => {
-          showToast(`Access Restricted: Contact Admin for ${item.name} privileges.`, false);
-        });
-      } else {
-        appItem.addEventListener('click', () => {
-          if (!state.isEditing) {
+      appItem.addEventListener('click', () => {
+        if (!state.isEditing) {
             if (item.id === 'health-benefits') {
               openBenefitsPage();
             } else if (item.id === 'benefits-docs') {
@@ -1831,8 +1821,8 @@ function renderAppGrid() {
     targetGrid.appendChild(appItem);
   });
 
-  // When not in edit mode, hide empty subsequent sections so users don't see headers for sections with no accessible apps
-  if (!state.isEditing) {
+  // Hide empty subsequent sections when not in edit mode (or for non-admins) so users don't see headers for sections with no accessible apps
+  if (!state.isEditing || !isAdmin) {
     for (let i = 1; i < sortedSections.length; i++) {
       const sec = sortedSections[i];
       const grid = gridsMap[sec.id];
