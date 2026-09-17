@@ -10,11 +10,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="4HGS Hub">
-  <link rel="stylesheet" href="styles_v4.css?v=5.2.2">
+  <link rel="stylesheet" href="styles_v4.css?v=5.2.4">
   <link rel="icon" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon" href="assets/4hgs_logo.png">
 </head>
 <body>
+
+  <!-- Top Viewport App Loading Bar -->
+  <div id="app-loading-bar" class="app-loading-bar" aria-hidden="true"></div>
 
   <!-- Navbar Header -->
   <nav class="navbar">
@@ -25,6 +28,15 @@
       </a>
       
       <div class="nav-actions">
+        <!-- Live Cloud Sync Indicator -->
+        <div id="sync-indicator" class="sync-indicator" style="display: none;" title="Syncing data with cloud...">
+          <svg class="sync-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="9" stroke-opacity="0.25"></circle>
+            <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"></path>
+          </svg>
+          <span class="sync-label">Syncing</span>
+        </div>
+
         <!-- Dark/Light Theme Toggle -->
         <button id="theme-toggle" class="btn-icon" type="button" aria-label="Toggle Light/Dark Theme">
           <svg id="theme-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -619,6 +631,6 @@
   </footer>
 
   <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
-  <script type="module" src="app_v5.js?v=5.2.3"></script>
+  <script type="module" src="app_v5.js?v=5.2.4"></script>
 </body>
 </html>

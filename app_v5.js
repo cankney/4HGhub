@@ -244,6 +244,26 @@ let pollsUnsubscribe = null;
 let suggestionsUnsubscribe = null;
 let forkliftUnsubscribe = null;
 
+// Loading & Sync State Management
+let isInitialAuthResolved = false;
+let isSyncingData = false;
+
+function setSyncState(syncing) {
+  isSyncingData = syncing;
+  const bar = document.getElementById('app-loading-bar');
+  if (bar) {
+    if (syncing) {
+      bar.classList.add('active');
+    } else {
+      bar.classList.remove('active');
+    }
+  }
+  const indicator = document.getElementById('sync-indicator');
+  if (indicator) {
+    indicator.style.display = syncing ? 'inline-flex' : 'none';
+  }
+}
+
 // Database Persistence Helpers
 function initDatabase() {
   if (!localStorage.getItem('HGS_THEME')) {
@@ -252,23 +272,41 @@ function initDatabase() {
   state.theme = localStorage.getItem('HGS_THEME');
   applyTheme();
 
-  // Instant layout defaults for visual loading
-  state.apps = DEFAULT_APPS;
-  state.sections = DEFAULT_SECTIONS;
-  state.broadcasts = DEFAULT_BROADCASTS;
-  state.polls = DEFAULT_POLLS;
-  state.suggestions = [];
-  state.users = DEFAULT_USERS;
-  state.permissions = DEFAULT_PERMISSIONS;
+  // Load actual cached user records from localStorage (0ms instant restore, NO demo data)
+  const cachedApps = localStorage.getItem('HGS_APPS');
+  state.apps = cachedApps ? JSON.parse(cachedApps) : [];
+
+  const cachedSections = localStorage.getItem('HGS_SECTIONS');
+  state.sections = cachedSections ? JSON.parse(cachedSections) : (cachedApps ? [] : DEFAULT_SECTIONS);
+
+  const cachedBroadcasts = localStorage.getItem('HGS_BROADCASTS');
+  state.broadcasts = cachedBroadcasts ? JSON.parse(cachedBroadcasts) : [];
+
+  const cachedPolls = localStorage.getItem('HGS_POLLS');
+  state.polls = cachedPolls ? JSON.parse(cachedPolls) : [];
+
+  const cachedSuggestions = localStorage.getItem('HGS_SUGGESTIONS');
+  state.suggestions = cachedSuggestions ? JSON.parse(cachedSuggestions) : [];
+
+  const cachedUsers = localStorage.getItem('HGS_USERS');
+  state.users = cachedUsers ? JSON.parse(cachedUsers) : [];
+
+  const cachedPerms = localStorage.getItem('HGS_PERMISSIONS');
+  state.permissions = cachedPerms ? JSON.parse(cachedPerms) : {};
+
+  state.activeUserId = localStorage.getItem('HGS_ACTIVE_USER_ID') || null;
   state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
   
-  ensureDefaultSectionsAndApps();
-  state.apps.forEach(app => {
-    if (!app.sectionId) app.sectionId = 'default';
-  });
+  if (state.apps && state.apps.length > 0) {
+    ensureDefaultSectionsAndApps();
+    state.apps.forEach(app => {
+      if (!app.sectionId) app.sectionId = 'default';
+    });
+  }
 }
 
 function ensureDefaultSectionsAndApps() {
+  if (!state.apps || state.apps.length === 0) return;
   // 1. Find all sections that match "Useful Links" (case-insensitive or by ID)
   const usefulLinksSections = state.sections.filter(s => 
     (s.name && s.name.trim().toLowerCase() === 'useful links') || s.id === 'useful-links'
@@ -399,6 +437,11 @@ function saveDatabase() {
   localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify(state.suggestions));
   localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(state.forkliftConfig));
   localStorage.setItem('HGS_THEME', state.theme);
+  if (state.activeUserId) {
+    localStorage.setItem('HGS_ACTIVE_USER_ID', state.activeUserId);
+  } else {
+    localStorage.removeItem('HGS_ACTIVE_USER_ID');
+  }
 }
 
 function loadDatabaseOfflineFallback() {
@@ -412,13 +455,13 @@ function loadDatabaseOfflineFallback() {
     localStorage.setItem('HGS_PERMISSIONS', JSON.stringify(DEFAULT_PERMISSIONS));
   }
   if (!localStorage.getItem('HGS_BROADCASTS')) {
-    localStorage.setItem('HGS_BROADCASTS', JSON.stringify(DEFAULT_BROADCASTS));
+    localStorage.setItem('HGS_BROADCASTS', JSON.stringify([]));
   }
   if (!localStorage.getItem('HGS_SECTIONS')) {
     localStorage.setItem('HGS_SECTIONS', JSON.stringify(DEFAULT_SECTIONS));
   }
   if (!localStorage.getItem('HGS_POLLS')) {
-    localStorage.setItem('HGS_POLLS', JSON.stringify(DEFAULT_POLLS));
+    localStorage.setItem('HGS_POLLS', JSON.stringify([]));
   }
   if (!localStorage.getItem('HGS_SUGGESTIONS')) {
     localStorage.setItem('HGS_SUGGESTIONS', JSON.stringify([]));
@@ -430,9 +473,9 @@ function loadDatabaseOfflineFallback() {
   state.apps = JSON.parse(localStorage.getItem('HGS_APPS'));
   state.users = JSON.parse(localStorage.getItem('HGS_USERS'));
   state.permissions = JSON.parse(localStorage.getItem('HGS_PERMISSIONS'));
-  state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS'));
+  state.broadcasts = JSON.parse(localStorage.getItem('HGS_BROADCASTS')) || [];
   state.sections = JSON.parse(localStorage.getItem('HGS_SECTIONS')) || DEFAULT_SECTIONS;
-  state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || DEFAULT_POLLS;
+  state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || [];
   state.suggestions = JSON.parse(localStorage.getItem('HGS_SUGGESTIONS')) || [];
   state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
   if (!state.forkliftConfig.checklistItems || state.forkliftConfig.checklistItems.length === 0) {
@@ -459,32 +502,40 @@ async function loadDatabaseFromFirestore() {
 
   if (!auth.currentUser) return;
 
+  setSyncState(true);
+
   try {
-    // 1. Fetch apps
-    const appsSnapshot = await getDocs(collection(db, "apps"));
+    const isCole = auth.currentUser.email && (
+      auth.currentUser.email.toLowerCase() === 'cole@4hgs.com' ||
+      auth.currentUser.email.toLowerCase().includes('cole')
+    );
+
+    // Fetch primary collections, user document, and forkliftConfig in parallel (cuts network roundtrips ~70%)
+    const [appsSnapshot, sectionsSnapshot, broadcastsSnapshot, activeUserDocSnap, forkliftDocSnap] = await Promise.all([
+      getDocs(collection(db, "apps")),
+      getDocs(collection(db, "sections")),
+      getDocs(collection(db, "broadcasts")),
+      getDoc(doc(db, "users", auth.currentUser.uid)),
+      getDoc(doc(db, "forkliftConfig", "main")).catch(err => {
+        console.warn("Could not load forkliftConfig from Firestore:", err);
+        return null;
+      })
+    ]);
+
     const appsList = [];
     appsSnapshot.forEach(doc => {
       appsList.push(doc.data());
     });
     
-    // 2. Fetch sections
-    const sectionsSnapshot = await getDocs(collection(db, "sections"));
     const sectionsList = [];
     sectionsSnapshot.forEach(doc => {
       sectionsList.push(doc.data());
     });
     
-    // 3. Fetch broadcasts
-    const broadcastsSnapshot = await getDocs(collection(db, "broadcasts"));
     const broadcastsList = [];
     broadcastsSnapshot.forEach(doc => {
       broadcastsList.push(doc.data());
     });
-
-    const isCole = auth.currentUser.email && (
-      auth.currentUser.email.toLowerCase() === 'cole@4hgs.com' ||
-      auth.currentUser.email.toLowerCase().includes('cole')
-    );
 
     // Bootstrap seeding check
     if (appsList.length === 0 && isCole) {
@@ -524,10 +575,8 @@ async function loadDatabaseFromFirestore() {
       }
     }
 
-    // Try fetching the active user's document directly first to check role
+    // Active user doc was fetched in parallel Promise.all above
     const activeUserDocRef = doc(db, "users", auth.currentUser.uid);
-    const activeUserDocSnap = await getDoc(activeUserDocRef);
-    
     let activeUser = null;
     let isAdmin = isCole; // Default to email check for Cole
 
@@ -613,21 +662,23 @@ async function loadDatabaseFromFirestore() {
     }
 
     // Assign apps, sections, broadcasts, and polls
-    state.apps = appsList.length > 0 ? appsList : DEFAULT_APPS;
-    state.sections = sectionsList.length > 0 ? sectionsList : DEFAULT_SECTIONS;
+    state.apps = appsList.length > 0 ? appsList : (state.apps.length > 0 ? state.apps : DEFAULT_APPS);
+    state.sections = sectionsList.length > 0 ? sectionsList : (state.sections.length > 0 ? state.sections : DEFAULT_SECTIONS);
     state.broadcasts = broadcastsList;
 
     // Load users and permissions depending on role
     if (isAdmin) {
-      // Admin is allowed to read all users and all permissions
-      const usersSnapshot = await getDocs(collection(db, "users"));
+      // Admin is allowed to read all users and all permissions (concurrent fetch)
+      const [usersSnapshot, permissionsSnapshot] = await Promise.all([
+        getDocs(collection(db, "users")),
+        getDocs(collection(db, "permissions"))
+      ]);
       const usersList = [];
       usersSnapshot.forEach(doc => {
         usersList.push(doc.data());
       });
       state.users = usersList;
 
-      const permissionsSnapshot = await getDocs(collection(db, "permissions"));
       const permissionsMap = {};
       permissionsSnapshot.forEach(doc => {
         permissionsMap[doc.id] = doc.data().appIds || [];
@@ -641,8 +692,8 @@ async function loadDatabaseFromFirestore() {
         }
       });
 
-      // Automatically merge and link duplicate profiles in the background
-      await autoMergeUnlinkedUsers();
+      // Automatically merge and link duplicate profiles in the background without blocking UI
+      autoMergeUnlinkedUsers().catch(err => console.error("autoMergeUnlinkedUsers error:", err));
     } else {
       // Non-admin can only read their own user and permissions documents
       state.users = [activeUser];
@@ -660,17 +711,16 @@ async function loadDatabaseFromFirestore() {
 
     state.activeUserId = activeUser.id;
 
-    // Load forklift safety configuration from Firestore or cache
+    // Load forklift safety configuration from parallel snapshot or cache
     try {
       const forkliftDocRef = doc(db, "forkliftConfig", "main");
-      const forkliftDocSnap = await getDoc(forkliftDocRef);
-      if (forkliftDocSnap.exists()) {
+      if (forkliftDocSnap && forkliftDocSnap.exists()) {
         const remoteCfg = forkliftDocSnap.data();
         const localCfg = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG'));
         // If admin has custom local operators and remote doesn't have custom data yet, sync admin's local records to cloud
         if (isAdmin && hasCustomForkliftData(localCfg) && !hasCustomForkliftData(remoteCfg)) {
           state.forkliftConfig = localCfg;
-          await setDoc(forkliftDocRef, state.forkliftConfig);
+          setDoc(forkliftDocRef, state.forkliftConfig).catch(console.error);
         } else {
           state.forkliftConfig = remoteCfg;
           localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(state.forkliftConfig));
@@ -678,7 +728,7 @@ async function loadDatabaseFromFirestore() {
       } else {
         state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
         if (isAdmin) {
-          await setDoc(forkliftDocRef, state.forkliftConfig);
+          setDoc(forkliftDocRef, state.forkliftConfig).catch(console.error);
         }
       }
     } catch (err) {
@@ -733,11 +783,13 @@ async function loadDatabaseFromFirestore() {
 
     // Trigger local storage save of current state as cache
     saveDatabase();
+    setSyncState(false);
 
   } catch (error) {
     console.error("Firestore database load error:", error);
     showToast("Firestore connection failed. Running offline fallback.", false);
     loadDatabaseOfflineFallback();
+    setSyncState(false);
   }
 }
 
@@ -1158,6 +1210,8 @@ function renderAuthHeader(user) {
     `;
     
     document.getElementById('btn-logout').addEventListener('click', () => {
+      localStorage.removeItem('HGS_ACTIVE_USER_ID');
+      state.activeUserId = null;
       signOut(auth).then(() => {
         showToast('Successfully signed out.');
       });
@@ -1176,19 +1230,37 @@ function renderAuthHeader(user) {
 // Render Left Sidebar Widgets
 function renderWidgets() {
   const feed = document.getElementById('widget-alerts');
+  if (!feed) return;
   feed.innerHTML = '';
-  state.broadcasts.forEach(broadcast => {
-    const alert = document.createElement('article');
-    alert.className = 'alert-item';
-    alert.innerHTML = `
-      <div class="alert-header">
-        <span class="alert-title">${broadcast.title}</span>
-        <span class="alert-time">${broadcast.time}</span>
+
+  if (state.broadcasts && state.broadcasts.length > 0) {
+    state.broadcasts.forEach(broadcast => {
+      const alert = document.createElement('article');
+      alert.className = 'alert-item';
+      alert.innerHTML = `
+        <div class="alert-header">
+          <span class="alert-title">${escapeHtml(broadcast.title || '')}</span>
+          <span class="alert-time">${escapeHtml(broadcast.time || '')}</span>
+        </div>
+        <p class="alert-body">${escapeHtml(broadcast.body || '')}</p>
+      `;
+      feed.appendChild(alert);
+    });
+  } else if (isSyncingData || !isInitialAuthResolved) {
+    feed.innerHTML = `
+      <div class="skeleton-card">
+        <div class="skeleton-line skeleton-title-line"></div>
+        <div class="skeleton-line skeleton-body-line"></div>
       </div>
-      <p class="alert-body">${broadcast.body}</p>
+      <div class="skeleton-card" style="opacity: 0.65;">
+        <div class="skeleton-line skeleton-title-line" style="width: 50%;"></div>
+        <div class="skeleton-line skeleton-body-line" style="width: 75%;"></div>
+      </div>
     `;
-    feed.appendChild(alert);
-  });
+  } else {
+    feed.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">No active broadcasts.</div>`;
+  }
+
   renderPolls();
   renderSuggestionBox();
 }
@@ -1303,6 +1375,39 @@ function renderAppGrid() {
 
   // Handle Logged Out State: Show a beautiful placeholder lock screen card!
   if (!state.activeUserId) {
+    if (!isInitialAuthResolved) {
+      mainGrid.style.display = 'grid';
+      if (subsequentContainer) subsequentContainer.style.display = 'none';
+      const toolbar = document.getElementById('ios-toolbar');
+      if (toolbar) toolbar.style.display = 'flex';
+      mainGrid.innerHTML = `
+        <div class="app-item skeleton-app-item">
+          <div class="app-icon-wrapper">
+            <div class="app-icon skeleton-app-icon"></div>
+          </div>
+          <div class="skeleton-app-title"></div>
+        </div>
+        <div class="app-item skeleton-app-item">
+          <div class="app-icon-wrapper">
+            <div class="app-icon skeleton-app-icon"></div>
+          </div>
+          <div class="skeleton-app-title" style="width: 55px;"></div>
+        </div>
+        <div class="app-item skeleton-app-item">
+          <div class="app-icon-wrapper">
+            <div class="app-icon skeleton-app-icon"></div>
+          </div>
+          <div class="skeleton-app-title" style="width: 75px;"></div>
+        </div>
+        <div class="app-item skeleton-app-item">
+          <div class="app-icon-wrapper">
+            <div class="app-icon skeleton-app-icon"></div>
+          </div>
+          <div class="skeleton-app-title" style="width: 60px;"></div>
+        </div>
+      `;
+      return;
+    }
     mainGrid.style.display = 'block'; // break grid layout
     if (subsequentContainer) subsequentContainer.style.display = 'none';
     document.getElementById('ios-toolbar').style.display = 'none';
@@ -6599,7 +6704,10 @@ function bindEventHandlers() {
 // --- Firebase Authentication Observer Integration ---
 function initFirebaseAuth() {
   onAuthStateChanged(auth, async (firebaseUser) => {
+    isInitialAuthResolved = true;
     if (firebaseUser) {
+      state.activeUserId = firebaseUser.uid;
+      localStorage.setItem('HGS_ACTIVE_USER_ID', firebaseUser.uid);
       await loadDatabaseFromFirestore();
     } else {
       // Logged Out State
@@ -6621,8 +6729,10 @@ function initFirebaseAuth() {
       }
       state.activeUserId = null;
       state.suggestions = [];
+      localStorage.removeItem('HGS_ACTIVE_USER_ID');
       saveDatabase();
       
+      setSyncState(false);
       renderAuthHeader(null);
       renderWidgets();
       renderAppGrid();
@@ -6633,8 +6743,16 @@ function initFirebaseAuth() {
 
 // --- App Initialization Entry Point ---
 document.addEventListener('DOMContentLoaded', () => {
+  setSyncState(true);
   initDatabase();
   renderWidgets();
+  if (state.activeUserId && state.apps && state.apps.length > 0) {
+    const cachedUser = getActiveUser();
+    renderAuthHeader(cachedUser ? { displayName: cachedUser.name, email: cachedUser.email } : null);
+    renderAppGrid();
+  } else {
+    renderAppGrid(); // Displays skeleton loaders while waiting for auth
+  }
   initClockUpdates();
   bindEventHandlers();
   initFirebaseAuth(); // Dynamic Firebase login observer
@@ -6674,11 +6792,29 @@ function renderPolls() {
   container.innerHTML = '';
 
   if (!state.activeUserId) {
+    if (!isInitialAuthResolved) {
+      container.innerHTML = `
+        <div class="skeleton-card">
+          <div class="skeleton-line skeleton-title-line" style="width: 75%;"></div>
+          <div class="skeleton-line skeleton-body-line" style="height: 28px; border-radius: 6px; margin-top: 0.5rem; width: 100%;"></div>
+        </div>
+      `;
+      return;
+    }
     container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">Please log in to view and vote on polls.</div>`;
     return;
   }
 
   if (pollsToRender.length === 0) {
+    if (isSyncingData) {
+      container.innerHTML = `
+        <div class="skeleton-card">
+          <div class="skeleton-line skeleton-title-line" style="width: 75%;"></div>
+          <div class="skeleton-line skeleton-body-line" style="height: 28px; border-radius: 6px; margin-top: 0.5rem; width: 100%;"></div>
+        </div>
+      `;
+      return;
+    }
     container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 1rem 0;">No ${state.pollsFilter} polls found.</div>`;
     return;
   }
