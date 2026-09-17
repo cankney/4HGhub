@@ -1744,7 +1744,9 @@ body.light-mode .useful-link-item:hover {
 .benefits-page-inline,
 .benefits-docs-page-inline,
 .forklift-page-inline,
-.forklift-training-page-inline {
+.forklift-training-page-inline,
+.forklift-checklist-page-inline,
+.forklift-checklist-history-page-inline {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -3637,5 +3639,435 @@ body.light-mode .trainer-quote-card {
   background: #fef3c7;
 }
 
+/* ===============================================================
+   VIRTUAL DAILY FORKLIFT SAFETY CHECKLIST & HISTORY STYLES
+   =============================================================== */
 
+/* Checklist Metadata Header Card */
+.checklist-meta-card {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-panel);
+  padding: 1.25rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--glass-glow);
+}
 
+.checklist-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.shift-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.shift-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-align: center;
+}
+
+.shift-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.shift-btn.active {
+  background: var(--accent-green);
+  color: #0b1402;
+  border-color: var(--accent-green);
+  box-shadow: 0 2px 10px var(--accent-green-glow);
+}
+
+/* Checklist Notice / Safety Instructions Banner */
+.checklist-notice-banner {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 0.85rem 1.15rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  color: #fbbf24;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+body.light-mode .checklist-notice-banner {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+/* Checklist Quick Actions Bar */
+.checklist-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+}
+
+/* Checklist Category Cards */
+.checklist-group-card {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-panel);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: var(--glass-glow);
+}
+
+.checklist-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--glass-border);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.checklist-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Individual Item Row */
+.checklist-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: var(--transition-smooth);
+  gap: 1rem;
+}
+
+.checklist-item-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.checklist-item-row.status-ok {
+  border-left: 3px solid #10b981;
+}
+
+.checklist-item-row.status-ns {
+  border-left: 3px solid #ef4444;
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.checklist-item-row.status-na {
+  border-left: 3px solid #64748b;
+  opacity: 0.8;
+}
+
+.checklist-item-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.checklist-item-controls {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+/* OK / NS / NA Toggle Buttons */
+.check-toggle-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 44px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.check-toggle-btn:active {
+  transform: scale(0.96);
+}
+
+.check-toggle-btn.btn-ok.active {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+.check-toggle-btn.btn-ns.active {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  animation: pulseWarning 1.5s infinite;
+}
+
+@keyframes pulseWarning {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.check-toggle-btn.btn-na.active {
+  background: #64748b;
+  color: #ffffff;
+  border-color: #64748b;
+}
+
+/* In-line NS Warning explanation */
+.checklist-item-ns-warning {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+/* Supervisor Auto-Signature Stamp Card */
+.supervisor-auto-stamp-card {
+  background: rgba(141, 220, 4, 0.04);
+  border: 1px solid rgba(141, 220, 4, 0.25);
+  border-radius: var(--border-radius-panel);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.supervisor-stamp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.supervisor-signature-display {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  flex-wrap: wrap;
+}
+
+body.light-mode .supervisor-signature-display {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.supervisor-sig-img {
+  max-height: 55px;
+  max-width: 180px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+body.light-mode .supervisor-sig-img {
+  filter: none;
+}
+
+/* Checklist History List */
+.checklist-history-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.checklist-history-card {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  transition: var(--transition-smooth);
+}
+
+.checklist-history-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.checklist-history-card.flagged {
+  border-left: 4px solid #ef4444;
+}
+
+.checklist-history-card.passed {
+  border-left: 4px solid #10b981;
+}
+
+/* Submission Detail Modal Overlay */
+.forklift-checklist-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease;
+}
+
+.forklift-checklist-modal-content {
+  background: var(--bg-slate);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  max-width: 780px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+body.light-mode .forklift-checklist-modal-content {
+  background: #ffffff;
+}
+
+.forklift-checklist-modal-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: inherit;
+  z-index: 10;
+}
+
+.forklift-checklist-modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Printable Sheet */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .forklift-checklist-modal-overlay,
+  .forklift-checklist-modal-content,
+  .forklift-checklist-modal-content * {
+    visibility: visible;
+  }
+  .forklift-checklist-modal-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0;
+  }
+  .forklift-checklist-modal-content {
+    max-height: none;
+    box-shadow: none;
+    border: none;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .forklift-checklist-modal-header button {
+    display: none !important;
+  }
+}
+
+/* Admin Checklist Items List */
+.admin-checklist-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--glass-border);
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-checklist-item-row.inactive {
+  opacity: 0.45;
+  filter: grayscale(0.8);
+}
+
+/* Mobile Responsiveness for Checklist */
+@media (max-width: 640px) {
+  .checklist-item-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .checklist-item-controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .check-toggle-btn {
+    width: 100%;
+    min-height: 42px;
+  }
+  .checklist-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .checklist-history-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

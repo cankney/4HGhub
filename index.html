@@ -192,6 +192,21 @@
           <!-- Injected dynamically by renderForkliftTrainingPage() -->
         </div>
 
+        <!-- INLINE DAILY FORKLIFT CHECKLIST PANEL -->
+        <div class="forklift-checklist-page-inline" id="forklift-checklist-page-inline" style="display: none;">
+          <!-- Injected dynamically by renderForkliftChecklistPage() -->
+        </div>
+
+        <!-- INLINE DAILY FORKLIFT CHECKLIST HISTORY PANEL -->
+        <div class="forklift-checklist-history-page-inline" id="forklift-checklist-history-page-inline" style="display: none;">
+          <!-- Injected dynamically by renderForkliftChecklistHistoryPage() -->
+        </div>
+
+        <!-- CHECKLIST DETAIL VIEW MODAL -->
+        <div class="forklift-checklist-modal-overlay" id="forklift-checklist-modal-overlay" style="display: none;" aria-modal="true" role="dialog">
+          <!-- Injected dynamically by openChecklistSubmissionDetail() -->
+        </div>
+
         <!-- INLINE ADMIN CONFIGURATION PANEL (Replaces Popup!) -->
         <div class="admin-panel-inline" id="admin-panel-inline" style="display: none;">
           <div class="admin-panel-header">
@@ -477,6 +492,91 @@
                 <button type="submit" class="btn-ios btn-ios-accent" id="btn-save-forklift-operator">Save Operator Record</button>
               </div>
             </form>
+
+            <!-- SUPERVISOR PRE-AUTHORIZED SIGNATURE SECTION -->
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Supervisor Auto-Signature for Daily Checklists</h4>
+                  <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">This signature and approval stamp is automatically loaded and attached onto completed daily checklists.</p>
+                </div>
+              </div>
+
+              <div class="apps-form-card" style="padding: 1.25rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-card-bg);">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="forklift-supervisor-name">Supervisor Name</label>
+                    <input type="text" id="forklift-supervisor-name" class="form-control" placeholder="e.g., Cole Ankney" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label for="forklift-supervisor-title">Supervisor Role / Title</label>
+                    <input type="text" id="forklift-supervisor-title" class="form-control" placeholder="e.g., Operations & Safety Supervisor" autocomplete="off">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Supervisor Signature Pad (Draw with touch/mouse or upload image)</label>
+                  <div class="sig-pad-wrapper" style="border: 2px dashed var(--glass-border); border-radius: 8px; background: rgba(0,0,0,0.25); display: flex; flex-direction: column; align-items: center; padding: 0.75rem;">
+                    <canvas id="supervisor-sig-canvas" width="450" height="130" style="touch-action: none; cursor: crosshair; background: transparent; max-width: 100%; height: auto; border-radius: 4px;"></canvas>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; justify-content: center;">
+                      <button type="button" class="btn-ios" id="btn-clear-supervisor-sig" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">Clear Pad</button>
+                      <button type="button" class="btn-ios" id="btn-upload-supervisor-sig" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">Upload Signature Photo</button>
+                      <input type="file" id="supervisor-sig-file-input" accept="image/*" style="display: none;">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Current Active Signature Preview -->
+                <div id="supervisor-sig-preview-container" style="display: none; margin-top: 0.75rem; padding: 0.75rem; border-radius: 8px; background: rgba(141, 220, 4, 0.05); border: 1px solid rgba(141, 220, 4, 0.2);">
+                  <div style="font-size: 0.75rem; color: var(--accent-green); font-weight: 600; margin-bottom: 0.35rem;">✓ Current Active Saved Signature:</div>
+                  <div style="display: flex; align-items: center; gap: 1rem;">
+                    <img id="supervisor-sig-preview-img" src="" alt="Supervisor Signature" style="max-height: 50px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 4px; border: 1px solid var(--glass-border);">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                      <span id="supervisor-sig-preview-name" style="font-weight: 600; color: var(--text-primary);"></span><br>
+                      <span id="supervisor-sig-preview-title" style="font-size: 0.75rem;"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 1rem;">
+                  <button type="button" class="btn-ios btn-ios-accent" id="btn-save-supervisor-sig">Save Supervisor Signature</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CHECKLIST ITEMS TEMPLATE EDITOR SECTION -->
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Checklist Template Items & Ordering</h4>
+                  <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Rearrange, edit, toggle, or add inspection points. Synced in real-time to all devices.</p>
+                </div>
+                <span class="view-badge" id="forklift-checklist-admin-badge" style="font-size: 0.75rem;">29 Items</span>
+              </div>
+
+              <!-- Add New Item Sub-form -->
+              <div class="apps-form-card" style="padding: 0.85rem; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-card-bg); margin-bottom: 1rem;">
+                <h6 style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-primary);">+ Add New Checklist Point</h6>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <select id="new-checklist-item-group" class="form-control" style="flex: 0 0 200px; font-size: 0.85rem;">
+                    <option value="keyOff">Key Off / Visual Check</option>
+                    <option value="keyOn">Key On / Operating Check</option>
+                  </select>
+                  <input type="text" id="new-checklist-item-label" class="form-control" placeholder="Checklist point description..." style="flex: 1; min-width: 200px; font-size: 0.85rem;">
+                  <button type="button" class="btn-ios btn-ios-accent" id="btn-add-checklist-item" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Add Item</button>
+                </div>
+              </div>
+
+              <!-- Items list container -->
+              <div id="forklift-checklist-admin-items" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--glass-border); border-radius: 10px; background: rgba(0,0,0,0.15); padding: 0.5rem;">
+                <!-- Dynamically populated by renderChecklistItemsEditor() -->
+              </div>
+
+              <div class="form-actions" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn-ios" id="btn-reset-checklist-template" style="font-size: 0.8rem;">Reset to Default (DailyChecklist.doc)</button>
+                <button type="button" class="btn-ios btn-ios-accent" id="btn-save-checklist-template">Save Checklist Template</button>
+              </div>
+            </div>
           </div>
 
           <!-- TAB: Suggestions Inbox -->

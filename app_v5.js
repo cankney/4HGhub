@@ -1,7 +1,7 @@
 // 4HGS Application Hub - Core Logic & State Management
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, query, where, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, query, where, onSnapshot, arrayUnion, addDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -63,6 +63,7 @@ const SVG_ICONS = {
   'file-text': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`,
   'alert-triangle': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
   forklift: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"></circle><circle cx="17" cy="18" r="2.5"></circle><path d="M3 18h0.5M8.5 18H14.5M19.5 18H21"></path><path d="M5 15.5L8 7h6l2 8.5"></path><path d="M19 18V5h2"></path><path d="M21 15h3"></path></svg>`,
+  'clipboard-check': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>`,
 
   // Theme Toggle Icons
   sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
@@ -87,7 +88,43 @@ const DEFAULT_APPS = [
   // Useful Links Section Apps (Visible to All Users)
   { id: 'health-benefits', name: 'Health Benefits', icon: 'shield', order: 0, type: 'app', sectionId: 'useful-links', allUsers: true },
   { id: 'benefits-docs', name: 'Benefits Documents', icon: 'file-text', order: 1, type: 'app', sectionId: 'useful-links', allUsers: true },
-  { id: 'forklift-safety', name: 'Forklift Safety', icon: 'alert-triangle', order: 2, type: 'app', sectionId: 'useful-links', allUsers: true }
+  { id: 'forklift-safety', name: 'Forklift Safety', icon: 'alert-triangle', order: 2, type: 'app', sectionId: 'useful-links', allUsers: true },
+  { id: 'forklift-checklist', name: 'Forklift Checklist', icon: 'clipboard-check', order: 3, type: 'app', sectionId: 'useful-links', allUsers: true }
+];
+
+const DEFAULT_CHECKLIST_ITEMS = [
+  // Key Off / Visual Checks (15 items)
+  { id: 'item-ko-1', group: 'keyOff', label: 'Overhead Guard: damaged, loose, missing', active: true },
+  { id: 'item-ko-2', group: 'keyOff', label: 'Hydraulic Cylinders: damaged, leaking', active: true },
+  { id: 'item-ko-3', group: 'keyOff', label: 'Mast/Carriage Assembly: damaged, loose or missing parts, excessive wear, leaks', active: true },
+  { id: 'item-ko-4', group: 'keyOff', label: 'Lift Chains and Rollers: damaged, uneven chain tension', active: true },
+  { id: 'item-ko-5', group: 'keyOff', label: 'Forks: damaged, bent, worn', active: true },
+  { id: 'item-ko-6', group: 'keyOff', label: 'Tires & Wheels: damaged, worn, loose', active: true },
+  { id: 'item-ko-7', group: 'keyOff', label: 'LP Gas Tank and Hose (LP gas trucks only): tank secure, hose damage, leaks, gas odor', active: true },
+  { id: 'item-ko-8', group: 'keyOff', label: 'Seat and Seat Belts: damaged, loose or missing?', active: true },
+  { id: 'item-ko-9', group: 'keyOff', label: 'Warning Decals/Operators Manual: missing or not readable?', active: true },
+  { id: 'item-ko-10', group: 'keyOff', label: 'Data Plate/Load Chart: missing or not readable?', active: true },
+  { id: 'item-ko-11', group: 'keyOff', label: 'Battery: properly installed, caps and cables tight & undamaged, charge, electrolyte level', active: true },
+  { id: 'item-ko-12', group: 'keyOff', label: 'Gauges/Instruments: damaged or missing', active: true },
+  { id: 'item-ko-13', group: 'keyOff', label: 'Engine Oil: check level, dirty, leaks', active: true },
+  { id: 'item-ko-14', group: 'keyOff', label: 'Transmission Fluid: check level, leaks', active: true },
+  { id: 'item-ko-15', group: 'keyOff', label: 'Hydraulic Fluid: check level', active: true },
+
+  // Key On / Operating Checks (14 items)
+  { id: 'item-kon-1', group: 'keyOn', label: 'Lights-Front/Tail/Brake: do they all work?', active: true },
+  { id: 'item-kon-2', group: 'keyOn', label: 'Gauges: do they all work?', active: true },
+  { id: 'item-kon-3', group: 'keyOn', label: 'Mast: lifts and lowers smoothly, chains and rollers operate properly, excess noise, fluid leaks', active: true },
+  { id: 'item-kon-4', group: 'keyOn', label: 'Carriage and Attachments: tilts forward and backward smoothly, excess noise, leaks', active: true },
+  { id: 'item-kon-5', group: 'keyOn', label: 'Steering: works properly, excess free play, leaks', active: true },
+  { id: 'item-kon-6', group: 'keyOn', label: 'Horn: does it work?', active: true },
+  { id: 'item-kon-7', group: 'keyOn', label: 'Control levers: operate properly, loose or binding, returns to center freely', active: true },
+  { id: 'item-kon-8', group: 'keyOn', label: 'Directional/Speed Control: operates properly, loose or binding, returns to neutral freely', active: true },
+  { id: 'item-kon-9', group: 'keyOn', label: 'Drive Axle: noise or lubricant leaks', active: true },
+  { id: 'item-kon-10', group: 'keyOn', label: 'Service Brakes: does truck stop properly in forward and reverse?', active: true },
+  { id: 'item-kon-11', group: 'keyOn', label: 'Backup Alarm (if equipped): does it work?', active: true },
+  { id: 'item-kon-12', group: 'keyOn', label: 'Battery Check (electric trucks): does battery show full charge under load?', active: true },
+  { id: 'item-kon-13', group: 'keyOn', label: 'Safety Door & Switch (if equipped): in place and working properly?', active: true },
+  { id: 'item-kon-14', group: 'keyOn', label: 'Work Platform (if equipped): does platform raise and lower smoothly?', active: true }
 ];
 
 const DEFAULT_FORKLIFT_CONFIG = {
@@ -104,6 +141,11 @@ const DEFAULT_FORKLIFT_CONFIG = {
   standardCapacity: '4,500 lbs @ 24" Load Center (189" Lift)',
   reducedCapacity: '4,000 lbs @ 30" Load Center (189" Lift)',
   manualPath: 'assets/forklift/Toyota_Forklift_Operators_Manual.pdf',
+  supervisorSignature: null,
+  supervisorName: 'Cole Ankney',
+  supervisorTitle: 'Safety & Operations Supervisor',
+  checklistItems: DEFAULT_CHECKLIST_ITEMS,
+  checklistVersion: 1,
   operators: [
     {
       id: 'op-1',
@@ -147,9 +189,9 @@ const DEFAULT_USERS = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety'],
-  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety'], 
-  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety']
+  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'],
+  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'], 
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -318,7 +360,26 @@ function ensureDefaultSectionsAndApps() {
     }
   }
 
-  // 5. Also clean up any other accidental duplicate sections in state.sections by id or name
+  // 5. Ensure forklift-checklist app exists
+  const forkliftChecklistApp = state.apps.find(a => a.id === 'forklift-checklist');
+  if (!forkliftChecklistApp) {
+    state.apps.push({
+      id: 'forklift-checklist',
+      name: 'Forklift Checklist',
+      icon: 'clipboard-check',
+      order: 3,
+      type: 'app',
+      sectionId: usefulSectionId,
+      allUsers: true
+    });
+  } else {
+    forkliftChecklistApp.allUsers = true;
+    if (!forkliftChecklistApp.sectionId || !state.sections.some(s => s.id === forkliftChecklistApp.sectionId)) {
+      forkliftChecklistApp.sectionId = usefulSectionId;
+    }
+  }
+
+  // 6. Also clean up any other accidental duplicate sections in state.sections by id or name
   const seenNames = new Set();
   state.sections = state.sections.filter(s => {
     const norm = (s.name || '').trim().toLowerCase();
@@ -374,6 +435,9 @@ function loadDatabaseOfflineFallback() {
   state.polls = JSON.parse(localStorage.getItem('HGS_POLLS')) || DEFAULT_POLLS;
   state.suggestions = JSON.parse(localStorage.getItem('HGS_SUGGESTIONS')) || [];
   state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
+  if (!state.forkliftConfig.checklistItems || state.forkliftConfig.checklistItems.length === 0) {
+    state.forkliftConfig.checklistItems = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_ITEMS));
+  }
   
   ensureDefaultSectionsAndApps();
   state.apps.forEach(app => {
@@ -622,6 +686,19 @@ async function loadDatabaseFromFirestore() {
       state.forkliftConfig = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CONFIG')) || DEFAULT_FORKLIFT_CONFIG;
     }
 
+    if (!state.forkliftConfig) {
+      state.forkliftConfig = JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_CONFIG));
+    }
+    if (!state.forkliftConfig.checklistItems || state.forkliftConfig.checklistItems.length === 0) {
+      state.forkliftConfig.checklistItems = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_ITEMS));
+    }
+    if (!state.forkliftConfig.supervisorName) {
+      state.forkliftConfig.supervisorName = DEFAULT_FORKLIFT_CONFIG.supervisorName;
+    }
+    if (!state.forkliftConfig.supervisorTitle) {
+      state.forkliftConfig.supervisorTitle = DEFAULT_FORKLIFT_CONFIG.supervisorTitle;
+    }
+
     // Apply migrations/sanity checks
     ensureDefaultSectionsAndApps();
     state.apps.forEach(app => {
@@ -634,13 +711,18 @@ async function loadDatabaseFromFirestore() {
     // Start real-time forklift configuration subscription
     subscribeToForkliftConfig();
 
-    // Start real-time suggestions subscription if admin
+    // Start real-time suggestions & forklift checklist alerts subscription if admin
     if (isAdmin) {
       subscribeToSuggestions();
+      subscribeToChecklistAlerts();
     } else {
       if (suggestionsUnsubscribe) {
         suggestionsUnsubscribe();
         suggestionsUnsubscribe = null;
+      }
+      if (forkliftChecklistsUnsubscribe) {
+        forkliftChecklistsUnsubscribe();
+        forkliftChecklistsUnsubscribe = null;
       }
       state.suggestions = [];
     }
@@ -1305,8 +1387,12 @@ function renderAppGrid() {
   const isForkliftOpen = forkliftPanel && forkliftPanel.style.display === 'flex';
   const forkliftTrainingPanel = document.getElementById('forklift-training-page-inline');
   const isForkliftTrainingOpen = forkliftTrainingPanel && forkliftTrainingPanel.style.display === 'flex';
+  const forkliftChecklistPanel = document.getElementById('forklift-checklist-page-inline');
+  const isForkliftChecklistOpen = forkliftChecklistPanel && forkliftChecklistPanel.style.display === 'flex';
+  const forkliftHistoryPanel = document.getElementById('forklift-checklist-history-page-inline');
+  const isForkliftHistoryOpen = forkliftHistoryPanel && forkliftHistoryPanel.style.display === 'flex';
   const topActions = document.getElementById('top-actions-bar');
-  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen || isForkliftTrainingOpen;
+  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen || isForkliftTrainingOpen || isForkliftChecklistOpen || isForkliftHistoryOpen;
   
   if (isAnyModalOpen) {
     mainGrid.style.display = 'none';
@@ -1546,6 +1632,8 @@ function renderAppGrid() {
               openBenefitsDocsPage();
             } else if (item.id === 'forklift-safety') {
               openForkliftSafetyPage();
+            } else if (item.id === 'forklift-checklist') {
+              openForkliftChecklistPage();
             } else if (item.link) {
               showToast(`Opening ${item.name}...`);
               setTimeout(() => window.open(item.link, '_blank'), 800);
@@ -1652,6 +1740,8 @@ function openFolderDrawer(folderId) {
           openBenefitsDocsPage();
         } else if (app.id === 'forklift-safety') {
           openForkliftSafetyPage();
+        } else if (app.id === 'forklift-checklist') {
+          openForkliftChecklistPage();
         } else if (app.link) {
           showToast(`Opening ${app.name}...`);
           setTimeout(() => window.open(app.link, '_blank'), 800);
@@ -1900,6 +1990,8 @@ function openAdminPortal() {
   closeBenefitsDocsPage(false);
   closeForkliftSafetyPage(false);
   closeForkliftTrainingPage(false);
+  closeForkliftChecklistPage(false);
+  closeForkliftChecklistHistoryPage(false);
 
   // Switch display elements
   document.getElementById('main-app-grid').style.display = 'none';
@@ -2052,6 +2144,8 @@ function openBenefitsPage() {
   closeBenefitsDocsPage(false);
   closeForkliftSafetyPage(false);
   closeForkliftTrainingPage(false);
+  closeForkliftChecklistPage(false);
+  closeForkliftChecklistHistoryPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2093,6 +2187,8 @@ function openBenefitsDocsPage(initialFilter = 'all') {
   closeBenefitsPage(false);
   closeForkliftSafetyPage(false);
   closeForkliftTrainingPage(false);
+  closeForkliftChecklistPage(false);
+  closeForkliftChecklistHistoryPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2713,6 +2809,8 @@ function openForkliftSafetyPage() {
   closeBenefitsPage(false);
   closeBenefitsDocsPage(false);
   closeForkliftTrainingPage(false);
+  closeForkliftChecklistPage(false);
+  closeForkliftChecklistHistoryPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2771,13 +2869,17 @@ function renderForkliftSafetyPage() {
         </span>
       </div>
       <div class="view-nav-actions-right">
+        <button class="btn-ios btn-ios-accent" id="btn-forklift-to-checklist" type="button" style="background: rgba(141, 220, 4, 0.15); color: var(--accent-green); border: 1px solid rgba(141, 220, 4, 0.35);">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>
+          Daily Checklist &rarr;
+        </button>
         <button class="btn-ios btn-ios-accent" id="btn-forklift-to-training" type="button" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35);">
           <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path></svg>
-          Operator Training Program &rarr;
+          Operator Training &rarr;
         </button>
         <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-ios">
           <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-          Operators Manual (PDF) ↗
+          Manual (PDF) ↗
         </a>
       </div>
     </div>
@@ -2798,17 +2900,21 @@ function renderForkliftSafetyPage() {
           Safe forklift operation protects our team, prevents severe tip-overs, and guarantees warehouse integrity. This portal houses verified machine technical data plate specifications, active operator certifications with a 3-year renewal countdown, essential safety rules from the official Toyota Operator's Manual, and daily pre-shift inspection checklists.
         </p>
         <div class="benefits-hero-actions">
-          <button class="btn-hero-primary" id="btn-hero-to-training" type="button" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
-            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path></svg>
-            OSHA Operator Training Program &rarr;
+          <button class="btn-hero-primary" id="btn-hero-to-checklist" type="button" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>
+            Start Daily Checklist &rarr;
           </button>
-          <a href="assets/forklift/Toyota_Forklift_Operators_Manual.pdf" target="_blank" rel="noopener noreferrer" class="btn-hero-secondary" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.35);">
-            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-            Toyota Manual (PDF)
-          </a>
+          <button class="btn-hero-secondary" id="btn-hero-to-checklist-history" type="button" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Checklist History & Logs
+          </button>
+          <button class="btn-hero-secondary" id="btn-hero-to-training" type="button" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.35);">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path></svg>
+            OSHA Training Program
+          </button>
           <a href="#forklift-operators-section" class="btn-hero-secondary" id="btn-hero-scroll-operators">
             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path></svg>
-            View Operator Certifications
+            Certifications
           </a>
         </div>
       </div>
@@ -3213,6 +3319,21 @@ function renderForkliftSafetyPage() {
     btnBottomToTraining.addEventListener('click', () => openForkliftTrainingPage());
   }
 
+  const btnForkliftToChecklist = document.getElementById('btn-forklift-to-checklist');
+  if (btnForkliftToChecklist) {
+    btnForkliftToChecklist.addEventListener('click', () => openForkliftChecklistPage());
+  }
+
+  const btnHeroToChecklist = document.getElementById('btn-hero-to-checklist');
+  if (btnHeroToChecklist) {
+    btnHeroToChecklist.addEventListener('click', () => openForkliftChecklistPage());
+  }
+
+  const btnHeroToHistory = document.getElementById('btn-hero-to-checklist-history');
+  if (btnHeroToHistory) {
+    btnHeroToHistory.addEventListener('click', () => openForkliftChecklistHistoryPage());
+  }
+
   const btnScrollOps = document.getElementById('btn-hero-scroll-operators');
   if (btnScrollOps) {
     btnScrollOps.addEventListener('click', (e) => {
@@ -3232,6 +3353,8 @@ function openForkliftTrainingPage() {
   closeBenefitsPage(false);
   closeBenefitsDocsPage(false);
   closeForkliftSafetyPage(false);
+  closeForkliftChecklistPage(false);
+  closeForkliftChecklistHistoryPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -3744,6 +3867,1028 @@ function renderForkliftTrainingPage() {
   }
 }
 
+// --- Daily Forklift Safety Checklist & History Controller ---
+
+let forkliftChecklistsUnsubscribe = null;
+let lastSeenChecklistAlertTimestamp = Date.now();
+let currentChecklistStatus = {}; // itemId -> 'OK' | 'NS' | 'NA'
+let currentChecklistShift = '1';
+let currentChecklistOperator = '';
+let currentChecklistHourMeter = '';
+let currentChecklistNotes = '';
+let currentHistoryFilter = 'all';
+let currentHistorySearch = '';
+let currentChecklistsCache = [];
+
+function openForkliftChecklistPage() {
+  if (state.isEditing) toggleEditMode(false);
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel) adminPanel.style.display = 'none';
+  closeBenefitsPage(false);
+  closeBenefitsDocsPage(false);
+  closeForkliftSafetyPage(false);
+  closeForkliftTrainingPage(false);
+  closeForkliftChecklistHistoryPage(false);
+
+  document.getElementById('main-app-grid').style.display = 'none';
+  document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
+
+  const panel = document.getElementById('forklift-checklist-page-inline');
+  if (panel) {
+    panel.style.display = 'flex';
+    renderForkliftChecklistPage();
+    const shell = document.querySelector('.ios-screen-content');
+    if (shell) shell.scrollTop = 0;
+  }
+}
+
+function closeForkliftChecklistPage(restoreGrid = true) {
+  const panel = document.getElementById('forklift-checklist-page-inline');
+  if (panel) panel.style.display = 'none';
+
+  if (restoreGrid) {
+    document.getElementById('main-app-grid').style.display = 'grid';
+    document.getElementById('ios-toolbar').style.display = 'flex';
+    
+    const subsequentContainer = document.getElementById('subsequent-sections-container');
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
+    
+    renderAppGrid();
+  }
+}
+
+function openForkliftChecklistHistoryPage() {
+  if (state.isEditing) toggleEditMode(false);
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel) adminPanel.style.display = 'none';
+  closeBenefitsPage(false);
+  closeBenefitsDocsPage(false);
+  closeForkliftSafetyPage(false);
+  closeForkliftTrainingPage(false);
+  closeForkliftChecklistPage(false);
+
+  document.getElementById('main-app-grid').style.display = 'none';
+  document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
+
+  const panel = document.getElementById('forklift-checklist-history-page-inline');
+  if (panel) {
+    panel.style.display = 'flex';
+    renderForkliftChecklistHistoryPage();
+    const shell = document.querySelector('.ios-screen-content');
+    if (shell) shell.scrollTop = 0;
+  }
+}
+
+function closeForkliftChecklistHistoryPage(restoreGrid = true) {
+  const panel = document.getElementById('forklift-checklist-history-page-inline');
+  if (panel) panel.style.display = 'none';
+
+  if (restoreGrid) {
+    document.getElementById('main-app-grid').style.display = 'grid';
+    document.getElementById('ios-toolbar').style.display = 'flex';
+    
+    const subsequentContainer = document.getElementById('subsequent-sections-container');
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
+    
+    renderAppGrid();
+  }
+}
+
+function renderChecklistRowHtml(item) {
+  const status = currentChecklistStatus[item.id] || '';
+  const statusClass = status ? `status-${status.toLowerCase()}` : '';
+  return `
+    <div class="checklist-item-row ${statusClass}" id="row-${item.id}" data-item-id="${item.id}">
+      <div style="flex: 1; min-width: 0;">
+        <div class="checklist-item-label">${escapeHTML(item.label)}</div>
+        ${status === 'NS' ? `
+          <div class="checklist-item-ns-warning">
+            <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            NOT SATISFACTORY: Flagged for maintenance attention
+          </div>
+        ` : ''}
+      </div>
+      <div class="checklist-item-controls">
+        <button type="button" class="check-toggle-btn btn-ok ${status === 'OK' ? 'active' : ''}" data-item-id="${item.id}" data-status="OK">OK</button>
+        <button type="button" class="check-toggle-btn btn-ns ${status === 'NS' ? 'active' : ''}" data-item-id="${item.id}" data-status="NS">NS</button>
+        <button type="button" class="check-toggle-btn btn-na ${status === 'NA' ? 'active' : ''}" data-item-id="${item.id}" data-status="NA">N/A</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderForkliftChecklistPage() {
+  const container = document.getElementById('forklift-checklist-page-inline');
+  if (!container) return;
+
+  const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+  const activeUser = getActiveUser();
+  const defaultOperator = (activeUser && activeUser.name) || 'Cole Ankney';
+  if (!currentChecklistOperator) {
+    currentChecklistOperator = defaultOperator;
+  }
+
+  const items = (cfg.checklistItems && cfg.checklistItems.length > 0) ? cfg.checklistItems : DEFAULT_CHECKLIST_ITEMS;
+  const activeItems = items.filter(i => i.active !== false);
+  const keyOffItems = activeItems.filter(i => i.group === 'keyOff');
+  const keyOnItems = activeItems.filter(i => i.group === 'keyOn');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const answeredCount = activeItems.filter(i => !!currentChecklistStatus[i.id]).length;
+  const totalCount = activeItems.length;
+
+  const supName = cfg.supervisorName || 'Cole Ankney';
+  const supTitle = cfg.supervisorTitle || 'Operations & Safety Supervisor';
+  const supSig = cfg.supervisorSignature;
+
+  const opsList = (cfg.operators && cfg.operators.length > 0) ? cfg.operators : DEFAULT_FORKLIFT_CONFIG.operators;
+
+  container.innerHTML = `
+    <!-- Top Nav Header -->
+    <div class="view-nav-header">
+      <div class="view-nav-actions-left">
+        <button class="btn-ios" id="btn-back-from-checklist" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
+          Back to Dashboard
+        </button>
+        <button class="btn-ios" id="btn-back-to-forklift-hub" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+          Forklift Safety Hub
+        </button>
+        <span class="view-badge forklift-badge-amber">
+          Toyota 8FGU25 • S/N 90434
+        </span>
+      </div>
+      <div class="view-nav-actions-right">
+        <button class="btn-ios btn-ios-accent" id="btn-view-checklist-history" type="button" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Submission History Logs &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Notice Banner -->
+    <div class="checklist-notice-banner">
+      <svg style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+      <div>
+        <strong>OSHA 29 CFR 1910.178 Daily Pre-Shift Inspection:</strong>
+        Before beginning operation of the truck check each item below. Notify the supervisor of any items that require maintenance and take the truck out of service. Mark N/A for any item that does not apply.
+      </div>
+    </div>
+
+    <!-- Metadata Card -->
+    <div class="checklist-meta-card">
+      <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+        <svg style="width: 18px; height: 18px; color: var(--accent-green);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>
+        Daily Pre-Shift Inspection Record
+      </h3>
+      <div class="checklist-meta-grid">
+        <div class="form-group">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Date of Inspection</label>
+          <input type="date" id="checklist-input-date" class="form-control" value="${todayStr}" style="font-size: 0.9rem;">
+        </div>
+
+        <div class="form-group">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Shift Number</label>
+          <div class="shift-selector">
+            <button type="button" class="shift-btn ${currentChecklistShift === '1' ? 'active' : ''}" data-shift="1">Shift 1</button>
+            <button type="button" class="shift-btn ${currentChecklistShift === '2' ? 'active' : ''}" data-shift="2">Shift 2</button>
+            <button type="button" class="shift-btn ${currentChecklistShift === '3' ? 'active' : ''}" data-shift="3">Shift 3</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Operator Name</label>
+          <select id="checklist-input-operator" class="form-control" style="font-size: 0.9rem;">
+            ${opsList.map(op => `<option value="${escapeHTML(op.name)}" ${op.name === currentChecklistOperator ? 'selected' : ''}>${escapeHTML(op.name)} (${escapeHTML(op.role || 'Operator')})</option>`).join('')}
+            ${!opsList.some(o => o.name === currentChecklistOperator) ? `<option value="${escapeHTML(currentChecklistOperator)}" selected>${escapeHTML(currentChecklistOperator)}</option>` : ''}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Truck Serial / ID#</label>
+          <input type="text" class="form-control" value="Toyota 8FGU25 (S/N: 90434)" readonly style="opacity: 0.8; cursor: not-allowed; font-weight: 600;">
+        </div>
+
+        <div class="form-group">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Hour Meter Reading</label>
+          <input type="number" step="0.1" id="checklist-input-hour-meter" class="form-control" placeholder="e.g. 1248.5" value="${escapeHTML(currentChecklistHourMeter)}" style="font-size: 0.9rem;" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Toolbar -->
+    <div class="checklist-actions-bar">
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="btn-ios btn-ios-accent" id="btn-checklist-mark-all-ok" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Mark All OK
+        </button>
+        <button type="button" class="btn-ios" id="btn-checklist-clear-all" style="font-size: 0.85rem; padding: 0.45rem 0.8rem;">
+          Reset All
+        </button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span id="checklist-progress-text" style="font-size: 0.85rem; color: var(--text-secondary);">
+          <strong id="checklist-answered-num" style="color: var(--text-primary);">${answeredCount}</strong> of ${totalCount} Evaluated
+        </span>
+        <span class="view-badge" id="checklist-answered-badge" style="font-size: 0.75rem;">
+          ${answeredCount === totalCount ? '✓ Ready' : 'In Progress'}
+        </span>
+      </div>
+    </div>
+
+    <!-- Form container -->
+    <form id="daily-forklift-checklist-form" style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+      <!-- Group 1: Key Off / Visual Checks -->
+      <div class="checklist-group-card">
+        <div class="checklist-group-header">
+          <h4 class="checklist-group-title">
+            <svg style="width: 18px; height: 18px; color: #f59e0b;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Key Off / Visual Checks
+          </h4>
+          <span class="view-badge forklift-badge-amber" style="font-size: 0.75rem;">${keyOffItems.length} Inspection Points</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          ${keyOffItems.map(item => renderChecklistRowHtml(item)).join('')}
+        </div>
+      </div>
+
+      <!-- Group 2: Key On / Operating Checks -->
+      <div class="checklist-group-card">
+        <div class="checklist-group-header">
+          <h4 class="checklist-group-title">
+            <svg style="width: 18px; height: 18px; color: #10b981;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Key On / Operating Checks
+          </h4>
+          <span class="view-badge" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #10b981;">${keyOnItems.length} Inspection Points</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          ${keyOnItems.map(item => renderChecklistRowHtml(item)).join('')}
+        </div>
+      </div>
+
+      <!-- Remarks / Maintenance Notes -->
+      <div class="checklist-group-card">
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--text-primary);">
+          Maintenance Notes & Problem Descriptions
+        </h4>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: var(--text-secondary);">
+          Explain problems noted above or describe additional issues that require technician maintenance.
+        </p>
+        <textarea id="checklist-problems-notes" class="form-control" rows="3" placeholder="Describe any problems or maintenance required...">${escapeHTML(currentChecklistNotes)}</textarea>
+      </div>
+
+      <!-- Supervisor Pre-Authorized Signature & Approval Card -->
+      <div class="supervisor-auto-stamp-card">
+        <div class="supervisor-stamp-header">
+          <div style="font-weight: 700; color: var(--accent-green); font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043A3.745 3.745 0 011.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043A3.746 3.746 0 0115.593 4.593A3.745 3.745 0 0121 12z"></path></svg>
+            Supervisor Auto-Signature & Verification
+          </div>
+          <span class="view-badge" style="background: rgba(141, 220, 4, 0.15); color: var(--accent-green); font-size: 0.75rem;">Pre-Authorized</span>
+        </div>
+
+        <div class="supervisor-signature-display">
+          ${supSig ? `<img src="${supSig}" alt="Supervisor Signature" class="supervisor-sig-img">` : `
+            <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.8rem; color: #8DDC04; opacity: 0.85;">
+              ${escapeHTML(supName)}
+            </div>
+          `}
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">${escapeHTML(supName)}</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">${escapeHTML(supTitle)}</div>
+            <div style="font-size: 0.75rem; color: var(--accent-green); margin-top: 0.2rem;">Verification Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          </div>
+        </div>
+
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+          Supervisor signature is automatically loaded and stamped onto this checklist upon submission. Submitter authenticated as: <strong>${escapeHTML((activeUser && activeUser.name) || (auth.currentUser && auth.currentUser.email) || 'Signed-In Operator')}</strong>.
+        </div>
+      </div>
+
+      <!-- Submit Action -->
+      <div style="margin-top: 0.5rem;">
+        <button type="submit" id="btn-submit-checklist" class="btn-hero-primary" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 0.9rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; cursor: pointer; border-radius: 12px; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+          Complete & Submit Daily Checklist
+        </button>
+      </div>
+
+    </form>
+  `;
+
+  attachChecklistFormEvents();
+}
+
+function attachChecklistFormEvents() {
+  const container = document.getElementById('forklift-checklist-page-inline');
+  if (!container) return;
+
+  const btnBack = document.getElementById('btn-back-from-checklist');
+  if (btnBack) btnBack.addEventListener('click', () => closeForkliftChecklistPage());
+
+  const btnHub = document.getElementById('btn-back-to-forklift-hub');
+  if (btnHub) btnHub.addEventListener('click', () => openForkliftSafetyPage());
+
+  const btnHistory = document.getElementById('btn-view-checklist-history');
+  if (btnHistory) btnHistory.addEventListener('click', () => openForkliftChecklistHistoryPage());
+
+  // Shift buttons
+  container.querySelectorAll('.shift-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentChecklistShift = btn.dataset.shift;
+    });
+  });
+
+  // Operator select
+  const opSelect = document.getElementById('checklist-input-operator');
+  if (opSelect) {
+    opSelect.addEventListener('change', (e) => {
+      currentChecklistOperator = e.target.value;
+    });
+  }
+
+  // Hour meter
+  const hmInput = document.getElementById('checklist-input-hour-meter');
+  if (hmInput) {
+    hmInput.addEventListener('input', (e) => {
+      currentChecklistHourMeter = e.target.value;
+    });
+  }
+
+  // Notes
+  const notesArea = document.getElementById('checklist-problems-notes');
+  if (notesArea) {
+    notesArea.addEventListener('input', (e) => {
+      currentChecklistNotes = e.target.value;
+    });
+  }
+
+  // Toggle buttons
+  container.querySelectorAll('.check-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const itemId = btn.dataset.itemId;
+      const status = btn.dataset.status;
+      currentChecklistStatus[itemId] = status;
+
+      const row = document.getElementById(`row-${itemId}`);
+      if (row) {
+        row.classList.remove('status-ok', 'status-ns', 'status-na');
+        row.classList.add(`status-${status.toLowerCase()}`);
+        row.querySelectorAll('.check-toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // NS warning
+        let warningEl = row.querySelector('.checklist-item-ns-warning');
+        if (status === 'NS') {
+          if (!warningEl) {
+            const labelDiv = row.querySelector('div:first-child');
+            warningEl = document.createElement('div');
+            warningEl.className = 'checklist-item-ns-warning';
+            warningEl.innerHTML = `
+              <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              NOT SATISFACTORY: Flagged for maintenance attention
+            `;
+            labelDiv.appendChild(warningEl);
+          }
+        } else {
+          if (warningEl) warningEl.remove();
+        }
+      }
+
+      updateChecklistProgress();
+    });
+  });
+
+  // Mark all OK button
+  const btnMarkAll = document.getElementById('btn-checklist-mark-all-ok');
+  if (btnMarkAll) {
+    btnMarkAll.addEventListener('click', () => {
+      const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+      const items = (cfg.checklistItems && cfg.checklistItems.length > 0) ? cfg.checklistItems : DEFAULT_CHECKLIST_ITEMS;
+      const activeItems = items.filter(i => i.active !== false);
+
+      activeItems.forEach(item => {
+        currentChecklistStatus[item.id] = 'OK';
+        const row = document.getElementById(`row-${item.id}`);
+        if (row) {
+          row.classList.remove('status-ok', 'status-ns', 'status-na');
+          row.classList.add('status-ok');
+          row.querySelectorAll('.check-toggle-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.status === 'OK');
+          });
+          const warningEl = row.querySelector('.checklist-item-ns-warning');
+          if (warningEl) warningEl.remove();
+        }
+      });
+      updateChecklistProgress();
+      showToast('All items marked OK');
+    });
+  }
+
+  // Clear all button
+  const btnClearAll = document.getElementById('btn-checklist-clear-all');
+  if (btnClearAll) {
+    btnClearAll.addEventListener('click', () => {
+      currentChecklistStatus = {};
+      renderForkliftChecklistPage();
+    });
+  }
+
+  // Form submit
+  const form = document.getElementById('daily-forklift-checklist-form');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleChecklistSubmit();
+    });
+  }
+}
+
+function updateChecklistProgress() {
+  const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+  const items = (cfg.checklistItems && cfg.checklistItems.length > 0) ? cfg.checklistItems : DEFAULT_CHECKLIST_ITEMS;
+  const activeItems = items.filter(i => i.active !== false);
+  const totalCount = activeItems.length;
+  const answeredCount = activeItems.filter(i => !!currentChecklistStatus[i.id]).length;
+
+  const numEl = document.getElementById('checklist-answered-num');
+  if (numEl) numEl.textContent = answeredCount;
+
+  const badgeEl = document.getElementById('checklist-answered-badge');
+  if (badgeEl) {
+    badgeEl.textContent = answeredCount === totalCount ? '✓ Ready' : 'In Progress';
+    badgeEl.style.background = answeredCount === totalCount ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.08)';
+    badgeEl.style.color = answeredCount === totalCount ? '#10b981' : 'var(--text-secondary)';
+  }
+}
+
+async function handleChecklistSubmit() {
+  const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+  const items = (cfg.checklistItems && cfg.checklistItems.length > 0) ? cfg.checklistItems : DEFAULT_CHECKLIST_ITEMS;
+  const activeItems = items.filter(i => i.active !== false);
+
+  const unanswered = activeItems.filter(i => !currentChecklistStatus[i.id]);
+  if (unanswered.length > 0) {
+    showToast(`Please complete all inspection checks (${unanswered.length} items remaining).`, false);
+    const firstRow = document.getElementById(`row-${unanswered[0].id}`);
+    if (firstRow) {
+      firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstRow.style.outline = '2px solid #ef4444';
+      setTimeout(() => { firstRow.style.outline = 'none'; }, 2000);
+    }
+    return;
+  }
+
+  const hourMeterVal = document.getElementById('checklist-input-hour-meter').value.trim();
+  if (!hourMeterVal) {
+    showToast('Please enter the current Hour Meter Reading.', false);
+    const hmInput = document.getElementById('checklist-input-hour-meter');
+    if (hmInput) hmInput.focus();
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-submit-checklist');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Submitting Inspection...';
+  }
+
+  const dateVal = document.getElementById('checklist-input-date').value || new Date().toISOString().split('T')[0];
+  const operatorVal = document.getElementById('checklist-input-operator').value.trim();
+  const notesVal = document.getElementById('checklist-problems-notes').value.trim();
+  const activeUser = getActiveUser();
+
+  const hasNS = activeItems.some(i => currentChecklistStatus[i.id] === 'NS');
+  const flaggedItems = activeItems.filter(i => currentChecklistStatus[i.id] === 'NS').map(i => i.label);
+
+  const submissionDoc = {
+    date: dateVal,
+    shift: currentChecklistShift,
+    operatorName: operatorVal,
+    truckId: '90434',
+    truckModel: cfg.model || 'Toyota 8FGU25',
+    hourMeter: hourMeterVal,
+    items: activeItems.map(i => ({
+      id: i.id,
+      label: i.label,
+      group: i.group,
+      status: currentChecklistStatus[i.id]
+    })),
+    notes: notesVal,
+    hasFlagged: hasNS,
+    flaggedCount: flaggedItems.length,
+    flaggedItems: flaggedItems,
+    submittedAt: new Date().toISOString(),
+    submittedTimestamp: Date.now(),
+    submittedByUid: auth.currentUser ? auth.currentUser.uid : 'anon',
+    submittedByName: (activeUser && activeUser.name) || (auth.currentUser && auth.currentUser.displayName) || 'Operator',
+    submittedByEmail: (activeUser && activeUser.email) || (auth.currentUser && auth.currentUser.email) || '',
+    supervisorName: cfg.supervisorName || 'Cole Ankney',
+    supervisorTitle: cfg.supervisorTitle || 'Operations & Safety Supervisor',
+    supervisorSignature: cfg.supervisorSignature || null,
+    supervisorSignedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    status: hasNS ? 'Maintenance Flagged' : 'Passed'
+  };
+
+  try {
+    const docRef = await addDoc(collection(db, "forkliftChecklists"), submissionDoc);
+    submissionDoc.id = docRef.id;
+
+    // Cache locally
+    try {
+      const cached = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CHECKLISTS_LOCAL')) || [];
+      cached.unshift(submissionDoc);
+      localStorage.setItem('HGS_FORKLIFT_CHECKLISTS_LOCAL', JSON.stringify(cached.slice(0, 50)));
+    } catch (e) {}
+
+    // Reset status for next submission
+    currentChecklistStatus = {};
+    currentChecklistNotes = '';
+
+    renderSubmissionSuccessScreen(submissionDoc);
+
+    if (hasNS) {
+      const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+      const isAdmin = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
+      if (isAdmin) {
+        showToast(`⚠️ FORKLIFT SAFETY ALERT: ${flaggedItems.length} items flagged Not Satisfactory on Forklift #90434! Take truck out of service.`, false);
+      }
+    }
+  } catch (err) {
+    console.error("Error submitting daily forklift checklist:", err);
+    showToast("Error saving checklist to cloud: " + (err.message || err), false);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Complete & Submit Daily Checklist';
+    }
+  }
+}
+
+function renderSubmissionSuccessScreen(submission) {
+  const container = document.getElementById('forklift-checklist-page-inline');
+  if (!container) return;
+
+  const isFlagged = submission.hasFlagged;
+
+  container.innerHTML = `
+    <div style="max-width: 620px; margin: 2rem auto; text-align: center; background: var(--glass-card-bg); border: 1px solid var(--glass-border); border-radius: var(--border-radius-panel); padding: 2.5rem 1.5rem; box-shadow: var(--glass-glow);">
+      <div style="width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 1.25rem; display: flex; align-items: center; justify-content: center; ${isFlagged ? 'background: rgba(239, 68, 68, 0.2); color: #ef4444;' : 'background: rgba(16, 185, 129, 0.2); color: #10b981;'}">
+        ${isFlagged ? `
+          <svg style="width: 36px; height: 36px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        ` : `
+          <svg style="width: 36px; height: 36px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+        `}
+      </div>
+
+      <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; color: var(--text-primary);">
+        ${isFlagged ? 'Checklist Submitted (Maintenance Flagged)' : 'Checklist Completed Successfully!'}
+      </h2>
+
+      <p style="margin: 0 0 1.5rem 0; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
+        ${isFlagged ? 
+          `<strong>${submission.flaggedCount} Not Satisfactory items</strong> were flagged. Supervisor ${escapeHTML(submission.supervisorName)} has been notified. Take truck out of service until technician maintenance.` :
+          `Toyota 8FGU25 (S/N: 90434) has passed pre-shift inspection for Shift ${escapeHTML(submission.shift)}. Supervisor auto-signature has been applied.`
+        }
+      </p>
+
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem; text-align: left; margin-bottom: 1.5rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem;">
+        <div><strong>Date & Shift:</strong> ${escapeHTML(submission.date)} • Shift ${escapeHTML(submission.shift)}</div>
+        <div><strong>Operator:</strong> ${escapeHTML(submission.operatorName)}</div>
+        <div><strong>Hour Meter:</strong> ${escapeHTML(submission.hourMeter)} hrs</div>
+        <div><strong>Supervisor Signature:</strong> ✓ Pre-Authorized by ${escapeHTML(submission.supervisorName)}</div>
+        <div><strong>Status:</strong> <span style="font-weight: 700; ${isFlagged ? 'color: #ef4444;' : 'color: #10b981;'}">${escapeHTML(submission.status)}</span></div>
+        ${submission.notes ? `<div><strong>Notes:</strong> ${escapeHTML(submission.notes)}</div>` : ''}
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+        <button type="button" class="btn-ios btn-ios-accent" id="btn-success-view-detail" style="font-size: 0.9rem; padding: 0.6rem 1.25rem;">
+          View Full Inspection Sheet
+        </button>
+        <button type="button" class="btn-ios" id="btn-success-view-history" style="font-size: 0.9rem; padding: 0.6rem 1.25rem;">
+          All Submission Logs
+        </button>
+        <button type="button" class="btn-ios" id="btn-success-new-check" style="font-size: 0.9rem; padding: 0.6rem 1.25rem;">
+          New Checklist
+        </button>
+      </div>
+    </div>
+  `;
+
+  const btnDetail = document.getElementById('btn-success-view-detail');
+  if (btnDetail) btnDetail.addEventListener('click', () => openChecklistSubmissionDetail(submission));
+
+  const btnHist = document.getElementById('btn-success-view-history');
+  if (btnHist) btnHist.addEventListener('click', () => openForkliftChecklistHistoryPage());
+
+  const btnNew = document.getElementById('btn-success-new-check');
+  if (btnNew) btnNew.addEventListener('click', () => renderForkliftChecklistPage());
+}
+
+async function renderForkliftChecklistHistoryPage() {
+  const container = document.getElementById('forklift-checklist-history-page-inline');
+  if (!container) return;
+
+  container.innerHTML = `
+    <!-- Top Nav Header -->
+    <div class="view-nav-header">
+      <div class="view-nav-actions-left">
+        <button class="btn-ios" id="btn-back-from-history" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path></svg>
+          Back to Dashboard
+        </button>
+        <button class="btn-ios" id="btn-back-to-forklift-from-history" type="button">
+          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+          Forklift Safety Hub
+        </button>
+        <span class="view-badge forklift-badge-amber">
+          Forklift #90434 Inspection Logs
+        </span>
+      </div>
+      <div class="view-nav-actions-right">
+        <button class="btn-ios btn-ios-accent" id="btn-start-new-checklist" type="button" style="background: rgba(141, 220, 4, 0.15); color: var(--accent-green); border: 1px solid rgba(141, 220, 4, 0.35);">
+          + New Daily Inspection
+        </button>
+      </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="checklist-actions-bar" style="margin-top: 0.5rem;">
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="doc-chip-btn ${currentHistoryFilter === 'all' ? 'active' : ''}" data-filter="all">All Submissions</button>
+        <button type="button" class="doc-chip-btn ${currentHistoryFilter === 'flagged' ? 'active' : ''}" data-filter="flagged" style="color: #ef4444;">⚠️ Flagged Maintenance</button>
+        <button type="button" class="doc-chip-btn ${currentHistoryFilter === 'passed' ? 'active' : ''}" data-filter="passed" style="color: #10b981;">✓ Passed Inspections</button>
+      </div>
+      <div style="flex: 1; min-width: 200px; max-width: 320px;">
+        <input type="text" id="checklist-history-search" class="form-control" placeholder="Search by operator or notes..." value="${escapeHTML(currentHistorySearch)}" style="font-size: 0.85rem; padding: 0.4rem 0.75rem;">
+      </div>
+    </div>
+
+    <!-- Submissions List Container -->
+    <div class="checklist-history-grid" id="checklist-history-items-container" style="margin-top: 1rem;">
+      <div style="padding: 2rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+        Loading completed forklift checklists from database...
+      </div>
+    </div>
+  `;
+
+  const btnBack = document.getElementById('btn-back-from-history');
+  if (btnBack) btnBack.addEventListener('click', () => closeForkliftChecklistHistoryPage());
+
+  const btnFork = document.getElementById('btn-back-to-forklift-from-history');
+  if (btnFork) btnFork.addEventListener('click', () => openForkliftSafetyPage());
+
+  const btnNew = document.getElementById('btn-start-new-checklist');
+  if (btnNew) btnNew.addEventListener('click', () => openForkliftChecklistPage());
+
+  container.querySelectorAll('.doc-chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.doc-chip-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentHistoryFilter = btn.dataset.filter;
+      filterAndRenderHistoryCards();
+    });
+  });
+
+  const searchInput = document.getElementById('checklist-history-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentHistorySearch = e.target.value;
+      filterAndRenderHistoryCards();
+    });
+  }
+
+  await fetchAndLoadChecklistsHistory();
+}
+
+async function fetchAndLoadChecklistsHistory() {
+  const container = document.getElementById('checklist-history-items-container');
+  if (!container) return;
+
+  try {
+    let list = [];
+    try {
+      const q = query(collection(db, "forkliftChecklists"), orderBy("submittedTimestamp", "desc"), limit(100));
+      const snap = await getDocs(q);
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    } catch (err) {
+      const snap = await getDocs(collection(db, "forkliftChecklists"));
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.submittedTimestamp || 0) - (a.submittedTimestamp || 0));
+    }
+
+    currentChecklistsCache = list;
+    filterAndRenderHistoryCards();
+  } catch (err) {
+    console.error("Error fetching forklift checklist history:", err);
+    try {
+      currentChecklistsCache = JSON.parse(localStorage.getItem('HGS_FORKLIFT_CHECKLISTS_LOCAL')) || [];
+      filterAndRenderHistoryCards();
+    } catch (e) {
+      container.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Failed to load checklist records from database.</div>`;
+    }
+  }
+}
+
+function filterAndRenderHistoryCards() {
+  const container = document.getElementById('checklist-history-items-container');
+  if (!container) return;
+
+  let filtered = currentChecklistsCache || [];
+
+  if (currentHistoryFilter === 'flagged') {
+    filtered = filtered.filter(c => c.hasFlagged);
+  } else if (currentHistoryFilter === 'passed') {
+    filtered = filtered.filter(c => !c.hasFlagged);
+  }
+
+  if (currentHistorySearch.trim()) {
+    const q = currentHistorySearch.trim().toLowerCase();
+    filtered = filtered.filter(c => 
+      (c.operatorName && c.operatorName.toLowerCase().includes(q)) ||
+      (c.date && c.date.toLowerCase().includes(q)) ||
+      (c.notes && c.notes.toLowerCase().includes(q))
+    );
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 2.5rem; text-align: center; color: var(--text-secondary); background: var(--glass-card-bg); border-radius: 12px; border: 1px solid var(--glass-border);">
+        No inspection records found matching your filters.
+      </div>
+    `;
+    return;
+  }
+
+  const activeUser = getActiveUser();
+  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+  const isAdmin = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
+
+  container.innerHTML = filtered.map(item => {
+    const isFlagged = item.hasFlagged;
+    return `
+      <div class="checklist-history-card ${isFlagged ? 'flagged' : 'passed'}" data-id="${item.id}">
+        <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
+          <div style="width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; ${isFlagged ? 'background: rgba(239, 68, 68, 0.15); color: #ef4444;' : 'background: rgba(16, 185, 129, 0.15); color: #10b981;'}">
+            ${isFlagged ? `
+              <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            ` : `
+              <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+            `}
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${escapeHTML(item.date)}</span>
+              <span class="view-badge" style="font-size: 0.72rem; padding: 0.15rem 0.45rem;">Shift ${escapeHTML(item.shift || '1')}</span>
+              <span class="view-badge" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; ${isFlagged ? 'background: rgba(239, 68, 68, 0.15); color: #ef4444;' : 'background: rgba(16, 185, 129, 0.15); color: #10b981;'}">
+                ${isFlagged ? `⚠️ ${item.flaggedCount || 1} NOT SATISFACTORY` : '✓ PASSED'}
+              </span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              Operator: <strong style="color: var(--text-primary);">${escapeHTML(item.operatorName || 'Unknown')}</strong> &bull; Truck S/N: <strong>90434</strong> &bull; Hour Meter: <strong>${escapeHTML(item.hourMeter || '--')} hrs</strong>
+            </div>
+            ${item.notes ? `
+              <div style="font-size: 0.78rem; color: ${isFlagged ? '#f87171' : 'var(--text-secondary)'}; margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <strong>Notes:</strong> ${escapeHTML(item.notes)}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+          <button type="button" class="btn-ios btn-view-submission-detail" data-id="${item.id}" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+            View Sheet
+          </button>
+          ${isAdmin ? `
+            <button type="button" class="btn-ios btn-delete-checklist-submission" data-id="${item.id}" title="Delete Record" style="font-size: 0.8rem; padding: 0.35rem 0.6rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+              &times;
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.btn-view-submission-detail').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const submission = currentChecklistsCache.find(c => c.id === btn.dataset.id);
+      if (submission) openChecklistSubmissionDetail(submission);
+    });
+  });
+
+  if (isAdmin) {
+    container.querySelectorAll('.btn-delete-checklist-submission').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to permanently delete this inspection record?')) return;
+        try {
+          await deleteDoc(doc(db, "forkliftChecklists", btn.dataset.id));
+          currentChecklistsCache = currentChecklistsCache.filter(c => c.id !== btn.dataset.id);
+          filterAndRenderHistoryCards();
+          showToast('Checklist submission deleted.');
+        } catch (err) {
+          showToast('Failed to delete checklist: ' + (err.message || err), false);
+        }
+      });
+    });
+  }
+}
+
+function openChecklistSubmissionDetail(submission) {
+  const overlay = document.getElementById('forklift-checklist-modal-overlay');
+  if (!overlay) return;
+
+  const isFlagged = submission.hasFlagged;
+  const items = submission.items || [];
+  const keyOff = items.filter(i => i.group === 'keyOff');
+  const keyOn = items.filter(i => i.group === 'keyOn');
+
+  overlay.innerHTML = `
+    <div class="forklift-checklist-modal-content">
+      <div class="forklift-checklist-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">Forklift Daily Pre-Shift Inspection Report</h3>
+          <span class="view-badge" style="font-size: 0.75rem; ${isFlagged ? 'background: rgba(239, 68, 68, 0.15); color: #ef4444;' : 'background: rgba(16, 185, 129, 0.15); color: #10b981;'}">
+            ${isFlagged ? '⚠️ NOT SATISFACTORY' : '✓ PASSED'}
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button type="button" class="btn-ios" id="btn-print-checklist-modal">
+            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24-1.077-.47-2.181-.47-3.329 0-4.97 4.03-9 9-9s9 4.03 9 9c0 1.148-.23 2.252-.47 3.329M6.72 13.829A9.006 9.006 0 0012 21a9.006 9.006 0 005.28-7.171M6.72 13.829h10.56M12 9v6m-3-3h6"></path></svg>
+            Print / Save PDF
+          </button>
+          <button type="button" class="btn-ios" id="btn-close-checklist-modal" style="font-size: 1.1rem; line-height: 1;">&times;</button>
+        </div>
+      </div>
+
+      <div class="forklift-checklist-modal-body">
+        <!-- Certificate Header Grid -->
+        <div style="border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem; background: rgba(0,0,0,0.15); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+          <div><span style="color: var(--text-secondary);">Date:</span> <strong>${escapeHTML(submission.date)}</strong></div>
+          <div><span style="color: var(--text-secondary);">Shift #:</span> <strong>${escapeHTML(submission.shift)}</strong></div>
+          <div><span style="color: var(--text-secondary);">Operator:</span> <strong>${escapeHTML(submission.operatorName)}</strong></div>
+          <div><span style="color: var(--text-secondary);">Truck ID#:</span> <strong>Toyota 8FGU25 (S/N: 90434)</strong></div>
+          <div><span style="color: var(--text-secondary);">Hour Meter:</span> <strong>${escapeHTML(submission.hourMeter)} hrs</strong></div>
+          <div><span style="color: var(--text-secondary);">Submitted:</span> <strong>${new Date(submission.submittedTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
+        </div>
+
+        <!-- Two Columns of Inspection Items -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+          <!-- Key Off Table -->
+          <div style="border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;">
+            <div style="background: rgba(245, 158, 11, 0.12); padding: 0.6rem 0.85rem; font-weight: 700; font-size: 0.85rem; color: #f59e0b; border-bottom: 1px solid var(--glass-border);">
+              Key Off / Visual Checks
+            </div>
+            <div style="max-height: 280px; overflow-y: auto;">
+              ${keyOff.map(i => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.8rem;">
+                  <span style="color: var(--text-primary); flex: 1; padding-right: 0.5rem;">${escapeHTML(i.label)}</span>
+                  <span style="font-weight: 800; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; ${
+                    i.status === 'OK' ? 'background: rgba(16, 185, 129, 0.2); color: #10b981;' :
+                    i.status === 'NS' ? 'background: rgba(239, 68, 68, 0.25); color: #ef4444;' :
+                    'background: rgba(255,255,255,0.08); color: var(--text-secondary);'
+                  }">${escapeHTML(i.status || 'N/A')}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Key On Table -->
+          <div style="border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden;">
+            <div style="background: rgba(16, 185, 129, 0.12); padding: 0.6rem 0.85rem; font-weight: 700; font-size: 0.85rem; color: #10b981; border-bottom: 1px solid var(--glass-border);">
+              Key On / Operating Checks
+            </div>
+            <div style="max-height: 280px; overflow-y: auto;">
+              ${keyOn.map(i => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.8rem;">
+                  <span style="color: var(--text-primary); flex: 1; padding-right: 0.5rem;">${escapeHTML(i.label)}</span>
+                  <span style="font-weight: 800; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; ${
+                    i.status === 'OK' ? 'background: rgba(16, 185, 129, 0.2); color: #10b981;' :
+                    i.status === 'NS' ? 'background: rgba(239, 68, 68, 0.25); color: #ef4444;' :
+                    'background: rgba(255,255,255,0.08); color: var(--text-secondary);'
+                  }">${escapeHTML(i.status || 'N/A')}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Problems / Maintenance Notes -->
+        <div style="border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.85rem 1rem; background: rgba(0,0,0,0.15);">
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); margin-bottom: 0.35rem;">
+            Problems Noted & Additional Remarks:
+          </div>
+          <div style="font-size: 0.85rem; color: ${isFlagged ? '#f87171' : 'var(--text-secondary)'}; font-style: ${submission.notes ? 'normal' : 'italic'};">
+            ${escapeHTML(submission.notes || 'None noted. All standard operational checks passed.')}
+          </div>
+        </div>
+
+        <!-- Supervisor Auto-Signature Official Stamp Box -->
+        <div style="border: 2px dashed rgba(141, 220, 4, 0.3); border-radius: 12px; padding: 1rem 1.25rem; background: rgba(141, 220, 4, 0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-green); font-weight: 700;">
+              ✓ Supervisor Verification & Approval
+            </div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-top: 0.2rem;">
+              ${escapeHTML(submission.supervisorName || 'Cole Ankney')}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+              ${escapeHTML(submission.supervisorTitle || 'Operations & Safety Supervisor')}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--accent-green); margin-top: 0.25rem;">
+              Date Verified: <strong>${escapeHTML(submission.supervisorSignedDate || submission.date)}</strong>
+            </div>
+          </div>
+
+          <div>
+            ${submission.supervisorSignature ? `
+              <img src="${submission.supervisorSignature}" alt="Supervisor Signature" style="max-height: 55px; max-width: 180px; object-fit: contain;">
+            ` : `
+              <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.8rem; color: #8DDC04;">
+                ${escapeHTML(submission.supervisorName || 'Cole Ankney')}
+              </div>
+            `}
+          </div>
+        </div>
+
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+          Electronically verified and stored in 4HGS Safety Compliance Database. Submitter: ${escapeHTML(submission.submittedByName)} (${escapeHTML(submission.submittedByEmail)})
+        </div>
+      </div>
+    </div>
+  `;
+
+  overlay.style.display = 'flex';
+
+  const btnClose = document.getElementById('btn-close-checklist-modal');
+  if (btnClose) btnClose.addEventListener('click', () => closeChecklistSubmissionDetail());
+
+  const btnPrint = document.getElementById('btn-print-checklist-modal');
+  if (btnPrint) btnPrint.addEventListener('click', () => window.print());
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) closeChecklistSubmissionDetail();
+  };
+}
+
+function closeChecklistSubmissionDetail() {
+  const overlay = document.getElementById('forklift-checklist-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function subscribeToChecklistAlerts() {
+  if (forkliftChecklistsUnsubscribe) {
+    forkliftChecklistsUnsubscribe();
+    forkliftChecklistsUnsubscribe = null;
+  }
+  const activeUser = getActiveUser();
+  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+  const isAdmin = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
+  if (!isAdmin) return;
+
+  try {
+    const q = query(collection(db, "forkliftChecklists"), orderBy("submittedTimestamp", "desc"), limit(5));
+    let initialLoad = true;
+    forkliftChecklistsUnsubscribe = onSnapshot(q, (snapshot) => {
+      if (initialLoad) {
+        initialLoad = false;
+        return;
+      }
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const data = change.doc.data();
+          if (data.hasFlagged && data.submittedTimestamp > lastSeenChecklistAlertTimestamp) {
+            lastSeenChecklistAlertTimestamp = data.submittedTimestamp;
+            showToast(`⚠️ FORKLIFT ALERT: ${data.operatorName} reported ${data.flaggedCount || 1} NOT SATISFACTORY items on Forklift #90434! Review inspection.`, false);
+          }
+        }
+      });
+    }, (err) => {
+      console.warn("Checklist alerts listener error:", err);
+    });
+  } catch (err) {
+    console.warn("Could not subscribe to checklist alerts:", err);
+  }
+}
+
 // --- Admin Forklift Settings Tab Controller ---
 
 function renderForkliftAdminTab() {
@@ -3823,6 +4968,10 @@ function renderForkliftAdminTab() {
       }
     };
   }
+
+  // Render supervisor signature & checklist template editor sections
+  renderSupervisorSignatureAdmin();
+  renderChecklistItemsEditor();
 }
 
 function loadForkliftOperatorIntoForm(op) {
@@ -3970,7 +5119,10 @@ function subscribeToForkliftConfig() {
         const remoteData = snapshot.data();
         if (remoteData) {
           state.forkliftConfig = remoteData;
-          localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(remoteData));
+          if (!state.forkliftConfig.checklistItems || state.forkliftConfig.checklistItems.length === 0) {
+            state.forkliftConfig.checklistItems = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_ITEMS));
+          }
+          localStorage.setItem('HGS_FORKLIFT_CONFIG', JSON.stringify(state.forkliftConfig));
           
           // Re-render Forklift Safety view if open
           const forkliftPanel = document.getElementById('forklift-page-inline');
@@ -3991,6 +5143,373 @@ function subscribeToForkliftConfig() {
     });
   } catch (err) {
     console.warn("Failed to start forklift subscription:", err);
+  }
+}
+
+// --- Admin: Supervisor Signature Controller ---
+let isDrawingSupervisorSig = false;
+let supervisorSigHasNewStrokes = false;
+
+function renderSupervisorSignatureAdmin() {
+  const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+  const nameInput = document.getElementById('forklift-supervisor-name');
+  const titleInput = document.getElementById('forklift-supervisor-title');
+  const previewContainer = document.getElementById('supervisor-sig-preview-container');
+  const previewImg = document.getElementById('supervisor-sig-preview-img');
+  const previewName = document.getElementById('supervisor-sig-preview-name');
+  const previewTitle = document.getElementById('supervisor-sig-preview-title');
+  const canvas = document.getElementById('supervisor-sig-canvas');
+  const clearBtn = document.getElementById('btn-clear-supervisor-sig');
+  const uploadBtn = document.getElementById('btn-upload-supervisor-sig');
+  const fileInput = document.getElementById('supervisor-sig-file-input');
+  const saveBtn = document.getElementById('btn-save-supervisor-sig');
+
+  if (!nameInput || !canvas) return;
+
+  const currentName = cfg.supervisorName || 'Cole Ankney';
+  const currentTitle = cfg.supervisorTitle || 'Operations & Safety Supervisor';
+  const currentSig = cfg.supervisorSignature;
+
+  nameInput.value = currentName;
+  titleInput.value = currentTitle;
+
+  if (currentSig && previewContainer && previewImg) {
+    previewContainer.style.display = 'block';
+    previewImg.src = currentSig;
+    if (previewName) previewName.textContent = currentName;
+    if (previewTitle) previewTitle.textContent = currentTitle;
+
+    let removeBtn = document.getElementById('btn-remove-supervisor-sig');
+    if (!removeBtn && previewContainer) {
+      removeBtn = document.createElement('button');
+      removeBtn.id = 'btn-remove-supervisor-sig';
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-ios';
+      removeBtn.style.cssText = 'padding: 0.25rem 0.6rem; font-size: 0.75rem; color: #ff3b30; border-color: rgba(255,59,48,0.3); margin-top: 0.5rem;';
+      removeBtn.textContent = 'Remove Saved Signature';
+      removeBtn.onclick = async () => {
+        if (confirm('Are you sure you want to remove the saved supervisor signature?')) {
+          state.forkliftConfig.supervisorSignature = null;
+          saveDatabase();
+          try {
+            await syncForkliftConfigToFirestore();
+            showToast('Supervisor signature removed.');
+            renderSupervisorSignatureAdmin();
+          } catch (err) {}
+        }
+      };
+      previewContainer.appendChild(removeBtn);
+    }
+  } else if (previewContainer) {
+    previewContainer.style.display = 'none';
+  }
+
+  const ctx = canvas.getContext('2d');
+
+  function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  function startSigDraw(e) {
+    if (e.type === 'touchstart') e.preventDefault();
+    isDrawingSupervisorSig = true;
+    supervisorSigHasNewStrokes = true;
+    const pos = getCanvasPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+
+  function moveSigDraw(e) {
+    if (!isDrawingSupervisorSig) return;
+    if (e.type === 'touchmove') e.preventDefault();
+    const pos = getCanvasPos(e);
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#8DDC04';
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  }
+
+  function endSigDraw() {
+    if (isDrawingSupervisorSig) {
+      isDrawingSupervisorSig = false;
+      ctx.closePath();
+    }
+  }
+
+  if (!canvas.dataset.listenerBound) {
+    canvas.dataset.listenerBound = 'true';
+    canvas.addEventListener('mousedown', startSigDraw);
+    canvas.addEventListener('mousemove', moveSigDraw);
+    window.addEventListener('mouseup', endSigDraw);
+
+    canvas.addEventListener('touchstart', startSigDraw, { passive: false });
+    canvas.addEventListener('touchmove', moveSigDraw, { passive: false });
+    window.addEventListener('touchend', endSigDraw);
+  }
+
+  if (clearBtn && !clearBtn.dataset.listenerBound) {
+    clearBtn.dataset.listenerBound = 'true';
+    clearBtn.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      supervisorSigHasNewStrokes = false;
+    });
+  }
+
+  if (uploadBtn && !uploadBtn.dataset.listenerBound) {
+    uploadBtn.dataset.listenerBound = 'true';
+    uploadBtn.addEventListener('click', () => {
+      if (fileInput) fileInput.click();
+    });
+  }
+
+  if (fileInput && !fileInput.dataset.listenerBound) {
+    fileInput.dataset.listenerBound = 'true';
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const scale = Math.min(canvas.width / img.width, canvas.height / img.height, 1);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          const x = (canvas.width - w) / 2;
+          const y = (canvas.height - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          supervisorSigHasNewStrokes = true;
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (saveBtn && !saveBtn.dataset.listenerBound) {
+    saveBtn.dataset.listenerBound = 'true';
+    saveBtn.addEventListener('click', async () => {
+      const newName = (nameInput.value || '').trim() || 'Cole Ankney';
+      const newTitle = (titleInput.value || '').trim() || 'Operations & Safety Supervisor';
+
+      if (!state.forkliftConfig) {
+        state.forkliftConfig = JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_CONFIG));
+      }
+      state.forkliftConfig.supervisorName = newName;
+      state.forkliftConfig.supervisorTitle = newTitle;
+
+      if (supervisorSigHasNewStrokes) {
+        state.forkliftConfig.supervisorSignature = canvas.toDataURL('image/png');
+      }
+
+      saveDatabase();
+      try {
+        await syncForkliftConfigToFirestore();
+        showToast('Supervisor signature and approval settings saved!');
+        supervisorSigHasNewStrokes = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        renderSupervisorSignatureAdmin();
+      } catch (err) {
+        console.error('Failed to save supervisor signature:', err);
+      }
+    });
+  }
+}
+
+// --- Admin: Checklist Template Items & Ordering Controller ---
+function renderChecklistItemsEditor() {
+  const container = document.getElementById('forklift-checklist-admin-items');
+  const badge = document.getElementById('forklift-checklist-admin-badge');
+  const addBtn = document.getElementById('btn-add-checklist-item');
+  const resetBtn = document.getElementById('btn-reset-checklist-template');
+  const saveBtn = document.getElementById('btn-save-checklist-template');
+  if (!container) return;
+
+  const cfg = state.forkliftConfig || DEFAULT_FORKLIFT_CONFIG;
+  if (!cfg.checklistItems || cfg.checklistItems.length === 0) {
+    cfg.checklistItems = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_ITEMS));
+  }
+  const items = cfg.checklistItems;
+  const activeCount = items.filter(i => i.active !== false).length;
+
+  if (badge) {
+    badge.textContent = `${items.length} Items (${activeCount} Active)`;
+  }
+
+  container.innerHTML = items.map((item, idx) => {
+    const isKeyOff = item.group === 'keyOff';
+    const groupLabel = isKeyOff ? 'Key Off' : 'Key On';
+    const groupBadgeStyle = isKeyOff 
+      ? 'background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);' 
+      : 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);';
+
+    return `
+      <div class="admin-checklist-item-row ${item.active === false ? 'inactive' : ''}" data-id="${item.id}" data-idx="${idx}">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0;">
+          <span style="font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; white-space: nowrap; ${groupBadgeStyle}">
+            ${groupLabel}
+          </span>
+          <input type="text" class="form-control admin-item-label-input" value="${escapeHTML(item.label)}" data-id="${item.id}" style="font-size: 0.8rem; padding: 0.3rem 0.5rem; flex: 1; min-width: 0; ${item.active === false ? 'text-decoration: line-through;' : ''}">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
+          <button type="button" class="btn-ios btn-item-move-up" data-idx="${idx}" title="Move Up" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''} style="padding: 0.2rem 0.45rem; font-size: 0.75rem;">&uarr;</button>
+          <button type="button" class="btn-ios btn-item-move-down" data-idx="${idx}" title="Move Down" ${idx === items.length - 1 ? 'disabled style="opacity:0.3;"' : ''} style="padding: 0.2rem 0.45rem; font-size: 0.75rem;">&darr;</button>
+          <button type="button" class="btn-ios btn-item-toggle-active" data-id="${item.id}" title="${item.active === false ? 'Enable Item' : 'Disable Item'}" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: ${item.active === false ? '#94a3b8' : 'var(--accent-green)'};">
+            ${item.active === false ? 'Off' : 'On'}
+          </button>
+          <button type="button" class="btn-ios btn-item-delete" data-id="${item.id}" title="Delete Item" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: #ff3b30; border-color: rgba(255,59,48,0.3);">&times;</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Event handlers for label edits
+  container.querySelectorAll('.admin-item-label-input').forEach(input => {
+    input.addEventListener('change', () => {
+      const id = input.dataset.id;
+      const target = items.find(i => i.id === id);
+      if (target) {
+        target.label = input.value.trim() || target.label;
+        saveDatabase();
+      }
+    });
+  });
+
+  // Reordering: Move Up
+  container.querySelectorAll('.btn-item-move-up').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (idx > 0) {
+        const temp = items[idx];
+        items[idx] = items[idx - 1];
+        items[idx - 1] = temp;
+        saveDatabase();
+        renderChecklistItemsEditor();
+      }
+    });
+  });
+
+  // Reordering: Move Down
+  container.querySelectorAll('.btn-item-move-down').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (idx < items.length - 1) {
+        const temp = items[idx];
+        items[idx] = items[idx + 1];
+        items[idx + 1] = temp;
+        saveDatabase();
+        renderChecklistItemsEditor();
+      }
+    });
+  });
+
+  // Toggle active/inactive
+  container.querySelectorAll('.btn-item-toggle-active').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const target = items.find(i => i.id === id);
+      if (target) {
+        target.active = target.active === false ? true : false;
+        saveDatabase();
+        renderChecklistItemsEditor();
+      }
+    });
+  });
+
+  // Delete item
+  container.querySelectorAll('.btn-item-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const target = items.find(i => i.id === id);
+      if (!target) return;
+      if (confirm(`Remove checklist item: "${target.label}"?`)) {
+        cfg.checklistItems = items.filter(i => i.id !== id);
+        state.forkliftConfig.checklistItems = cfg.checklistItems;
+        saveDatabase();
+        renderChecklistItemsEditor();
+      }
+    });
+  });
+
+  // Add Item Handler
+  if (addBtn && !addBtn.dataset.listenerBound) {
+    addBtn.dataset.listenerBound = 'true';
+    addBtn.addEventListener('click', () => {
+      const groupSelect = document.getElementById('new-checklist-item-group');
+      const labelInput = document.getElementById('new-checklist-item-label');
+      const group = groupSelect ? groupSelect.value : 'keyOff';
+      const label = labelInput ? labelInput.value.trim() : '';
+
+      if (!label) {
+        showToast('Please enter a description for the checklist item.', false);
+        return;
+      }
+
+      const newItem = {
+        id: `item-${Date.now()}`,
+        group,
+        label,
+        active: true
+      };
+
+      if (!state.forkliftConfig) {
+        state.forkliftConfig = JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_CONFIG));
+      }
+      if (!state.forkliftConfig.checklistItems) {
+        state.forkliftConfig.checklistItems = [];
+      }
+      state.forkliftConfig.checklistItems.push(newItem);
+      if (labelInput) labelInput.value = '';
+      saveDatabase();
+      renderChecklistItemsEditor();
+      showToast('Checklist item added!');
+    });
+  }
+
+  // Reset to Default Template Handler
+  if (resetBtn && !resetBtn.dataset.listenerBound) {
+    resetBtn.dataset.listenerBound = 'true';
+    resetBtn.addEventListener('click', async () => {
+      if (confirm('Reset all checklist items to the original DailyChecklist.doc standard template? Any custom items or reordering will be replaced.')) {
+        if (!state.forkliftConfig) {
+          state.forkliftConfig = JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_CONFIG));
+        }
+        state.forkliftConfig.checklistItems = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_ITEMS));
+        saveDatabase();
+        try {
+          await syncForkliftConfigToFirestore();
+          showToast('Checklist reset to DailyChecklist.doc default template!');
+          renderChecklistItemsEditor();
+        } catch (err) {
+          // handled in sync
+        }
+      }
+    });
+  }
+
+  // Save Checklist Template Handler
+  if (saveBtn && !saveBtn.dataset.listenerBound) {
+    saveBtn.dataset.listenerBound = 'true';
+    saveBtn.addEventListener('click', async () => {
+      saveDatabase();
+      try {
+        await syncForkliftConfigToFirestore();
+        showToast('Checklist template saved and synced to cloud!');
+      } catch (err) {
+        console.error('Failed to sync checklist template:', err);
+      }
+    });
   }
 }
 
@@ -4963,6 +6482,9 @@ function setupDialogTabs() {
         c.classList.remove('active');
       });
       document.getElementById(targetContentId).classList.add('active');
+      if (targetContentId === 'tab-forklift') {
+        renderForkliftAdminTab();
+      }
     });
   });
 }
@@ -5114,6 +6636,10 @@ function initFirebaseAuth() {
       if (forkliftUnsubscribe) {
         forkliftUnsubscribe();
         forkliftUnsubscribe = null;
+      }
+      if (forkliftChecklistsUnsubscribe) {
+        forkliftChecklistsUnsubscribe();
+        forkliftChecklistsUnsubscribe = null;
       }
       state.activeUserId = null;
       state.suggestions = [];
