@@ -219,15 +219,23 @@ function renderApp() {
 
   root.innerHTML = `
     <!-- Top Nav Header -->
-    <div class="view-nav-header receipt-nav-header" style="max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box;">
-      <div class="view-nav-actions-left">
-        <a href="index.html" class="btn-ios" id="btn-back-hub" title="Go to Hub">
-          &larr; Hub
-        </a>
-        <span class="view-badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><line x1="16" y1="8" x2="8" y2="8"></line><line x1="16" y1="12" x2="8" y2="12"></line><line x1="13" y1="16" x2="8" y2="16"></line></svg>
-          Receipt Vault
-        </span>
+    <header class="view-nav-header receipt-nav-header" style="max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+      <div class="receipt-nav-top-row">
+        <div class="view-nav-actions-left">
+          <span class="view-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><line x1="16" y1="8" x2="8" y2="8"></line><line x1="16" y1="12" x2="8" y2="12"></line><line x1="13" y1="16" x2="8" y2="16"></line></svg>
+            Receipt Vault
+          </span>
+        </div>
+
+        <div class="view-nav-actions-right">
+          <span class="receipt-user-pill" title="Signed in as ${escapeHTML(state.user.email)}">
+            ${escapeHTML(state.user.displayName || state.user.email.split('@')[0])}
+          </span>
+          <button type="button" class="btn-ios-small" id="btn-app-logout" title="Sign Out">
+            Sign Out
+          </button>
+        </div>
       </div>
 
       <!-- Segmented Control Switcher -->
@@ -241,16 +249,7 @@ function renderApp() {
           Captured Receipts (${receiptCount})
         </button>
       </div>
-
-      <div class="view-nav-actions-right">
-        <span class="receipt-user-pill" title="Signed in as ${escapeHTML(state.user.email)}">
-          ${escapeHTML(state.user.displayName || state.user.email.split('@')[0])}
-        </span>
-        <button type="button" class="btn-ios-small" id="btn-app-logout" title="Sign Out">
-          Sign Out
-        </button>
-      </div>
-    </div>
+    </header>
 
     <!-- Active View Area -->
     <div id="receipt-vault-view-container" class="receipt-vault-view-container" style="max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box;">
@@ -334,10 +333,6 @@ function renderLoginView(container) {
             Sign In to Receipts
           </button>
         </form>
-
-        <a href="index.html" style="margin-top: 1.5rem; font-size: 0.82rem; color: var(--text-secondary); text-decoration: none;">
-          &larr; Return to 4HGS Hub
-        </a>
       </div>
     </div>
   `;

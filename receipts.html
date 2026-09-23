@@ -15,8 +15,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Receipts">
   <meta name="application-name" content="Receipts">
-  <meta name="theme-color" content="#121214">
-  <meta name="msapplication-navbutton-color" content="#121214">
+  <meta name="theme-color" content="#0c0d0e">
+  <meta name="msapplication-navbutton-color" content="#0c0d0e">
   <meta name="format-detection" content="telephone=no">
 
   <!-- Apple Touch Icons for iOS Home Screen -->
@@ -27,18 +27,31 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon-precomposed" href="assets/4hgs_logo.png">
 
-  <link rel="stylesheet" href="styles_v4.css?v=5.4.4">
+  <link rel="stylesheet" href="styles_v4.css?v=5.4.6">
   <style>
     body {
       background-color: var(--bg-main, #0c0d0e);
       color: var(--text-primary, #ffffff);
       min-height: 100vh;
+      min-height: -webkit-fill-available;
       display: flex;
       flex-direction: column;
       margin: 0;
-      padding: 0.5rem 0.75rem 2rem;
+      /* Dynamic Island / Notch safe area padding */
+      padding-top: max(calc(env(safe-area-inset-top, 0px) + 0.75rem), 1.5rem);
+      padding-right: max(calc(env(safe-area-inset-right, 0px) + 0.75rem), 0.75rem);
+      padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 1.5rem), 2rem);
+      padding-left: max(calc(env(safe-area-inset-left, 0px) + 0.75rem), 0.75rem);
       box-sizing: border-box;
     }
+
+    @supports (-webkit-touch-callout: none) {
+      /* Guarantee iOS status bar / Dynamic Island clearance on iPhones */
+      body {
+        padding-top: max(calc(env(safe-area-inset-top, 0px) + 0.75rem), 3.5rem);
+      }
+    }
+
     .receipt-standalone-container {
       width: 100%;
       max-width: 1000px;
@@ -113,7 +126,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <!-- Dedicated Receipt App Logic -->
-  <script type="module" src="receipts.js?v=5.4.4"></script>
+  <script type="module" src="receipts.js?v=5.4.6"></script>
 
   <!-- Service Worker Registration -->
   <script>

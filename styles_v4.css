@@ -4652,7 +4652,58 @@ body.app-is-dragging * {
 
 /* Top Navigation & Segmented Switcher */
 .receipt-nav-header {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+@media (min-width: 881px) {
+  .receipt-nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .receipt-nav-header .receipt-nav-top-row {
+    display: contents;
+  }
+  .receipt-nav-header .view-nav-actions-left {
+    order: 1;
+  }
+  .receipt-nav-header .receipt-segmented-control {
+    order: 2;
+  }
+  .receipt-nav-header .view-nav-actions-right {
+    order: 3;
+  }
+}
+
+@media (max-width: 880px) {
+  .receipt-nav-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.65rem;
+  }
+  .receipt-nav-header .receipt-nav-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  .receipt-nav-header .receipt-segmented-control {
+    width: 100%;
+    display: flex;
+    box-sizing: border-box;
+  }
+  .receipt-nav-header .receipt-segment-btn {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
 }
 
 .receipt-segmented-control {
