@@ -8041,12 +8041,27 @@ function capturePhotoFromStream() {
     return;
   }
 
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  // Scale down high-res phone sensors (e.g. 4K) to 1280px max for instant loading and compact storage
+  let w = video.videoWidth;
+  let h = video.videoHeight;
+  const maxDimension = 1280;
+  if (w > maxDimension || h > maxDimension) {
+    if (w > h) {
+      h = Math.round((h * maxDimension) / w);
+      w = maxDimension;
+    } else {
+      w = Math.round((w * maxDimension) / h);
+      h = maxDimension;
+    }
+  }
 
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, w, h);
+
+  const quality = 0.75;
   canvas.toBlob((blob) => {
     if (!blob) {
       showToast('Capture error. Please re-take.', false);
@@ -8054,17 +8069,17 @@ function capturePhotoFromStream() {
     }
     stopReceiptCamera();
     receiptVaultState.capturedBlob = blob;
-    receiptVaultState.capturedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    receiptVaultState.capturedDataUrl = canvas.toDataURL('image/jpeg', quality);
     receiptVaultState.capturedDate = getTodayISODate();
     receiptVaultState.capturedNotes = '';
     receiptVaultState.activeView = 'preview';
     renderReceiptVaultPage();
-  }, 'image/jpeg', 0.85);
+  }, 'image/jpeg', quality);
 }
 
 async function handleReceiptFileInput(file) {
   try {
-    const { blob, dataUrl } = await compressImageToBlob(file, 0.85, 1920);
+    const { blob, dataUrl } = await compressImageToBlob(file, 0.75, 1280);
     stopReceiptCamera();
     receiptVaultState.capturedBlob = blob;
     receiptVaultState.capturedDataUrl = dataUrl;
@@ -8079,7 +8094,7 @@ async function handleReceiptFileInput(file) {
 }
 
 // High-quality, fast canvas JPEG compressor helper
-function compressImageToBlob(source, quality = 0.85, maxDimension = 1920) {
+function compressImageToBlob(source, quality = 0.75, maxDimension = 1280) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -8224,10 +8239,10 @@ function renderReceiptPreviewView() {
   });
 }
 
-// Save receipt to Firebase Storage and Firestore
+// Save receipt to Firebase Storage and Firestore (with seamless direct Firestore fallback)
 async function saveCurrentReceipt() {
   if (receiptVaultState.isUploading) return;
-  if (!receiptVaultState.capturedBlob) {
+  if (!receiptVaultState.capturedBlob && !receiptVaultState.capturedDataUrl) {
     showToast('No receipt photo captured to save.', false);
     return;
   }
@@ -8246,25 +8261,38 @@ async function saveCurrentReceipt() {
   const saveBtn = document.getElementById('btn-receipt-save');
   if (saveBtn) {
     saveBtn.disabled = true;
-    saveBtn.innerHTML = `<span class="spinner-small" style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;"></span> Uploading...`;
+    saveBtn.innerHTML = `<span class="spinner-small" style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;"></span> Saving...`;
   }
 
   try {
     const docId = `rec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    const storagePath = `receipts/${currentUser.uid}/${docId}.jpg`;
-    const imageRef = storageRef(storage, storagePath);
+    let downloadUrl = receiptVaultState.capturedDataUrl;
+    let storagePath = 'firestore_direct';
 
-    // Upload photo blob
-    const uploadResult = await uploadBytes(imageRef, receiptVaultState.capturedBlob, {
-      contentType: 'image/jpeg',
-      customMetadata: {
-        userId: currentUser.uid,
-        receiptDate: dateVal
+    // Attempt Firebase Cloud Storage upload if available, but fallback gracefully to direct Firestore
+    try {
+      if (storage && receiptVaultState.capturedBlob) {
+        const potentialPath = `receipts/${currentUser.uid}/${docId}.jpg`;
+        const imageRef = storageRef(storage, potentialPath);
+        const uploadResult = await uploadBytes(imageRef, receiptVaultState.capturedBlob, {
+          contentType: 'image/jpeg',
+          customMetadata: {
+            userId: currentUser.uid,
+            receiptDate: dateVal
+          }
+        });
+        downloadUrl = await getDownloadURL(uploadResult.ref);
+        storagePath = potentialPath;
       }
-    });
+    } catch (storageErr) {
+      console.warn('Firebase Storage upload unavailable or unprovisioned; saving receipt directly to Firestore:', storageErr);
+      downloadUrl = receiptVaultState.capturedDataUrl;
+      storagePath = 'firestore_direct';
+    }
 
-    // Obtain public download URL
-    const downloadUrl = await getDownloadURL(uploadResult.ref);
+    const fileSize = receiptVaultState.capturedBlob 
+      ? receiptVaultState.capturedBlob.size 
+      : Math.round((downloadUrl.length * 3) / 4);
 
     // Create Firestore Document
     const receiptDoc = {
@@ -8276,17 +8304,22 @@ async function saveCurrentReceipt() {
       notes: notesVal.trim(),
       storagePath: storagePath,
       downloadUrl: downloadUrl,
-      fileSize: receiptVaultState.capturedBlob.size,
+      fileSize: fileSize,
       createdAt: new Date().toISOString()
     };
 
     await addDoc(collection(db, "receipts"), receiptDoc);
 
+    // Update local state immediately so user sees it right away
+    if (!receiptVaultState.receipts.some(r => r.id === docId)) {
+      receiptVaultState.receipts.unshift(receiptDoc);
+    }
+
     // Cache locally
     try {
       const local = JSON.parse(localStorage.getItem('HGS_RECEIPTS_LOCAL')) || [];
       local.unshift(receiptDoc);
-      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(local.slice(0, 100)));
+      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(local.slice(0, 15)));
     } catch (e) {}
 
     showToast('✓ Receipt photo saved successfully!');
@@ -8305,7 +8338,7 @@ async function saveCurrentReceipt() {
   } catch (error) {
     console.error('Failed to save receipt:', error);
     receiptVaultState.isUploading = false;
-    showToast(`Failed to save receipt: ${error.message || 'Storage error'}`, false);
+    showToast(`Failed to save receipt: ${error.message || 'Database error'}`, false);
     if (saveBtn) {
       saveBtn.disabled = false;
       saveBtn.textContent = '✓ Save Receipt';
@@ -8737,8 +8770,16 @@ function subscribeToReceipts() {
   } catch (e) {}
 
   const receiptsCol = collection(db, "receipts");
+  const activeUser = getActiveUser();
+  const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
+
+  // Firestore security rule: non-admins can only query their own receipts
+  let q = receiptsCol;
+  if (!isAdminUser && auth.currentUser) {
+    q = query(receiptsCol, where("userId", "==", auth.currentUser.uid));
+  }
   
-  receiptVaultState.unsubscribeReceipts = onSnapshot(receiptsCol, (snapshot) => {
+  receiptVaultState.unsubscribeReceipts = onSnapshot(q, (snapshot) => {
     const items = [];
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
@@ -8748,7 +8789,7 @@ function subscribeToReceipts() {
 
     receiptVaultState.receipts = items;
     try {
-      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(items.slice(0, 100)));
+      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(items.slice(0, 15)));
     } catch (e) {}
 
     // If Captured Receipts is currently open, refresh the view
@@ -8794,8 +8835,8 @@ async function deleteReceiptRecord(receiptId, storagePath) {
     // 1. Delete from Firestore
     await deleteDoc(doc(db, "receipts", receiptId));
 
-    // 2. Delete image blob from Firebase Storage if path available
-    if (storagePath) {
+    // 2. Delete image blob from Firebase Storage if path was uploaded to storage
+    if (storagePath && storagePath.startsWith('receipts/')) {
       try {
         const fileRef = storageRef(storage, storagePath);
         await deleteObject(fileRef);

@@ -5712,20 +5712,31 @@ body.light-mode .receipts-inspector-pane {
 
 /* Responsive Adjustments for Mobile (< 880px) */
 @media (max-width: 880px) {
+  .receipts-viewer-wrap {
+    overflow: visible;
+  }
+
   .receipts-viewer-body {
     flex-direction: column;
     max-height: none;
     min-height: auto;
+    overflow: visible;
   }
 
   .receipts-content-pane {
     border-right: none;
     border-bottom: 1px solid var(--glass-border);
-    max-height: 50vh;
+    max-height: none;
+    overflow-y: visible;
+    overflow-x: visible;
+    padding: 0.75rem 0.5rem;
   }
 
   .receipts-inspector-pane {
     width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding: 1rem 0.5rem;
   }
 
   .receipt-actions-row {
@@ -5735,14 +5746,22 @@ body.light-mode .receipts-inspector-pane {
   .receipts-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
   }
 
   .receipts-filters-row {
     flex-wrap: wrap;
+    min-width: 0;
   }
 
   .receipts-batch-actions {
     justify-content: space-between;
+  }
+
+  .receipts-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
   }
 }
 
