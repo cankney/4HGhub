@@ -7581,11 +7581,11 @@ async function deleteSuggestion(id) {
 }
 
 // ============================================================================
-// RECEIPT VAULT & FINDER - Mobile-First PWA Camera & Desktop Finder
+// RECEIPT VAULT - Mobile-First Camera, Desktop Upload & Captured Receipts Viewer
 // ============================================================================
 
 const receiptVaultState = {
-  activeView: 'capture', // 'capture' | 'preview' | 'finder'
+  activeView: 'capture', // 'capture' | 'upload' | 'preview' | 'captured-receipts'
   mediaStream: null,
   capturedBlob: null,
   capturedDataUrl: null,
@@ -7633,7 +7633,7 @@ function checkReceiptVaultRoute() {
 }
 
 // Navigation Open/Close
-function openReceiptVaultPage(initialView = 'capture') {
+function openReceiptVaultPage(initialView = null) {
   if (state.isEditing) toggleEditMode(false);
   const adminPanel = document.getElementById('admin-panel-inline');
   if (adminPanel) adminPanel.style.display = 'none';
@@ -7658,7 +7658,15 @@ function openReceiptVaultPage(initialView = 'capture') {
   if (panel) {
     panel.style.display = 'flex';
     document.body.classList.add('subpage-open');
-    receiptVaultState.activeView = initialView;
+
+    // On mobile: default straight to camera capture!
+    // On desktop: default to upload view with prominent upload button!
+    if (!initialView) {
+      receiptVaultState.activeView = isMobileOrTabletDevice() ? 'capture' : 'upload';
+    } else {
+      receiptVaultState.activeView = initialView;
+    }
+
     history.replaceState(null, '', '#receipt-vault');
     renderReceiptVaultPage();
     subscribeToReceipts();
@@ -7705,6 +7713,13 @@ function renderReceiptVaultPage() {
   const activeUser = getActiveUser();
   const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
   const receiptCount = receiptVaultState.receipts.length;
+  const isMobile = isMobileOrTabletDevice();
+
+  const isCapturedView = receiptVaultState.activeView === 'captured-receipts';
+  const entryTabLabel = isMobile ? 'Camera' : 'Upload Receipt';
+  const entryTabIcon = isMobile 
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`;
 
   panel.innerHTML = `
     <!-- Top Nav Header -->
@@ -7720,13 +7735,13 @@ function renderReceiptVaultPage() {
 
       <!-- Segmented Control Switcher -->
       <div class="receipt-segmented-control">
-        <button type="button" class="receipt-segment-btn ${receiptVaultState.activeView !== 'finder' ? 'active' : ''}" id="btn-tab-capture">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-          Capture
+        <button type="button" class="receipt-segment-btn ${!isCapturedView ? 'active' : ''}" id="btn-tab-capture">
+          ${entryTabIcon}
+          ${entryTabLabel}
         </button>
-        <button type="button" class="receipt-segment-btn ${receiptVaultState.activeView === 'finder' ? 'active' : ''}" id="btn-tab-finder">
+        <button type="button" class="receipt-segment-btn ${isCapturedView ? 'active' : ''}" id="btn-tab-captured-receipts">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          Finder (${receiptCount})
+          Captured Receipts (${receiptCount})
         </button>
       </div>
 
@@ -7765,14 +7780,14 @@ function renderReceiptVaultPage() {
     if (receiptVaultState.capturedBlob) {
       receiptVaultState.activeView = 'preview';
     } else {
-      receiptVaultState.activeView = 'capture';
+      receiptVaultState.activeView = isMobileOrTabletDevice() ? 'capture' : 'upload';
     }
     renderReceiptVaultPage();
   });
 
-  document.getElementById('btn-tab-finder').addEventListener('click', () => {
+  document.getElementById('btn-tab-captured-receipts').addEventListener('click', () => {
     stopReceiptCamera();
-    receiptVaultState.activeView = 'finder';
+    receiptVaultState.activeView = 'captured-receipts';
     renderReceiptVaultPage();
   });
 
@@ -7784,14 +7799,95 @@ function renderReceiptVaultPage() {
   // Render specific subview
   if (receiptVaultState.activeView === 'capture') {
     renderReceiptCaptureView();
+  } else if (receiptVaultState.activeView === 'upload') {
+    renderReceiptUploadView();
   } else if (receiptVaultState.activeView === 'preview') {
     renderReceiptPreviewView();
   } else {
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   }
 }
 
-// --- SUBVIEW 1: CAMERA CAPTURE VIEW (Mobile-First Viewfinder) ---
+// --- SUBVIEW 1A: DESKTOP UPLOAD VIEW (Prominent Upload Button & Drag/Drop) ---
+function renderReceiptUploadView() {
+  const container = document.getElementById('receipt-vault-view-container');
+  if (!container) return;
+
+  stopReceiptCamera();
+
+  container.innerHTML = `
+    <div class="receipt-desktop-upload-shell">
+      <div class="receipt-upload-card" id="receipt-drop-zone">
+        <div class="receipt-upload-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="width:40px;height:40px;color:var(--accent-green);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        </div>
+        <h3 class="receipt-upload-title">Upload Receipt Photo</h3>
+        <p class="receipt-upload-subtitle">
+          Drag and drop your receipt image here, or click the button below to browse from your computer.
+        </p>
+
+        <label for="receipt-file-picker-input" class="btn-ios btn-ios-accent receipt-upload-cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Choose Receipt Photo
+        </label>
+        <input type="file" id="receipt-file-picker-input" accept="image/*" style="display: none;">
+
+        <div class="receipt-upload-footer">
+          <span>Supports JPEG, PNG, HEIC, WebP</span>
+          <span class="upload-footer-dot">•</span>
+          <button type="button" class="btn-link-subtle" id="btn-switch-to-webcam">
+            Use Webcam / Camera
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const fileInput = document.getElementById('receipt-file-picker-input');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleReceiptFileInput(e.target.files[0]);
+      }
+    });
+  }
+
+  // Drag and drop handlers
+  const dropZone = document.getElementById('receipt-drop-zone');
+  if (dropZone) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag-over');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt ? dt.files : null;
+      if (files && files[0] && files[0].type.startsWith('image/')) {
+        handleReceiptFileInput(files[0]);
+      }
+    });
+  }
+
+  // Switch to Webcam button
+  document.getElementById('btn-switch-to-webcam')?.addEventListener('click', () => {
+    receiptVaultState.activeView = 'capture';
+    renderReceiptVaultPage();
+  });
+}
+
+// --- SUBVIEW 1B: MOBILE CAMERA CAPTURE VIEW (Viewfinder & Shutter) ---
 function renderReceiptCaptureView() {
   const container = document.getElementById('receipt-vault-view-container');
   if (!container) return;
@@ -7811,7 +7907,7 @@ function renderReceiptCaptureView() {
           <span class="scanner-guide-text">Position receipt inside frame</span>
         </div>
 
-        <!-- Camera Control Pills (Switch Lens / File Upload) -->
+        <!-- Camera Control Pills (Switch Lens) -->
         <div class="receipt-viewfinder-controls">
           <button type="button" class="btn-icon-glass" id="btn-switch-camera" title="Switch Camera" aria-label="Switch Camera">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M20 16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"></path><path d="M4 8V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="8" x2="12" y2="21"></line></svg>
@@ -7823,25 +7919,26 @@ function renderReceiptCaptureView() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fallback-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
           <h4>Camera Unavailable</h4>
           <p>Please allow camera permissions or upload a receipt photo from your device.</p>
-          <label for="receipt-file-picker-input" class="btn-ios btn-ios-accent fallback-upload-btn">
+          <label for="receipt-file-picker-input-fallback" class="btn-ios btn-ios-accent fallback-upload-btn">
             Select / Upload Photo
           </label>
+          <input type="file" id="receipt-file-picker-input-fallback" accept="image/*" capture="environment" style="display: none;">
         </div>
       </div>
 
       <!-- Bottom Shutter Bar -->
       <div class="receipt-shutter-bar">
-        <label for="receipt-file-picker-input" class="receipt-shutter-side-btn" title="Choose from Photo Library" aria-label="Upload from Photo Library">
+        <label for="receipt-file-picker-input-mobile" class="receipt-shutter-side-btn" title="Choose from Photo Library" aria-label="Upload from Photo Library">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
         </label>
-        <input type="file" id="receipt-file-picker-input" accept="image/*" capture="environment" style="display: none;">
+        <input type="file" id="receipt-file-picker-input-mobile" accept="image/*" capture="environment" style="display: none;">
 
         <!-- Main Shutter Button -->
         <button type="button" id="btn-shutter-capture" class="receipt-shutter-btn" aria-label="Snap Receipt Photo">
           <div class="receipt-shutter-inner"></div>
         </button>
 
-        <button type="button" class="receipt-shutter-side-btn" id="btn-quick-goto-finder" title="View Saved Receipts" aria-label="Saved Receipts">
+        <button type="button" class="receipt-shutter-side-btn" id="btn-quick-goto-captured" title="View Captured Receipts" aria-label="Captured Receipts">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
         </button>
       </div>
@@ -7868,25 +7965,27 @@ function renderReceiptCaptureView() {
     switchBtn.addEventListener('click', switchCameraFacingMode);
   }
 
-  // Quick goto finder action
-  const quickFinderBtn = document.getElementById('btn-quick-goto-finder');
-  if (quickFinderBtn) {
-    quickFinderBtn.addEventListener('click', () => {
+  // Quick goto captured receipts
+  const quickCapturedBtn = document.getElementById('btn-quick-goto-captured');
+  if (quickCapturedBtn) {
+    quickCapturedBtn.addEventListener('click', () => {
       stopReceiptCamera();
-      receiptVaultState.activeView = 'finder';
+      receiptVaultState.activeView = 'captured-receipts';
       renderReceiptVaultPage();
     });
   }
 
-  // File Picker input action
-  const fileInput = document.getElementById('receipt-file-picker-input');
-  if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        handleReceiptFileInput(e.target.files[0]);
-      }
-    });
-  }
+  // File Picker input actions
+  ['receipt-file-picker-input-mobile', 'receipt-file-picker-input-fallback'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleReceiptFileInput(e.target.files[0]);
+        }
+      });
+    }
+  });
 }
 
 // Media stream management
@@ -8106,20 +8205,20 @@ function renderReceiptPreviewView() {
   // Save action
   document.getElementById('btn-receipt-save').addEventListener('click', saveCurrentReceipt);
 
-  // Retake action (re-opens camera)
+  // Retake action (returns to camera on mobile, or upload view on desktop)
   document.getElementById('btn-receipt-retake').addEventListener('click', () => {
     receiptVaultState.capturedBlob = null;
     receiptVaultState.capturedDataUrl = null;
-    receiptVaultState.activeView = 'capture';
+    receiptVaultState.activeView = isMobileOrTabletDevice() ? 'capture' : 'upload';
     renderReceiptVaultPage();
   });
 
-  // Discard action (confirms, clears and returns to camera)
+  // Discard action (confirms, clears and returns to camera on mobile or upload on desktop)
   document.getElementById('btn-receipt-discard').addEventListener('click', () => {
     receiptVaultState.capturedBlob = null;
     receiptVaultState.capturedDataUrl = null;
     receiptVaultState.capturedNotes = '';
-    receiptVaultState.activeView = 'capture';
+    receiptVaultState.activeView = isMobileOrTabletDevice() ? 'capture' : 'upload';
     renderReceiptVaultPage();
     showToast('Receipt discarded.');
   });
@@ -8198,8 +8297,8 @@ async function saveCurrentReceipt() {
     receiptVaultState.capturedNotes = '';
     receiptVaultState.isUploading = false;
 
-    // Transition straight to Finder so user sees the newly saved receipt in macOS Finder view
-    receiptVaultState.activeView = 'finder';
+    // Transition straight to Captured Receipts view so user sees their saved receipt right away
+    receiptVaultState.activeView = 'captured-receipts';
     receiptVaultState.selectedReceiptId = docId;
     renderReceiptVaultPage();
 
@@ -8214,8 +8313,8 @@ async function saveCurrentReceipt() {
   }
 }
 
-// --- SUBVIEW 3: macOS FINDER-INSPIRED RECEIPT VIEWER ---
-function renderReceiptFinderView() {
+// --- SUBVIEW 3: CAPTURED RECEIPTS VIEWER (Clean Hub Two-Pane Layout) ---
+function renderCapturedReceiptsView() {
   const container = document.getElementById('receipt-vault-view-container');
   if (!container) return;
 
@@ -8272,33 +8371,27 @@ function renderReceiptFinderView() {
   const selectedBatchCount = receiptVaultState.selectedForBatch.size;
 
   container.innerHTML = `
-    <div class="finder-window">
-      <!-- macOS Finder Window Topbar -->
-      <div class="finder-toolbar">
-        <div class="finder-window-controls" aria-hidden="true">
-          <span class="dot dot-close"></span>
-          <span class="dot dot-minimize"></span>
-          <span class="dot dot-expand"></span>
-        </div>
-
+    <div class="receipts-viewer-wrap">
+      <!-- Toolbar: View toggle, Filters & Batch Export (no mac window controls) -->
+      <div class="receipts-toolbar">
         <!-- View Style Switcher (Icons Grid / List View) -->
-        <div class="finder-view-toggle">
-          <button type="button" class="finder-toggle-btn ${receiptVaultState.finderLayout === 'grid' ? 'active' : ''}" id="btn-finder-grid" title="Icons View">
+        <div class="receipts-view-toggle">
+          <button type="button" class="receipts-toggle-btn ${receiptVaultState.finderLayout === 'grid' ? 'active' : ''}" id="btn-finder-grid" title="Icons View">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           </button>
-          <button type="button" class="finder-toggle-btn ${receiptVaultState.finderLayout === 'list' ? 'active' : ''}" id="btn-finder-list" title="List View">
+          <button type="button" class="receipts-toggle-btn ${receiptVaultState.finderLayout === 'list' ? 'active' : ''}" id="btn-finder-list" title="List View">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
           </button>
         </div>
 
-        <!-- Filters: Year & Month -->
-        <div class="finder-filters-row">
-          <select id="finder-filter-year" class="finder-select" title="Filter by Year">
+        <!-- Filters: Year, Month, Search -->
+        <div class="receipts-filters-row">
+          <select id="finder-filter-year" class="receipts-select" title="Filter by Year">
             <option value="all" ${receiptVaultState.filterYear === 'all' ? 'selected' : ''}>All Years</option>
             ${years.map(y => `<option value="${y}" ${receiptVaultState.filterYear === y ? 'selected' : ''}>${y}</option>`).join('')}
           </select>
 
-          <select id="finder-filter-month" class="finder-select" title="Filter by Month">
+          <select id="finder-filter-month" class="receipts-select" title="Filter by Month">
             <option value="all" ${receiptVaultState.filterMonth === 'all' ? 'selected' : ''}>All Months</option>
             <option value="01" ${receiptVaultState.filterMonth === '01' ? 'selected' : ''}>Jan</option>
             <option value="02" ${receiptVaultState.filterMonth === '02' ? 'selected' : ''}>Feb</option>
@@ -8314,39 +8407,39 @@ function renderReceiptFinderView() {
             <option value="12" ${receiptVaultState.filterMonth === '12' ? 'selected' : ''}>Dec</option>
           </select>
 
-          <div class="finder-search-wrap">
-            <input type="search" id="finder-search-input" class="finder-search-input" placeholder="Search notes/dates..." value="${escapeHTML(receiptVaultState.searchQuery)}">
+          <div class="receipts-search-wrap">
+            <input type="search" id="finder-search-input" class="receipts-search-input" placeholder="Search notes, date..." value="${escapeHTML(receiptVaultState.searchQuery)}">
           </div>
         </div>
 
-        <!-- Batch Export Action -->
-        <div class="finder-batch-actions">
-          <button type="button" class="btn-ios finder-select-all-btn" id="btn-finder-select-all">
+        <!-- Batch Actions -->
+        <div class="receipts-batch-actions">
+          <button type="button" class="btn-ios receipts-select-all-btn" id="btn-finder-select-all">
             ${selectedBatchCount === receiptsList.length && receiptsList.length > 0 ? 'Deselect All' : 'Select All'}
           </button>
-          <button type="button" class="btn-ios btn-ios-accent finder-export-btn" id="btn-batch-export" ${receiptsList.length === 0 ? 'disabled' : ''}>
+          <button type="button" class="btn-ios btn-ios-accent receipts-export-btn" id="btn-batch-export" ${receiptsList.length === 0 ? 'disabled' : ''}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             Export ZIP ${selectedBatchCount > 0 ? `(${selectedBatchCount})` : ''}
           </button>
         </div>
       </div>
 
-      <!-- Main Two-Pane Split Layout -->
-      <div class="finder-body">
+      <!-- Main Two-Pane Split Layout (seamlessly inside container) -->
+      <div class="receipts-viewer-body">
         <!-- Left Pane: Receipts Grid / List -->
-        <div class="finder-content-pane">
+        <div class="receipts-content-pane">
           ${receiptsList.length === 0 ? `
-            <div class="finder-empty-state">
+            <div class="receipts-empty-state">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="10" x2="16" y2="10"></line><line x1="8" y1="14" x2="12" y2="14"></line></svg>
-              <h4>No Receipts Found</h4>
+              <h4>No Captured Receipts Found</h4>
               <p>No receipt photos match the selected date filters or search.</p>
               <button type="button" class="btn-ios btn-ios-accent" id="btn-empty-snap">
-                + Snap First Receipt
+                + Add First Receipt
               </button>
             </div>
           ` : receiptVaultState.finderLayout === 'grid' ? `
-            <!-- Grid Mode (macOS Icon Tiles) -->
-            <div class="finder-grid">
+            <!-- Grid Mode -->
+            <div class="receipts-grid">
               ${receiptsList.map(receipt => {
                 const isSelected = receipt.id === receiptVaultState.selectedReceiptId;
                 const isChecked = receiptVaultState.selectedForBatch.has(receipt.id);
@@ -8354,25 +8447,25 @@ function renderReceiptFinderView() {
                 const notesPreview = receipt.notes ? receipt.notes.substring(0, 36) + (receipt.notes.length > 36 ? '...' : '') : 'No notes';
 
                 return `
-                  <div class="finder-item-card ${isSelected ? 'active-selection' : ''}" data-id="${receipt.id}">
-                    <div class="finder-item-check-wrap">
+                  <div class="receipt-card-item ${isSelected ? 'active-selection' : ''}" data-id="${receipt.id}">
+                    <div class="receipt-card-check-wrap">
                       <input type="checkbox" class="finder-item-checkbox" data-id="${receipt.id}" ${isChecked ? 'checked' : ''} aria-label="Select receipt">
                     </div>
-                    <div class="finder-thumb-wrap">
-                      <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt thumbnail" class="finder-thumb-img" loading="lazy">
+                    <div class="receipt-card-thumb-wrap">
+                      <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt thumbnail" class="receipt-card-thumb-img" loading="lazy">
                     </div>
-                    <div class="finder-item-meta">
-                      <span class="finder-item-date">${escapeHTML(dateDisplay)}</span>
-                      <span class="finder-item-notes">${escapeHTML(notesPreview)}</span>
+                    <div class="receipt-card-meta">
+                      <span class="receipt-card-date">${escapeHTML(dateDisplay)}</span>
+                      <span class="receipt-card-notes">${escapeHTML(notesPreview)}</span>
                     </div>
                   </div>
                 `;
               }).join('')}
             </div>
           ` : `
-            <!-- List Mode (macOS Table View) -->
-            <div class="finder-table-wrap">
-              <table class="finder-table">
+            <!-- List Mode -->
+            <div class="receipts-table-wrap">
+              <table class="receipts-table">
                 <thead>
                   <tr>
                     <th style="width: 38px;"></th>
@@ -8391,17 +8484,17 @@ function renderReceiptFinderView() {
                     const sizeKB = receipt.fileSize ? Math.round(receipt.fileSize / 1024) + ' KB' : '—';
 
                     return `
-                      <tr class="finder-table-row ${isSelected ? 'active-selection' : ''}" data-id="${receipt.id}">
+                      <tr class="receipts-table-row ${isSelected ? 'active-selection' : ''}" data-id="${receipt.id}">
                         <td onclick="event.stopPropagation();">
                           <input type="checkbox" class="finder-item-checkbox" data-id="${receipt.id}" ${isChecked ? 'checked' : ''} aria-label="Select receipt">
                         </td>
                         <td>
-                          <img src="${escapeHTML(receipt.downloadUrl)}" class="finder-table-thumb" alt="thumbnail" loading="lazy">
+                          <img src="${escapeHTML(receipt.downloadUrl)}" class="receipts-table-thumb" alt="thumbnail" loading="lazy">
                         </td>
-                        <td class="finder-table-date">${escapeHTML(dateDisplay)}</td>
-                        <td class="finder-table-notes">${escapeHTML(receipt.notes || '—')}</td>
-                        ${isAdminUser ? `<td class="finder-table-user">${escapeHTML(receipt.userName || '')}</td>` : ''}
-                        <td class="finder-table-size">${escapeHTML(sizeKB)}</td>
+                        <td class="receipts-table-date">${escapeHTML(dateDisplay)}</td>
+                        <td class="receipts-table-notes">${escapeHTML(receipt.notes || '—')}</td>
+                        ${isAdminUser ? `<td class="receipts-table-user">${escapeHTML(receipt.userName || '')}</td>` : ''}
+                        <td class="receipts-table-size">${escapeHTML(sizeKB)}</td>
                       </tr>
                     `;
                   }).join('')}
@@ -8411,8 +8504,8 @@ function renderReceiptFinderView() {
           `}
         </div>
 
-        <!-- Right Pane: macOS Finder Inspector / Preview Column -->
-        <div class="finder-inspector-pane" id="finder-inspector-pane">
+        <!-- Right Pane: Inspector / Detail Column -->
+        <div class="receipts-inspector-pane" id="finder-inspector-pane">
           ${selectedReceipt ? renderInspectorHTML(selectedReceipt, isAdminUser) : `
             <div class="inspector-empty">
               <p>Select a receipt to view details</p>
@@ -8423,36 +8516,36 @@ function renderReceiptFinderView() {
     </div>
   `;
 
-  // Finder Filter Events
+  // Filter Events
   document.getElementById('finder-filter-year')?.addEventListener('change', (e) => {
     receiptVaultState.filterYear = e.target.value;
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   });
 
   document.getElementById('finder-filter-month')?.addEventListener('change', (e) => {
     receiptVaultState.filterMonth = e.target.value;
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   });
 
   document.getElementById('finder-search-input')?.addEventListener('input', (e) => {
     receiptVaultState.searchQuery = e.target.value;
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   });
 
   // Toggle View Layout
   document.getElementById('btn-finder-grid')?.addEventListener('click', () => {
     receiptVaultState.finderLayout = 'grid';
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   });
 
   document.getElementById('btn-finder-list')?.addEventListener('click', () => {
     receiptVaultState.finderLayout = 'list';
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   });
 
   // Empty state button
   document.getElementById('btn-empty-snap')?.addEventListener('click', () => {
-    receiptVaultState.activeView = 'capture';
+    receiptVaultState.activeView = isMobileOrTabletDevice() ? 'capture' : 'upload';
     renderReceiptVaultPage();
   });
 
@@ -8469,17 +8562,16 @@ function renderReceiptFinderView() {
     } else {
       receiptVaultState.selectedForBatch = new Set(receiptsList.map(r => r.id));
     }
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   });
 
   // Selection events on cards and rows
-  container.querySelectorAll('.finder-item-card, .finder-table-row').forEach(el => {
+  container.querySelectorAll('.receipt-card-item, .receipts-table-row').forEach(el => {
     el.addEventListener('click', (e) => {
       const id = el.dataset.id;
       if (id) {
         receiptVaultState.selectedReceiptId = id;
-        // Update active selection classes without full re-render
-        container.querySelectorAll('.finder-item-card, .finder-table-row').forEach(c => c.classList.remove('active-selection'));
+        container.querySelectorAll('.receipt-card-item, .receipts-table-row').forEach(c => c.classList.remove('active-selection'));
         el.classList.add('active-selection');
         const r = receiptsList.find(item => item.id === id);
         const inspector = document.getElementById('finder-inspector-pane');
@@ -8515,7 +8607,7 @@ function renderReceiptFinderView() {
   }
 }
 
-// Inspector / Preview Pane Content
+// Inspector / Detail Pane Content
 function renderInspectorHTML(receipt, isAdminUser) {
   const dateFormatted = formatReceiptDate(receipt.receiptDate);
   const sizeKB = receipt.fileSize ? Math.round(receipt.fileSize / 1024) + ' KB' : '—';
@@ -8659,17 +8751,17 @@ function subscribeToReceipts() {
       localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(items.slice(0, 100)));
     } catch (e) {}
 
-    // If Finder is currently open, refresh the view
-    if (receiptVaultState.activeView === 'finder') {
-      renderReceiptFinderView();
+    // If Captured Receipts is currently open, refresh the view
+    if (receiptVaultState.activeView === 'captured-receipts') {
+      renderCapturedReceiptsView();
     }
     
     // Update count in tab header
-    const tabFinder = document.getElementById('btn-tab-finder');
-    if (tabFinder) {
-      tabFinder.innerHTML = `
+    const tabCaptured = document.getElementById('btn-tab-captured-receipts');
+    if (tabCaptured) {
+      tabCaptured.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-        Finder (${items.length})
+        Captured Receipts (${items.length})
       `;
     }
   }, (err) => {
@@ -8689,7 +8781,7 @@ async function updateReceiptMetadata(receiptId, updateFields) {
     }
 
     showToast('✓ Receipt details updated.');
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   } catch (err) {
     console.error('Failed to update receipt metadata:', err);
     showToast('Failed to update receipt details.', false);
@@ -8720,7 +8812,7 @@ async function deleteReceiptRecord(receiptId, storagePath) {
     }
 
     showToast('Receipt deleted successfully.');
-    renderReceiptFinderView();
+    renderCapturedReceiptsView();
   } catch (err) {
     console.error('Failed to delete receipt:', err);
     showToast('Failed to delete receipt.', false);
