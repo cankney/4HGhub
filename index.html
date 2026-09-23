@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="4HGS Hub">
-  <link rel="stylesheet" href="styles_v4.css?v=5.3.2">
+  <link rel="stylesheet" href="styles_v4.css?v=5.4.0">
   <link rel="icon" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon" href="assets/4hgs_logo.png">
 </head>
@@ -212,6 +212,11 @@
         <!-- INLINE DAILY FORKLIFT CHECKLIST HISTORY PANEL -->
         <div class="forklift-checklist-history-page-inline" id="forklift-checklist-history-page-inline" style="display: none;">
           <!-- Injected dynamically by renderForkliftChecklistHistoryPage() -->
+        </div>
+
+        <!-- INLINE RECEIPT VAULT PANEL -->
+        <div class="receipt-vault-page-inline" id="receipt-vault-page-inline" style="display: none;">
+          <!-- Injected dynamically by renderReceiptVaultPage() -->
         </div>
 
         <!-- CHECKLIST DETAIL VIEW MODAL -->
@@ -638,7 +643,10 @@
     <p>&copy; 2026 <a href="https://4hgs.com" target="_blank" rel="noopener noreferrer">4HG Source LLC</a>. All internal system apps are protected by network credentials.</p>
   </footer>
 
+  <!-- JSZip Library for Batch Receipt Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
-  <script type="module" src="app_v5.js?v=5.3.2"></script>
+  <script type="module" src="app_v5.js?v=5.4.0"></script>
 </body>
 </html>

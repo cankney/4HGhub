@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, writeBatch, query, where, onSnapshot, arrayUnion, addDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -18,6 +19,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 // Global HTML sanitization helper
 function escapeHTML(str) {
@@ -64,6 +66,7 @@ const SVG_ICONS = {
   'alert-triangle': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
   forklift: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"></circle><circle cx="17" cy="18" r="2.5"></circle><path d="M3 18h0.5M8.5 18H14.5M19.5 18H21"></path><path d="M5 15.5L8 7h6l2 8.5"></path><path d="M19 18V5h2"></path><path d="M21 15h3"></path></svg>`,
   'clipboard-check': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>`,
+  receipt: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"></path><path d="M8 7h8"></path><path d="M8 11h8"></path><path d="M8 15h5"></path></svg>`,
 
   // Theme Toggle Icons
   sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
@@ -85,6 +88,7 @@ const DEFAULT_APPS = [
   // Folder containing Ops apps
   { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'], sectionId: 'default' },
   { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app', sectionId: 'default' },
+  { id: 'receipt-vault', name: 'Receipt Vault', icon: 'receipt', order: 9, type: 'app', sectionId: 'default', allUsers: true },
   // Useful Links Section Apps (Visible to All Users)
   { id: 'health-benefits', name: 'Health Benefits', icon: 'shield', order: 0, type: 'app', sectionId: 'useful-links', allUsers: true },
   { id: 'benefits-docs', name: 'Benefits Documents', icon: 'file-text', order: 1, type: 'app', sectionId: 'useful-links', allUsers: true },
@@ -189,9 +193,9 @@ const DEFAULT_USERS = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'],
-  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'], 
-  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist']
+  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'],
+  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'], 
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -419,7 +423,27 @@ function ensureDefaultSectionsAndApps() {
     }
   }
 
-  // 6. Also clean up any other accidental duplicate sections in state.sections by id or name
+  // 6. Ensure receipt-vault app exists (placed in "4HGS Apps", i.e. 'default' section)
+  const defaultSectionId = state.sections.length > 0 ? state.sections[0].id : 'default';
+  const receiptVaultApp = state.apps.find(a => a.id === 'receipt-vault');
+  if (!receiptVaultApp) {
+    state.apps.push({
+      id: 'receipt-vault',
+      name: 'Receipt Vault',
+      icon: 'receipt',
+      order: 9,
+      type: 'app',
+      sectionId: 'default',
+      allUsers: true
+    });
+  } else {
+    receiptVaultApp.allUsers = true;
+    if (!receiptVaultApp.sectionId || !state.sections.some(s => s.id === receiptVaultApp.sectionId)) {
+      receiptVaultApp.sectionId = defaultSectionId;
+    }
+  }
+
+  // 7. Also clean up any other accidental duplicate sections in state.sections by id or name
   const seenNames = new Set();
   state.sections = state.sections.filter(s => {
     const norm = (s.name || '').trim().toLowerCase();
@@ -1162,6 +1186,9 @@ function getFaviconUrl(url) {
 // User Permission evaluator
 function activeUserHasAccess(appId) {
   if (!state.activeUserId) return false;
+  const app = state.apps.find(a => a.id === appId);
+  if (app && app.allUsers) return true;
+  if (appId === 'receipt-vault') return true;
   const permitted = state.permissions[state.activeUserId] || [];
   return permitted.includes(appId);
 }
@@ -1773,6 +1800,8 @@ function renderAppGrid() {
               openForkliftSafetyPage();
             } else if (item.id === 'forklift-checklist') {
               openForkliftChecklistPage();
+            } else if (item.id === 'receipt-vault') {
+              openReceiptVaultPage();
             } else if (item.link) {
               showToast(`Opening ${item.name}...`);
               setTimeout(() => window.open(item.link, '_blank'), 800);
@@ -1889,6 +1918,8 @@ function openFolderDrawer(folderId) {
           openForkliftSafetyPage();
         } else if (app.id === 'forklift-checklist') {
           openForkliftChecklistPage();
+        } else if (app.id === 'receipt-vault') {
+          openReceiptVaultPage();
         } else if (app.link) {
           showToast(`Opening ${app.name}...`);
           setTimeout(() => window.open(app.link, '_blank'), 800);
@@ -2312,7 +2343,8 @@ function scrollToPageTop() {
     'forklift-page-inline',
     'forklift-training-page-inline',
     'forklift-checklist-page-inline',
-    'forklift-checklist-history-page-inline'
+    'forklift-checklist-history-page-inline',
+    'receipt-vault-page-inline'
   ];
   inlinePages.forEach(id => {
     const el = document.getElementById(id);
@@ -2330,6 +2362,7 @@ function openAdminPortal() {
   closeForkliftTrainingPage(false);
   closeForkliftChecklistPage(false);
   closeForkliftChecklistHistoryPage(false);
+  closeReceiptVaultPage(false);
 
   // Switch display elements
   document.getElementById('main-app-grid').style.display = 'none';
@@ -2490,6 +2523,7 @@ function openBenefitsPage() {
   closeForkliftTrainingPage(false);
   closeForkliftChecklistPage(false);
   closeForkliftChecklistHistoryPage(false);
+  closeReceiptVaultPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -2537,6 +2571,7 @@ function openBenefitsDocsPage(initialFilter = 'all') {
   closeForkliftTrainingPage(false);
   closeForkliftChecklistPage(false);
   closeForkliftChecklistHistoryPage(false);
+  closeReceiptVaultPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -3165,6 +3200,7 @@ function openForkliftSafetyPage() {
   closeForkliftTrainingPage(false);
   closeForkliftChecklistPage(false);
   closeForkliftChecklistHistoryPage(false);
+  closeReceiptVaultPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -3715,6 +3751,7 @@ function openForkliftTrainingPage() {
   closeForkliftSafetyPage(false);
   closeForkliftChecklistPage(false);
   closeForkliftChecklistHistoryPage(false);
+  closeReceiptVaultPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -4254,6 +4291,7 @@ function openForkliftChecklistPage() {
   closeForkliftSafetyPage(false);
   closeForkliftTrainingPage(false);
   closeForkliftChecklistHistoryPage(false);
+  closeReceiptVaultPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -4301,6 +4339,7 @@ function openForkliftChecklistHistoryPage() {
   closeForkliftSafetyPage(false);
   closeForkliftTrainingPage(false);
   closeForkliftChecklistPage(false);
+  closeReceiptVaultPage(false);
 
   document.getElementById('main-app-grid').style.display = 'none';
   document.getElementById('ios-toolbar').style.display = 'none';
@@ -5894,7 +5933,7 @@ function loadAppIntoForm(app) {
 
   const linkInput = document.getElementById('app-link');
   const linkLabel = document.getElementById('app-link-label') || document.querySelector('label[for="app-link"]');
-  const isBuiltIn = (app.id === 'health-benefits' || app.id === 'benefits-docs' || app.id === 'forklift-safety' || !app.link);
+  const isBuiltIn = (app.id === 'health-benefits' || app.id === 'benefits-docs' || app.id === 'forklift-safety' || app.id === 'receipt-vault' || !app.link);
 
   linkInput.value = app.link || '';
   if (isBuiltIn) {
@@ -6349,7 +6388,7 @@ function handleAppSubmit(e) {
   const icon = selectedIconEl ? selectedIconEl.dataset.icon : 'box';
   
   const existingApp = editId ? state.apps.find(a => a.id === editId) : null;
-  const isBuiltIn = existingApp && (existingApp.id === 'health-benefits' || existingApp.id === 'benefits-docs' || existingApp.id === 'forklift-safety' || !existingApp.link);
+  const isBuiltIn = existingApp && (existingApp.id === 'health-benefits' || existingApp.id === 'benefits-docs' || existingApp.id === 'forklift-safety' || existingApp.id === 'receipt-vault' || !existingApp.link);
 
   if (!name) return;
   if (!isBuiltIn && !link) {
@@ -7051,6 +7090,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initClockUpdates();
   bindEventHandlers();
   initFirebaseAuth(); // Dynamic Firebase login observer
+  checkReceiptVaultRoute();
 
   // Service Worker registration for PWA installability
   if ('serviceWorker' in navigator) {
@@ -7539,4 +7579,1237 @@ async function deleteSuggestion(id) {
     showToast('Failed to delete suggestion.', false);
   }
 }
+
+// ============================================================================
+// RECEIPT VAULT & FINDER - Mobile-First PWA Camera & Desktop Finder
+// ============================================================================
+
+const receiptVaultState = {
+  activeView: 'capture', // 'capture' | 'preview' | 'finder'
+  mediaStream: null,
+  capturedBlob: null,
+  capturedDataUrl: null,
+  capturedDate: '',
+  capturedNotes: '',
+  receipts: [],
+  isLoadingReceipts: false,
+  selectedReceiptId: null,
+  selectedForBatch: new Set(),
+  filterYear: 'all',
+  filterMonth: 'all',
+  searchQuery: '',
+  finderLayout: 'grid', // 'grid' | 'list'
+  isUploading: false,
+  facingMode: 'environment', // 'environment' (back) | 'user' (front)
+  zoomModalReceipt: null,
+  unsubscribeReceipts: null
+};
+
+// Date utility for local timezone (YYYY-MM-DD)
+function getTodayISODate() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Initial route checker (for homescreen PWA launch: #receipt-vault or ?app=receipt-vault)
+function checkReceiptVaultRoute() {
+  const params = new URLSearchParams(window.location.search);
+  const appParam = params.get('app') || window.location.hash.replace('#', '');
+  if (appParam === 'receipt-vault' || appParam === 'receipts') {
+    if (auth.currentUser) {
+      openReceiptVaultPage();
+    } else {
+      const unsub = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          openReceiptVaultPage();
+        }
+        unsub();
+      });
+    }
+  }
+}
+
+// Navigation Open/Close
+function openReceiptVaultPage(initialView = 'capture') {
+  if (state.isEditing) toggleEditMode(false);
+  const adminPanel = document.getElementById('admin-panel-inline');
+  if (adminPanel) adminPanel.style.display = 'none';
+
+  closeBenefitsPage(false);
+  closeBenefitsDocsPage(false);
+  closeForkliftSafetyPage(false);
+  closeForkliftTrainingPage(false);
+  closeForkliftChecklistPage(false);
+  closeForkliftChecklistHistoryPage(false);
+
+  document.getElementById('main-app-grid').style.display = 'none';
+  document.getElementById('ios-toolbar').style.display = 'none';
+  
+  const subsequentContainer = document.getElementById('subsequent-sections-container');
+  if (subsequentContainer) subsequentContainer.style.display = 'none';
+  
+  const topActions = document.getElementById('top-actions-bar');
+  if (topActions) topActions.style.display = 'none';
+
+  const panel = document.getElementById('receipt-vault-page-inline');
+  if (panel) {
+    panel.style.display = 'flex';
+    document.body.classList.add('subpage-open');
+    receiptVaultState.activeView = initialView;
+    history.replaceState(null, '', '#receipt-vault');
+    renderReceiptVaultPage();
+    subscribeToReceipts();
+    scrollToPageTop();
+  }
+}
+
+function closeReceiptVaultPage(restoreGrid = true) {
+  stopReceiptCamera();
+  const panel = document.getElementById('receipt-vault-page-inline');
+  if (panel) panel.style.display = 'none';
+
+  if (receiptVaultState.unsubscribeReceipts) {
+    receiptVaultState.unsubscribeReceipts();
+    receiptVaultState.unsubscribeReceipts = null;
+  }
+
+  receiptVaultState.capturedBlob = null;
+  receiptVaultState.capturedDataUrl = null;
+  receiptVaultState.capturedNotes = '';
+
+  if (restoreGrid) {
+    document.body.classList.remove('subpage-open');
+    document.getElementById('main-app-grid').style.display = 'grid';
+    document.getElementById('ios-toolbar').style.display = 'flex';
+    
+    const subsequentContainer = document.getElementById('subsequent-sections-container');
+    if (subsequentContainer) subsequentContainer.style.display = 'block';
+    
+    const topActions = document.getElementById('top-actions-bar');
+    if (topActions) topActions.style.display = 'flex';
+
+    history.replaceState(null, '', window.location.pathname);
+    renderAppGrid();
+    scrollToPageTop();
+  }
+}
+
+// Master Render for Receipt Vault container
+function renderReceiptVaultPage() {
+  const panel = document.getElementById('receipt-vault-page-inline');
+  if (!panel) return;
+
+  const activeUser = getActiveUser();
+  const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
+  const receiptCount = receiptVaultState.receipts.length;
+
+  panel.innerHTML = `
+    <!-- Top Nav Header -->
+    <div class="view-nav-header receipt-nav-header">
+      <div class="view-nav-actions-left">
+        <button class="btn-ios" id="btn-close-receipt-vault" type="button">
+          &larr; Hub
+        </button>
+        <span class="view-badge">
+          ${SVG_ICONS.receipt} Receipt Vault
+        </span>
+      </div>
+
+      <!-- Segmented Control Switcher -->
+      <div class="receipt-segmented-control">
+        <button type="button" class="receipt-segment-btn ${receiptVaultState.activeView !== 'finder' ? 'active' : ''}" id="btn-tab-capture">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          Capture
+        </button>
+        <button type="button" class="receipt-segment-btn ${receiptVaultState.activeView === 'finder' ? 'active' : ''}" id="btn-tab-finder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Finder (${receiptCount})
+        </button>
+      </div>
+
+      <div class="view-nav-actions-right">
+        <span class="receipt-user-pill" title="Signed in user">
+          ${escapeHTML(activeUser ? activeUser.name : 'Authenticated')}
+        </span>
+      </div>
+    </div>
+
+    <!-- Active View Area -->
+    <div id="receipt-vault-view-container" class="receipt-vault-view-container">
+      <!-- Will be populated by specific subview -->
+    </div>
+
+    <!-- Full Image Zoom Modal -->
+    <div id="receipt-zoom-modal" class="forklift-checklist-modal-overlay receipt-zoom-overlay" style="display: none;" aria-modal="true" role="dialog">
+      <div class="receipt-zoom-content">
+        <div class="receipt-zoom-header">
+          <span id="receipt-zoom-title" class="receipt-zoom-title">Receipt Photo</span>
+          <button type="button" class="btn-ios" id="btn-close-zoom-modal">&times; Close</button>
+        </div>
+        <div class="receipt-zoom-body">
+          <img id="receipt-zoom-image" src="" alt="Full receipt preview" class="receipt-zoom-img">
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Attach Top Nav Listeners
+  document.getElementById('btn-close-receipt-vault').addEventListener('click', () => {
+    closeReceiptVaultPage(true);
+  });
+
+  document.getElementById('btn-tab-capture').addEventListener('click', () => {
+    if (receiptVaultState.capturedBlob) {
+      receiptVaultState.activeView = 'preview';
+    } else {
+      receiptVaultState.activeView = 'capture';
+    }
+    renderReceiptVaultPage();
+  });
+
+  document.getElementById('btn-tab-finder').addEventListener('click', () => {
+    stopReceiptCamera();
+    receiptVaultState.activeView = 'finder';
+    renderReceiptVaultPage();
+  });
+
+  document.getElementById('btn-close-zoom-modal').addEventListener('click', closeReceiptZoomModal);
+  document.getElementById('receipt-zoom-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'receipt-zoom-modal') closeReceiptZoomModal();
+  });
+
+  // Render specific subview
+  if (receiptVaultState.activeView === 'capture') {
+    renderReceiptCaptureView();
+  } else if (receiptVaultState.activeView === 'preview') {
+    renderReceiptPreviewView();
+  } else {
+    renderReceiptFinderView();
+  }
+}
+
+// --- SUBVIEW 1: CAMERA CAPTURE VIEW (Mobile-First Viewfinder) ---
+function renderReceiptCaptureView() {
+  const container = document.getElementById('receipt-vault-view-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="receipt-capture-shell">
+      <!-- Live Video Viewfinder -->
+      <div class="receipt-viewfinder-wrap">
+        <video id="receipt-camera-video" class="receipt-camera-video" playsinline autoplay muted></video>
+        
+        <!-- Document Framing Brackets / Scanner Reticle -->
+        <div class="receipt-scanner-frame" aria-hidden="true">
+          <div class="corner-bracket top-left"></div>
+          <div class="corner-bracket top-right"></div>
+          <div class="corner-bracket bottom-left"></div>
+          <div class="corner-bracket bottom-right"></div>
+          <span class="scanner-guide-text">Position receipt inside frame</span>
+        </div>
+
+        <!-- Camera Control Pills (Switch Lens / File Upload) -->
+        <div class="receipt-viewfinder-controls">
+          <button type="button" class="btn-icon-glass" id="btn-switch-camera" title="Switch Camera" aria-label="Switch Camera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M20 16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"></path><path d="M4 8V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="8" x2="12" y2="21"></line></svg>
+          </button>
+        </div>
+
+        <!-- Fallback Notice (hidden unless camera is unavailable) -->
+        <div id="receipt-camera-fallback" class="receipt-camera-fallback" style="display: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fallback-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          <h4>Camera Unavailable</h4>
+          <p>Please allow camera permissions or upload a receipt photo from your device.</p>
+          <label for="receipt-file-picker-input" class="btn-ios btn-ios-accent fallback-upload-btn">
+            Select / Upload Photo
+          </label>
+        </div>
+      </div>
+
+      <!-- Bottom Shutter Bar -->
+      <div class="receipt-shutter-bar">
+        <label for="receipt-file-picker-input" class="receipt-shutter-side-btn" title="Choose from Photo Library" aria-label="Upload from Photo Library">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        </label>
+        <input type="file" id="receipt-file-picker-input" accept="image/*" capture="environment" style="display: none;">
+
+        <!-- Main Shutter Button -->
+        <button type="button" id="btn-shutter-capture" class="receipt-shutter-btn" aria-label="Snap Receipt Photo">
+          <div class="receipt-shutter-inner"></div>
+        </button>
+
+        <button type="button" class="receipt-shutter-side-btn" id="btn-quick-goto-finder" title="View Saved Receipts" aria-label="Saved Receipts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Start Camera
+  startReceiptCamera();
+
+  // Shutter action
+  const shutterBtn = document.getElementById('btn-shutter-capture');
+  if (shutterBtn) {
+    shutterBtn.addEventListener('click', () => {
+      try {
+        if (navigator.vibrate) navigator.vibrate(40);
+      } catch (e) {}
+      capturePhotoFromStream();
+    });
+  }
+
+  // Camera switch action
+  const switchBtn = document.getElementById('btn-switch-camera');
+  if (switchBtn) {
+    switchBtn.addEventListener('click', switchCameraFacingMode);
+  }
+
+  // Quick goto finder action
+  const quickFinderBtn = document.getElementById('btn-quick-goto-finder');
+  if (quickFinderBtn) {
+    quickFinderBtn.addEventListener('click', () => {
+      stopReceiptCamera();
+      receiptVaultState.activeView = 'finder';
+      renderReceiptVaultPage();
+    });
+  }
+
+  // File Picker input action
+  const fileInput = document.getElementById('receipt-file-picker-input');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleReceiptFileInput(e.target.files[0]);
+      }
+    });
+  }
+}
+
+// Media stream management
+async function startReceiptCamera() {
+  const video = document.getElementById('receipt-camera-video');
+  const fallback = document.getElementById('receipt-camera-fallback');
+  if (!video) return;
+
+  stopReceiptCamera();
+
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Camera API not supported on this browser.');
+    }
+
+    const constraints = {
+      video: {
+        facingMode: { ideal: receiptVaultState.facingMode },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
+      audio: false
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    receiptVaultState.mediaStream = stream;
+    video.srcObject = stream;
+    await video.play();
+
+    if (fallback) fallback.style.display = 'none';
+  } catch (err) {
+    console.warn('Receipt camera initialization fallback:', err);
+    if (fallback) fallback.style.display = 'flex';
+  }
+}
+
+function stopReceiptCamera() {
+  if (receiptVaultState.mediaStream) {
+    receiptVaultState.mediaStream.getTracks().forEach(track => track.stop());
+    receiptVaultState.mediaStream = null;
+  }
+}
+
+function switchCameraFacingMode() {
+  receiptVaultState.facingMode = receiptVaultState.facingMode === 'environment' ? 'user' : 'environment';
+  startReceiptCamera();
+}
+
+function capturePhotoFromStream() {
+  const video = document.getElementById('receipt-camera-video');
+  if (!video || !video.videoWidth) {
+    showToast('Camera not ready. Please try again or select a file.', false);
+    return;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      showToast('Capture error. Please re-take.', false);
+      return;
+    }
+    stopReceiptCamera();
+    receiptVaultState.capturedBlob = blob;
+    receiptVaultState.capturedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    receiptVaultState.capturedDate = getTodayISODate();
+    receiptVaultState.capturedNotes = '';
+    receiptVaultState.activeView = 'preview';
+    renderReceiptVaultPage();
+  }, 'image/jpeg', 0.85);
+}
+
+async function handleReceiptFileInput(file) {
+  try {
+    const { blob, dataUrl } = await compressImageToBlob(file, 0.85, 1920);
+    stopReceiptCamera();
+    receiptVaultState.capturedBlob = blob;
+    receiptVaultState.capturedDataUrl = dataUrl;
+    receiptVaultState.capturedDate = getTodayISODate();
+    receiptVaultState.capturedNotes = '';
+    receiptVaultState.activeView = 'preview';
+    renderReceiptVaultPage();
+  } catch (err) {
+    console.error('File processing error:', err);
+    showToast('Failed to load image file.', false);
+  }
+}
+
+// High-quality, fast canvas JPEG compressor helper
+function compressImageToBlob(source, quality = 0.85, maxDimension = 1920) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve({ blob, dataUrl: canvas.toDataURL('image/jpeg', quality) });
+        } else {
+          reject(new Error('Canvas compression failed'));
+        }
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = reject;
+    if (typeof source === 'string') {
+      img.src = source;
+    } else if (source instanceof Blob || source instanceof File) {
+      const reader = new FileReader();
+      reader.onload = (e) => { img.src = e.target.result; };
+      reader.onerror = reject;
+      reader.readAsDataURL(source);
+    }
+  });
+}
+
+// --- SUBVIEW 2: CAPTURE REVIEW & METADATA FORM ---
+// Strictly ordered per prompt:
+// 1. Captured receipt photo
+// 2. Options: "save", "discard", "re-take"
+// 3. Below those options: Notes section (optional) & Date tweak ability
+function renderReceiptPreviewView() {
+  const container = document.getElementById('receipt-vault-view-container');
+  if (!container) return;
+
+  const dataUrl = receiptVaultState.capturedDataUrl || '';
+  const dateVal = receiptVaultState.capturedDate || getTodayISODate();
+  const notesVal = receiptVaultState.capturedNotes || '';
+
+  container.innerHTML = `
+    <div class="receipt-preview-shell">
+      <!-- 1. Captured Photo Preview Container -->
+      <div class="receipt-preview-media">
+        <img src="${dataUrl}" alt="Captured receipt preview" class="receipt-preview-img" id="receipt-preview-img">
+        <button type="button" class="receipt-expand-btn" id="btn-expand-preview" title="Expand Preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+
+      <!-- 2. Immediate Action Buttons Bar: Save / Discard / Re-take -->
+      <div class="receipt-actions-row">
+        <button type="button" class="btn-ios btn-ios-accent receipt-save-btn" id="btn-receipt-save" ${receiptVaultState.isUploading ? 'disabled' : ''}>
+          ${receiptVaultState.isUploading ? 'Saving Receipt...' : '✓ Save Receipt'}
+        </button>
+        <button type="button" class="btn-ios receipt-retake-btn" id="btn-receipt-retake" ${receiptVaultState.isUploading ? 'disabled' : ''}>
+          ↺ Re-take
+        </button>
+        <button type="button" class="btn-ios btn-ios-danger receipt-discard-btn" id="btn-receipt-discard" ${receiptVaultState.isUploading ? 'disabled' : ''}>
+          ✕ Discard
+        </button>
+      </div>
+
+      <!-- 3. Below Options: Date Adjustment & Optional Notes Section -->
+      <div class="receipt-meta-card">
+        <div class="form-group receipt-form-group">
+          <label for="receipt-date-input" class="receipt-input-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Receipt Date (Tweak if needed)
+          </label>
+          <input type="date" id="receipt-date-input" class="form-control receipt-date-field" value="${dateVal}">
+        </div>
+
+        <div class="form-group receipt-form-group" style="margin-top: 1rem;">
+          <label for="receipt-notes-input" class="receipt-input-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            Notes (Optional)
+          </label>
+          <textarea id="receipt-notes-input" class="form-control receipt-notes-field" rows="3" placeholder="Vendor, purchase total, parts or job #...">${escapeHTML(notesVal)}</textarea>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Listeners for review form
+  const dateInput = document.getElementById('receipt-date-input');
+  if (dateInput) {
+    dateInput.addEventListener('change', (e) => {
+      receiptVaultState.capturedDate = e.target.value;
+    });
+  }
+
+  const notesInput = document.getElementById('receipt-notes-input');
+  if (notesInput) {
+    notesInput.addEventListener('input', (e) => {
+      receiptVaultState.capturedNotes = e.target.value;
+    });
+  }
+
+  // Expand image preview modal
+  const expandBtn = document.getElementById('btn-expand-preview');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      openReceiptZoomModal({
+        downloadUrl: receiptVaultState.capturedDataUrl,
+        receiptDate: receiptVaultState.capturedDate,
+        notes: receiptVaultState.capturedNotes
+      });
+    });
+  }
+
+  // Save action
+  document.getElementById('btn-receipt-save').addEventListener('click', saveCurrentReceipt);
+
+  // Retake action (re-opens camera)
+  document.getElementById('btn-receipt-retake').addEventListener('click', () => {
+    receiptVaultState.capturedBlob = null;
+    receiptVaultState.capturedDataUrl = null;
+    receiptVaultState.activeView = 'capture';
+    renderReceiptVaultPage();
+  });
+
+  // Discard action (confirms, clears and returns to camera)
+  document.getElementById('btn-receipt-discard').addEventListener('click', () => {
+    receiptVaultState.capturedBlob = null;
+    receiptVaultState.capturedDataUrl = null;
+    receiptVaultState.capturedNotes = '';
+    receiptVaultState.activeView = 'capture';
+    renderReceiptVaultPage();
+    showToast('Receipt discarded.');
+  });
+}
+
+// Save receipt to Firebase Storage and Firestore
+async function saveCurrentReceipt() {
+  if (receiptVaultState.isUploading) return;
+  if (!receiptVaultState.capturedBlob) {
+    showToast('No receipt photo captured to save.', false);
+    return;
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    showToast('Please sign in to save receipts.', false);
+    return;
+  }
+
+  const dateVal = document.getElementById('receipt-date-input')?.value || receiptVaultState.capturedDate || getTodayISODate();
+  const notesVal = document.getElementById('receipt-notes-input')?.value || receiptVaultState.capturedNotes || '';
+  const activeUser = getActiveUser();
+
+  receiptVaultState.isUploading = true;
+  const saveBtn = document.getElementById('btn-receipt-save');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<span class="spinner-small" style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;"></span> Uploading...`;
+  }
+
+  try {
+    const docId = `rec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const storagePath = `receipts/${currentUser.uid}/${docId}.jpg`;
+    const imageRef = storageRef(storage, storagePath);
+
+    // Upload photo blob
+    const uploadResult = await uploadBytes(imageRef, receiptVaultState.capturedBlob, {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        userId: currentUser.uid,
+        receiptDate: dateVal
+      }
+    });
+
+    // Obtain public download URL
+    const downloadUrl = await getDownloadURL(uploadResult.ref);
+
+    // Create Firestore Document
+    const receiptDoc = {
+      id: docId,
+      userId: currentUser.uid,
+      userEmail: currentUser.email || '',
+      userName: activeUser?.name || currentUser.displayName || currentUser.email || '4HGS User',
+      receiptDate: dateVal,
+      notes: notesVal.trim(),
+      storagePath: storagePath,
+      downloadUrl: downloadUrl,
+      fileSize: receiptVaultState.capturedBlob.size,
+      createdAt: new Date().toISOString()
+    };
+
+    await addDoc(collection(db, "receipts"), receiptDoc);
+
+    // Cache locally
+    try {
+      const local = JSON.parse(localStorage.getItem('HGS_RECEIPTS_LOCAL')) || [];
+      local.unshift(receiptDoc);
+      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(local.slice(0, 100)));
+    } catch (e) {}
+
+    showToast('✓ Receipt photo saved successfully!');
+
+    // Reset capture state
+    receiptVaultState.capturedBlob = null;
+    receiptVaultState.capturedDataUrl = null;
+    receiptVaultState.capturedNotes = '';
+    receiptVaultState.isUploading = false;
+
+    // Transition straight to Finder so user sees the newly saved receipt in macOS Finder view
+    receiptVaultState.activeView = 'finder';
+    receiptVaultState.selectedReceiptId = docId;
+    renderReceiptVaultPage();
+
+  } catch (error) {
+    console.error('Failed to save receipt:', error);
+    receiptVaultState.isUploading = false;
+    showToast(`Failed to save receipt: ${error.message || 'Storage error'}`, false);
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '✓ Save Receipt';
+    }
+  }
+}
+
+// --- SUBVIEW 3: macOS FINDER-INSPIRED RECEIPT VIEWER ---
+function renderReceiptFinderView() {
+  const container = document.getElementById('receipt-vault-view-container');
+  if (!container) return;
+
+  const activeUser = getActiveUser();
+  const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
+
+  // Filter receipts by search, year, month, and ownership
+  let receiptsList = [...receiptVaultState.receipts];
+
+  // Ownership filtering: non-admins only see their own receipts
+  if (!isAdminUser && auth.currentUser) {
+    receiptsList = receiptsList.filter(r => r.userId === auth.currentUser.uid);
+  }
+
+  // Detect unique years present in receipts
+  const years = Array.from(new Set(receiptsList.map(r => (r.receiptDate || '').substring(0, 4)).filter(Boolean))).sort().reverse();
+  const currentYear = new Date().getFullYear().toString();
+  if (!years.includes(currentYear)) years.unshift(currentYear);
+
+  // Apply Year Filter
+  if (receiptVaultState.filterYear !== 'all') {
+    receiptsList = receiptsList.filter(r => (r.receiptDate || '').startsWith(receiptVaultState.filterYear));
+  }
+
+  // Apply Month Filter
+  if (receiptVaultState.filterMonth !== 'all') {
+    receiptsList = receiptsList.filter(r => {
+      const parts = (r.receiptDate || '').split('-');
+      return parts.length >= 2 && parts[1] === receiptVaultState.filterMonth;
+    });
+  }
+
+  // Apply Search Query
+  if (receiptVaultState.searchQuery.trim()) {
+    const q = receiptVaultState.searchQuery.toLowerCase().trim();
+    receiptsList = receiptsList.filter(r => 
+      (r.notes || '').toLowerCase().includes(q) ||
+      (r.receiptDate || '').includes(q) ||
+      (r.userName || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Sort receipts by receiptDate descending
+  receiptsList.sort((a, b) => (b.receiptDate || '').localeCompare(a.receiptDate || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+  // Ensure valid selection
+  if (receiptsList.length > 0 && (!receiptVaultState.selectedReceiptId || !receiptsList.some(r => r.id === receiptVaultState.selectedReceiptId))) {
+    receiptVaultState.selectedReceiptId = receiptsList[0].id;
+  } else if (receiptsList.length === 0) {
+    receiptVaultState.selectedReceiptId = null;
+  }
+
+  const selectedReceipt = receiptsList.find(r => r.id === receiptVaultState.selectedReceiptId) || null;
+  const selectedBatchCount = receiptVaultState.selectedForBatch.size;
+
+  container.innerHTML = `
+    <div class="finder-window">
+      <!-- macOS Finder Window Topbar -->
+      <div class="finder-toolbar">
+        <div class="finder-window-controls" aria-hidden="true">
+          <span class="dot dot-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-expand"></span>
+        </div>
+
+        <!-- View Style Switcher (Icons Grid / List View) -->
+        <div class="finder-view-toggle">
+          <button type="button" class="finder-toggle-btn ${receiptVaultState.finderLayout === 'grid' ? 'active' : ''}" id="btn-finder-grid" title="Icons View">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </button>
+          <button type="button" class="finder-toggle-btn ${receiptVaultState.finderLayout === 'list' ? 'active' : ''}" id="btn-finder-list" title="List View">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <!-- Filters: Year & Month -->
+        <div class="finder-filters-row">
+          <select id="finder-filter-year" class="finder-select" title="Filter by Year">
+            <option value="all" ${receiptVaultState.filterYear === 'all' ? 'selected' : ''}>All Years</option>
+            ${years.map(y => `<option value="${y}" ${receiptVaultState.filterYear === y ? 'selected' : ''}>${y}</option>`).join('')}
+          </select>
+
+          <select id="finder-filter-month" class="finder-select" title="Filter by Month">
+            <option value="all" ${receiptVaultState.filterMonth === 'all' ? 'selected' : ''}>All Months</option>
+            <option value="01" ${receiptVaultState.filterMonth === '01' ? 'selected' : ''}>Jan</option>
+            <option value="02" ${receiptVaultState.filterMonth === '02' ? 'selected' : ''}>Feb</option>
+            <option value="03" ${receiptVaultState.filterMonth === '03' ? 'selected' : ''}>Mar</option>
+            <option value="04" ${receiptVaultState.filterMonth === '04' ? 'selected' : ''}>Apr</option>
+            <option value="05" ${receiptVaultState.filterMonth === '05' ? 'selected' : ''}>May</option>
+            <option value="06" ${receiptVaultState.filterMonth === '06' ? 'selected' : ''}>Jun</option>
+            <option value="07" ${receiptVaultState.filterMonth === '07' ? 'selected' : ''}>Jul</option>
+            <option value="08" ${receiptVaultState.filterMonth === '08' ? 'selected' : ''}>Aug</option>
+            <option value="09" ${receiptVaultState.filterMonth === '09' ? 'selected' : ''}>Sep</option>
+            <option value="10" ${receiptVaultState.filterMonth === '10' ? 'selected' : ''}>Oct</option>
+            <option value="11" ${receiptVaultState.filterMonth === '11' ? 'selected' : ''}>Nov</option>
+            <option value="12" ${receiptVaultState.filterMonth === '12' ? 'selected' : ''}>Dec</option>
+          </select>
+
+          <div class="finder-search-wrap">
+            <input type="search" id="finder-search-input" class="finder-search-input" placeholder="Search notes/dates..." value="${escapeHTML(receiptVaultState.searchQuery)}">
+          </div>
+        </div>
+
+        <!-- Batch Export Action -->
+        <div class="finder-batch-actions">
+          <button type="button" class="btn-ios finder-select-all-btn" id="btn-finder-select-all">
+            ${selectedBatchCount === receiptsList.length && receiptsList.length > 0 ? 'Deselect All' : 'Select All'}
+          </button>
+          <button type="button" class="btn-ios btn-ios-accent finder-export-btn" id="btn-batch-export" ${receiptsList.length === 0 ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export ZIP ${selectedBatchCount > 0 ? `(${selectedBatchCount})` : ''}
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Two-Pane Split Layout -->
+      <div class="finder-body">
+        <!-- Left Pane: Receipts Grid / List -->
+        <div class="finder-content-pane">
+          ${receiptsList.length === 0 ? `
+            <div class="finder-empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="10" x2="16" y2="10"></line><line x1="8" y1="14" x2="12" y2="14"></line></svg>
+              <h4>No Receipts Found</h4>
+              <p>No receipt photos match the selected date filters or search.</p>
+              <button type="button" class="btn-ios btn-ios-accent" id="btn-empty-snap">
+                + Snap First Receipt
+              </button>
+            </div>
+          ` : receiptVaultState.finderLayout === 'grid' ? `
+            <!-- Grid Mode (macOS Icon Tiles) -->
+            <div class="finder-grid">
+              ${receiptsList.map(receipt => {
+                const isSelected = receipt.id === receiptVaultState.selectedReceiptId;
+                const isChecked = receiptVaultState.selectedForBatch.has(receipt.id);
+                const dateDisplay = formatReceiptDate(receipt.receiptDate);
+                const notesPreview = receipt.notes ? receipt.notes.substring(0, 36) + (receipt.notes.length > 36 ? '...' : '') : 'No notes';
+
+                return `
+                  <div class="finder-item-card ${isSelected ? 'active-selection' : ''}" data-id="${receipt.id}">
+                    <div class="finder-item-check-wrap">
+                      <input type="checkbox" class="finder-item-checkbox" data-id="${receipt.id}" ${isChecked ? 'checked' : ''} aria-label="Select receipt">
+                    </div>
+                    <div class="finder-thumb-wrap">
+                      <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt thumbnail" class="finder-thumb-img" loading="lazy">
+                    </div>
+                    <div class="finder-item-meta">
+                      <span class="finder-item-date">${escapeHTML(dateDisplay)}</span>
+                      <span class="finder-item-notes">${escapeHTML(notesPreview)}</span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : `
+            <!-- List Mode (macOS Table View) -->
+            <div class="finder-table-wrap">
+              <table class="finder-table">
+                <thead>
+                  <tr>
+                    <th style="width: 38px;"></th>
+                    <th style="width: 50px;">Photo</th>
+                    <th>Date</th>
+                    <th>Notes</th>
+                    ${isAdminUser ? `<th>Captured By</th>` : ''}
+                    <th>Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${receiptsList.map(receipt => {
+                    const isSelected = receipt.id === receiptVaultState.selectedReceiptId;
+                    const isChecked = receiptVaultState.selectedForBatch.has(receipt.id);
+                    const dateDisplay = formatReceiptDate(receipt.receiptDate);
+                    const sizeKB = receipt.fileSize ? Math.round(receipt.fileSize / 1024) + ' KB' : '—';
+
+                    return `
+                      <tr class="finder-table-row ${isSelected ? 'active-selection' : ''}" data-id="${receipt.id}">
+                        <td onclick="event.stopPropagation();">
+                          <input type="checkbox" class="finder-item-checkbox" data-id="${receipt.id}" ${isChecked ? 'checked' : ''} aria-label="Select receipt">
+                        </td>
+                        <td>
+                          <img src="${escapeHTML(receipt.downloadUrl)}" class="finder-table-thumb" alt="thumbnail" loading="lazy">
+                        </td>
+                        <td class="finder-table-date">${escapeHTML(dateDisplay)}</td>
+                        <td class="finder-table-notes">${escapeHTML(receipt.notes || '—')}</td>
+                        ${isAdminUser ? `<td class="finder-table-user">${escapeHTML(receipt.userName || '')}</td>` : ''}
+                        <td class="finder-table-size">${escapeHTML(sizeKB)}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </div>
+
+        <!-- Right Pane: macOS Finder Inspector / Preview Column -->
+        <div class="finder-inspector-pane" id="finder-inspector-pane">
+          ${selectedReceipt ? renderInspectorHTML(selectedReceipt, isAdminUser) : `
+            <div class="inspector-empty">
+              <p>Select a receipt to view details</p>
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Finder Filter Events
+  document.getElementById('finder-filter-year')?.addEventListener('change', (e) => {
+    receiptVaultState.filterYear = e.target.value;
+    renderReceiptFinderView();
+  });
+
+  document.getElementById('finder-filter-month')?.addEventListener('change', (e) => {
+    receiptVaultState.filterMonth = e.target.value;
+    renderReceiptFinderView();
+  });
+
+  document.getElementById('finder-search-input')?.addEventListener('input', (e) => {
+    receiptVaultState.searchQuery = e.target.value;
+    renderReceiptFinderView();
+  });
+
+  // Toggle View Layout
+  document.getElementById('btn-finder-grid')?.addEventListener('click', () => {
+    receiptVaultState.finderLayout = 'grid';
+    renderReceiptFinderView();
+  });
+
+  document.getElementById('btn-finder-list')?.addEventListener('click', () => {
+    receiptVaultState.finderLayout = 'list';
+    renderReceiptFinderView();
+  });
+
+  // Empty state button
+  document.getElementById('btn-empty-snap')?.addEventListener('click', () => {
+    receiptVaultState.activeView = 'capture';
+    renderReceiptVaultPage();
+  });
+
+  // Batch Export Trigger
+  document.getElementById('btn-batch-export')?.addEventListener('click', () => {
+    exportSelectedReceiptsAsZip(receiptsList);
+  });
+
+  // Select All Trigger
+  document.getElementById('btn-finder-select-all')?.addEventListener('click', () => {
+    const allSelected = receiptVaultState.selectedForBatch.size === receiptsList.length && receiptsList.length > 0;
+    if (allSelected) {
+      receiptVaultState.selectedForBatch.clear();
+    } else {
+      receiptVaultState.selectedForBatch = new Set(receiptsList.map(r => r.id));
+    }
+    renderReceiptFinderView();
+  });
+
+  // Selection events on cards and rows
+  container.querySelectorAll('.finder-item-card, .finder-table-row').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const id = el.dataset.id;
+      if (id) {
+        receiptVaultState.selectedReceiptId = id;
+        // Update active selection classes without full re-render
+        container.querySelectorAll('.finder-item-card, .finder-table-row').forEach(c => c.classList.remove('active-selection'));
+        el.classList.add('active-selection');
+        const r = receiptsList.find(item => item.id === id);
+        const inspector = document.getElementById('finder-inspector-pane');
+        if (inspector && r) {
+          inspector.innerHTML = renderInspectorHTML(r, isAdminUser);
+          attachInspectorListeners(r);
+        }
+      }
+    });
+  });
+
+  // Checkbox toggle events for batch selection
+  container.querySelectorAll('.finder-item-checkbox').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', (e) => {
+      const id = cb.dataset.id;
+      if (cb.checked) {
+        receiptVaultState.selectedForBatch.add(id);
+      } else {
+        receiptVaultState.selectedForBatch.delete(id);
+      }
+      const exportBtn = document.getElementById('btn-batch-export');
+      const count = receiptVaultState.selectedForBatch.size;
+      if (exportBtn) {
+        exportBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export ZIP ${count > 0 ? `(${count})` : ''}`;
+      }
+    });
+  });
+
+  // Attach inspector listeners if item selected
+  if (selectedReceipt) {
+    attachInspectorListeners(selectedReceipt);
+  }
+}
+
+// Inspector / Preview Pane Content
+function renderInspectorHTML(receipt, isAdminUser) {
+  const dateFormatted = formatReceiptDate(receipt.receiptDate);
+  const sizeKB = receipt.fileSize ? Math.round(receipt.fileSize / 1024) + ' KB' : '—';
+
+  return `
+    <div class="inspector-card">
+      <div class="inspector-preview-wrap" id="btn-zoom-inspector">
+        <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt inspector view" class="inspector-img">
+        <span class="inspector-zoom-hint">Click to enlarge</span>
+      </div>
+
+      <div class="inspector-info-group">
+        <div class="inspector-meta-row">
+          <label class="inspector-label">Date</label>
+          <div class="inspector-inline-edit">
+            <input type="date" id="inspector-date-input" class="form-control inspector-date-field" value="${escapeHTML(receipt.receiptDate || '')}">
+            <button type="button" class="btn-ios-small" id="btn-save-inspector-date">Update</button>
+          </div>
+        </div>
+
+        <div class="inspector-meta-row" style="margin-top: 0.85rem;">
+          <label class="inspector-label">Notes</label>
+          <textarea id="inspector-notes-input" class="form-control inspector-notes-field" rows="3" placeholder="Add notes...">${escapeHTML(receipt.notes || '')}</textarea>
+          <button type="button" class="btn-ios-small" id="btn-save-inspector-notes" style="align-self: flex-end; margin-top: 4px;">Update Notes</button>
+        </div>
+
+        <div class="inspector-details-table">
+          <div class="detail-row">
+            <span class="detail-key">File Size</span>
+            <span class="detail-val">${sizeKB}</span>
+          </div>
+          ${isAdminUser ? `
+            <div class="detail-row">
+              <span class="detail-key">Captured By</span>
+              <span class="detail-val">${escapeHTML(receipt.userName || receipt.userEmail || 'Unknown')}</span>
+            </div>
+          ` : ''}
+          <div class="detail-row">
+            <span class="detail-key">Uploaded At</span>
+            <span class="detail-val">${new Date(receipt.createdAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
+
+        <!-- Inspector Actions -->
+        <div class="inspector-actions">
+          <a href="${escapeHTML(receipt.downloadUrl)}" target="_blank" download="receipt_${receipt.receiptDate}_${receipt.id}.jpg" class="btn-ios inspector-btn-download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download JPEG
+          </a>
+          <button type="button" class="btn-ios btn-ios-danger inspector-btn-delete" id="btn-delete-receipt" data-id="${receipt.id}">
+            Delete Receipt
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function attachInspectorListeners(receipt) {
+  // Zoom on photo preview click
+  document.getElementById('btn-zoom-inspector')?.addEventListener('click', () => {
+    openReceiptZoomModal(receipt);
+  });
+
+  // Inline Date update
+  document.getElementById('btn-save-inspector-date')?.addEventListener('click', async () => {
+    const newDate = document.getElementById('inspector-date-input')?.value;
+    if (newDate) {
+      await updateReceiptMetadata(receipt.id, { receiptDate: newDate });
+    }
+  });
+
+  // Inline Notes update
+  document.getElementById('btn-save-inspector-notes')?.addEventListener('click', async () => {
+    const newNotes = document.getElementById('inspector-notes-input')?.value || '';
+    await updateReceiptMetadata(receipt.id, { notes: newNotes.trim() });
+  });
+
+  // Delete Receipt
+  document.getElementById('btn-delete-receipt')?.addEventListener('click', () => {
+    if (confirm('Are you sure you want to permanently delete this receipt?')) {
+      deleteReceiptRecord(receipt.id, receipt.storagePath);
+    }
+  });
+}
+
+// Format date helper: "2026-09-23" -> "Sep 23, 2026"
+function formatReceiptDate(isoStr) {
+  if (!isoStr) return 'No Date';
+  try {
+    const [y, m, d] = isoStr.split('-');
+    if (!y || !m || !d) return isoStr;
+    const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch (e) {
+    return isoStr;
+  }
+}
+
+// Lightbox Zoom Modal
+function openReceiptZoomModal(receipt) {
+  const modal = document.getElementById('receipt-zoom-modal');
+  const img = document.getElementById('receipt-zoom-image');
+  const title = document.getElementById('receipt-zoom-title');
+  if (!modal || !img) return;
+
+  img.src = receipt.downloadUrl;
+  if (title) title.textContent = `${formatReceiptDate(receipt.receiptDate)} - ${receipt.notes || 'Receipt Photo'}`;
+  modal.style.display = 'flex';
+}
+
+function closeReceiptZoomModal() {
+  const modal = document.getElementById('receipt-zoom-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Realtime / Initial Receipts collection listener
+function subscribeToReceipts() {
+  if (receiptVaultState.unsubscribeReceipts) return;
+
+  try {
+    // Try localStorage cache first for instantaneous load
+    const cached = localStorage.getItem('HGS_RECEIPTS_LOCAL');
+    if (cached) {
+      receiptVaultState.receipts = JSON.parse(cached);
+    }
+  } catch (e) {}
+
+  const receiptsCol = collection(db, "receipts");
+  
+  receiptVaultState.unsubscribeReceipts = onSnapshot(receiptsCol, (snapshot) => {
+    const items = [];
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      data.id = docSnap.id;
+      items.push(data);
+    });
+
+    receiptVaultState.receipts = items;
+    try {
+      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(items.slice(0, 100)));
+    } catch (e) {}
+
+    // If Finder is currently open, refresh the view
+    if (receiptVaultState.activeView === 'finder') {
+      renderReceiptFinderView();
+    }
+    
+    // Update count in tab header
+    const tabFinder = document.getElementById('btn-tab-finder');
+    if (tabFinder) {
+      tabFinder.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Finder (${items.length})
+      `;
+    }
+  }, (err) => {
+    console.warn('Receipts listener error:', err);
+  });
+}
+
+// Update metadata in Firestore
+async function updateReceiptMetadata(receiptId, updateFields) {
+  try {
+    const receiptRef = doc(db, "receipts", receiptId);
+    await updateDoc(receiptRef, updateFields);
+
+    const idx = receiptVaultState.receipts.findIndex(r => r.id === receiptId);
+    if (idx !== -1) {
+      Object.assign(receiptVaultState.receipts[idx], updateFields);
+    }
+
+    showToast('✓ Receipt details updated.');
+    renderReceiptFinderView();
+  } catch (err) {
+    console.error('Failed to update receipt metadata:', err);
+    showToast('Failed to update receipt details.', false);
+  }
+}
+
+// Delete receipt document and storage file
+async function deleteReceiptRecord(receiptId, storagePath) {
+  try {
+    // 1. Delete from Firestore
+    await deleteDoc(doc(db, "receipts", receiptId));
+
+    // 2. Delete image blob from Firebase Storage if path available
+    if (storagePath) {
+      try {
+        const fileRef = storageRef(storage, storagePath);
+        await deleteObject(fileRef);
+      } catch (stErr) {
+        console.warn('Storage file cleanup warning:', stErr);
+      }
+    }
+
+    // 3. Remove locally
+    receiptVaultState.receipts = receiptVaultState.receipts.filter(r => r.id !== receiptId);
+    receiptVaultState.selectedForBatch.delete(receiptId);
+    if (receiptVaultState.selectedReceiptId === receiptId) {
+      receiptVaultState.selectedReceiptId = receiptVaultState.receipts[0]?.id || null;
+    }
+
+    showToast('Receipt deleted successfully.');
+    renderReceiptFinderView();
+  } catch (err) {
+    console.error('Failed to delete receipt:', err);
+    showToast('Failed to delete receipt.', false);
+  }
+}
+
+// Batch Export Receipts as ZIP of JPEGs
+async function exportSelectedReceiptsAsZip(filteredReceiptsList) {
+  let toExport = [];
+  if (receiptVaultState.selectedForBatch.size > 0) {
+    toExport = filteredReceiptsList.filter(r => receiptVaultState.selectedForBatch.has(r.id));
+  } else {
+    toExport = [...filteredReceiptsList];
+  }
+
+  if (toExport.length === 0) {
+    showToast('No receipts available to export.', false);
+    return;
+  }
+
+  if (typeof window.JSZip === 'undefined') {
+    showToast('Export library loading... Please wait 2 seconds.', false);
+    return;
+  }
+
+  const exportBtn = document.getElementById('btn-batch-export');
+  const originalHtml = exportBtn ? exportBtn.innerHTML : '';
+  if (exportBtn) {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = `Packaging ZIP (0/${toExport.length})...`;
+  }
+
+  try {
+    const zip = new window.JSZip();
+    const folder = zip.folder("receipts");
+
+    let csvManifest = "Filename,ReceiptDate,Notes,CapturedBy,SizeBytes,DownloadUrl\n";
+
+    for (let i = 0; i < toExport.length; i++) {
+      const receipt = toExport[i];
+      if (exportBtn) {
+        exportBtn.innerHTML = `Packaging ZIP (${i + 1}/${toExport.length})...`;
+      }
+
+      const safeDate = (receipt.receiptDate || 'nodate').replace(/[^a-zA-Z0-9_-]/g, '');
+      const safeId = (receipt.id || `rec_${i}`).replace(/[^a-zA-Z0-9_-]/g, '');
+      const filename = `receipt_${safeDate}_${safeId}.jpg`;
+
+      // Fetch image binary blob
+      try {
+        const response = await fetch(receipt.downloadUrl);
+        const imageBlob = await response.blob();
+        folder.file(filename, imageBlob);
+      } catch (fetchErr) {
+        console.warn(`Could not fetch image for ${receipt.id}:`, fetchErr);
+      }
+
+      // Add line to CSV manifest
+      const safeNotes = `"${(receipt.notes || '').replace(/"/g, '""')}"`;
+      const safeUser = `"${(receipt.userName || '').replace(/"/g, '""')}"`;
+      csvManifest += `${filename},${receipt.receiptDate || ''},${safeNotes},${safeUser},${receipt.fileSize || 0},${receipt.downloadUrl || ''}\n`;
+    }
+
+    // Add CSV manifest to ZIP
+    zip.file("receipts_manifest.csv", csvManifest);
+
+    if (exportBtn) exportBtn.innerHTML = 'Compressing...';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+    // Trigger download
+    const today = getTodayISODate();
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.href = URL.createObjectURL(zipBlob);
+    downloadAnchor.download = `4HGS_Receipts_${today}.zip`;
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    document.body.removeChild(downloadAnchor);
+    setTimeout(() => URL.revokeObjectURL(downloadAnchor.href), 15000);
+
+    showToast(`✓ Exported ${toExport.length} receipts into ZIP!`);
+  } catch (err) {
+    console.error('Batch export failed:', err);
+    showToast('Failed to export receipts archive.', false);
+  } finally {
+    if (exportBtn) {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = originalHtml;
+    }
+  }
+}
+
 
