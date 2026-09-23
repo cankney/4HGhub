@@ -7103,14 +7103,84 @@ document.addEventListener('DOMContentLoaded', () => {
   bindEventHandlers();
   initFirebaseAuth(); // Dynamic Firebase login observer
   checkReceiptVaultRoute();
+  initPwaInstallation();
 
   // Service Worker registration for PWA installability
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
       .then(reg => console.log('Service Worker registered with scope:', reg.scope))
       .catch(err => console.error('Service Worker registration failed:', err));
   }
 });
+
+// --- PWA Installation & iOS Home Screen Management ---
+let deferredInstallPrompt = null;
+
+function initPwaInstallation() {
+  const installBtn = document.getElementById('btn-install-pwa');
+  const isStandalone = Boolean(window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches);
+
+  // If already running standalone on iOS/Android Home Screen, hide install prompts
+  if (isStandalone) {
+    if (installBtn) installBtn.style.display = 'none';
+    return;
+  }
+
+  // Show install button in top navbar if not running standalone
+  if (installBtn) {
+    installBtn.style.display = 'inline-flex';
+    installBtn.addEventListener('click', () => {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.then(() => {
+          deferredInstallPrompt = null;
+        });
+      } else {
+        openIosInstallModal();
+      }
+    });
+  }
+
+  // Capture beforeinstallprompt for Android / Desktop Chrome
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (installBtn && !isStandalone) {
+      installBtn.style.display = 'inline-flex';
+    }
+  });
+
+  // Attach iOS install modal close handlers
+  document.getElementById('btn-close-ios-install')?.addEventListener('click', closeIosInstallModal);
+  document.getElementById('btn-dismiss-ios-install')?.addEventListener('click', closeIosInstallModal);
+  document.getElementById('ios-install-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'ios-install-modal') closeIosInstallModal();
+  });
+
+  // Prevent iOS standalone Web App from opening internal links in external Safari
+  if (window.navigator.standalone) {
+    document.addEventListener('click', (e) => {
+      const anchor = e.target.closest('a');
+      if (anchor) {
+        const href = anchor.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:') && anchor.getAttribute('target') !== '_blank') {
+          e.preventDefault();
+          window.location.href = href;
+        }
+      }
+    }, false);
+  }
+}
+
+function openIosInstallModal() {
+  const modal = document.getElementById('ios-install-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeIosInstallModal() {
+  const modal = document.getElementById('ios-install-modal');
+  if (modal) modal.style.display = 'none';
+}
 
 // --- Employee Polls Widget Functionality ---
 
@@ -7637,8 +7707,8 @@ function checkReceiptVaultRoute() {
       const unsub = onAuthStateChanged(auth, (user) => {
         if (user) {
           openReceiptVaultPage();
+          unsub();
         }
-        unsub();
       });
     }
   }
@@ -7887,6 +7957,18 @@ function renderMobileCaptureChoiceView() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
           View Captured Receipts (${receiptCount})
         </button>
+
+        ${!Boolean(window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) ? `
+          <div class="receipt-mobile-pwa-banner">
+            <div class="pwa-banner-text">
+              <strong>Install as iPhone App</strong><br>
+              Add to Home Screen for 1-tap camera access
+            </div>
+            <button type="button" class="btn-pwa-banner" id="btn-show-vault-install">
+              How to Install
+            </button>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -7916,6 +7998,9 @@ function renderMobileCaptureChoiceView() {
     receiptVaultState.activeView = 'captured-receipts';
     renderReceiptVaultPage();
   });
+
+  // PWA install guide trigger
+  document.getElementById('btn-show-vault-install')?.addEventListener('click', openIosInstallModal);
 }
 
 // --- SUBVIEW 1A: DESKTOP UPLOAD VIEW (Prominent Upload Button & Drag/Drop) ---

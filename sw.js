@@ -1,4 +1,4 @@
-const CACHE_NAME = '4hghub-cache-v8';
+const CACHE_NAME = '4hghub-cache-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -10,8 +10,14 @@ const ASSETS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('SW pre-cache warning for asset:', asset, err);
+        }
+      }
     }).then(() => self.skipWaiting())
   );
 });
