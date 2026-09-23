@@ -1,9 +1,9 @@
 {
-  "id": "4hgs-hub-app",
-  "name": "4HGS Application Hub",
-  "short_name": "4HGS Hub",
-  "description": "Internal Application Dashboard and Dispatch Hub for 4HG Source",
-  "start_url": "./index.html",
+  "id": "4hgs-receipt-vault",
+  "name": "Receipt Vault",
+  "short_name": "Receipts",
+  "description": "4HGS Mobile Receipt Capture & Cloud Vault",
+  "start_url": "./receipts.html",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
@@ -11,7 +11,7 @@
   "background_color": "#121214",
   "theme_color": "#121214",
   "prefer_related_applications": false,
-  "categories": ["business", "productivity"],
+  "categories": ["business", "finance", "productivity"],
   "icons": [
     {
       "src": "assets/4hgs_logo.png",
@@ -36,20 +36,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Receipt Vault",
-      "short_name": "Receipts",
-      "description": "Capture or view receipts",
-      "url": "./index.html#receipt-vault",
-      "icons": [
-        {
-          "src": "assets/4hgs_logo.png",
-          "sizes": "192x192"
-        }
-      ]
     }
   ]
 }

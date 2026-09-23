@@ -1,7 +1,9 @@
-const CACHE_NAME = '4hghub-cache-v9';
+const CACHE_NAME = '4hghub-cache-v10';
 const ASSETS = [
   './',
   './index.html',
+  './receipts.html',
+  './receipts.js',
   './styles_v4.css',
   './app_v5.js',
   './manifest.json',

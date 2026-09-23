@@ -12,8 +12,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="4HGS Hub">
-  <meta name="application-name" content="4HGS Hub">
+  <meta name="apple-mobile-web-app-title" content="Receipts">
+  <meta name="application-name" content="Receipts">
   <meta name="theme-color" content="#121214">
   <meta name="msapplication-navbutton-color" content="#121214">
   <meta name="format-detection" content="telephone=no">
@@ -42,12 +42,6 @@
       </a>
       
       <div class="nav-actions">
-        <!-- Install Web App Trigger Button (iOS / Mobile / Desktop) -->
-        <button id="btn-install-pwa" class="btn-install-pwa" type="button" style="display: none;" title="Install 4HGS Hub on Device">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span class="install-pwa-label">Install App</span>
-        </button>
-
         <!-- Live Cloud Sync Indicator -->
         <div id="sync-indicator" class="sync-indicator" style="display: none;" title="Syncing data with cloud...">
           <svg class="sync-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -663,8 +657,8 @@
           <img src="assets/4hgs_logo.png" alt="4HGS Logo">
         </div>
         <div class="ios-install-title-group">
-          <h3>Install 4HGS Hub</h3>
-          <p>Add to your iPhone Home Screen for 1-tap standalone access</p>
+          <h3>Install Receipt App</h3>
+          <p>Add to your iPhone Home Screen for 1-tap receipt capture</p>
         </div>
         <button type="button" class="btn-close-detail" id="btn-close-ios-install" aria-label="Close">&times;</button>
       </div>
@@ -692,13 +686,14 @@
         <div class="ios-install-step">
           <div class="step-badge">3</div>
           <div class="step-text">
-            <span>Tap <strong>Add</strong> in the top-right corner.</span>
-            <p class="step-note">The Hub will launch full screen without Safari browser bars, saving receipts directly to your camera roll and cloud!</p>
+            <span>Name it <strong>Receipts</strong> and tap <strong>Add</strong>.</span>
+            <p class="step-note">The Receipt Vault icon will appear on your Home Screen and launch directly into camera capture without any browser bars!</p>
           </div>
         </div>
       </div>
-      <div class="ios-install-footer">
-        <button type="button" class="btn-ios btn-ios-accent" id="btn-dismiss-ios-install" style="width: 100%; justify-content: center; padding: 0.85rem;">Got It</button>
+      <div class="ios-install-footer" style="display: flex; gap: 8px;">
+        <a href="receipts.html" class="btn-ios" style="flex: 1; justify-content: center; text-decoration: none; padding: 0.85rem; font-size: 0.85rem;">Open Receipts Page</a>
+        <button type="button" class="btn-ios btn-ios-accent" id="btn-dismiss-ios-install" style="flex: 1; justify-content: center; padding: 0.85rem;">Got It</button>
       </div>
     </div>
   </div>
