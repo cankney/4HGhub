@@ -27,7 +27,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon-precomposed" href="assets/4hgs_logo.png">
 
-  <link rel="stylesheet" href="styles_v4.css?v=5.4.6">
+  <link rel="stylesheet" href="styles_v4.css?v=5.4.7">
   <style>
     body {
       background-color: var(--bg-main, #0c0d0e);
@@ -37,8 +37,8 @@
       display: flex;
       flex-direction: column;
       margin: 0;
-      /* Dynamic Island / Notch safe area padding */
-      padding-top: max(calc(env(safe-area-inset-top, 0px) + 0.75rem), 1.5rem);
+      /* Dynamic Island / Notch safe area padding with generous clearance */
+      padding-top: max(calc(env(safe-area-inset-top, 0px) + 1.75rem), 5rem);
       padding-right: max(calc(env(safe-area-inset-right, 0px) + 0.75rem), 0.75rem);
       padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 1.5rem), 2rem);
       padding-left: max(calc(env(safe-area-inset-left, 0px) + 0.75rem), 0.75rem);
@@ -46,9 +46,9 @@
     }
 
     @supports (-webkit-touch-callout: none) {
-      /* Guarantee iOS status bar / Dynamic Island clearance on iPhones */
+      /* Guarantee iOS status bar / Dynamic Island clearance on iPhones beyond any blur */
       body {
-        padding-top: max(calc(env(safe-area-inset-top, 0px) + 0.75rem), 3.5rem);
+        padding-top: max(calc(env(safe-area-inset-top, 0px) + 2rem), 5.75rem);
       }
     }
 
@@ -56,6 +56,40 @@
       width: 100%;
       max-width: 1000px;
       margin: 0 auto;
+    }
+
+    /* Remove the touching hairline divider line above viewer */
+    .receipt-standalone-container .receipt-nav-header {
+      border-bottom: none !important;
+      padding-bottom: 0 !important;
+      margin-bottom: 1.25rem !important;
+    }
+
+    /* High-contrast, unmistakably clear active segmented control */
+    .receipt-standalone-container .receipt-segmented-control {
+      background: rgba(0, 0, 0, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      padding: 4px !important;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    .receipt-standalone-container .receipt-segment-btn {
+      color: rgba(255, 255, 255, 0.65) !important;
+      font-size: 0.85rem !important;
+      font-weight: 600 !important;
+      padding: 8px 16px !important;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    }
+    .receipt-standalone-container .receipt-segment-btn:not(.active):hover {
+      color: #ffffff !important;
+    }
+    .receipt-standalone-container .receipt-segment-btn.active {
+      background: var(--accent-green, #8ddc04) !important;
+      color: #0c0d0e !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 12px rgba(141, 220, 4, 0.45) !important;
+    }
+    .receipt-standalone-container .receipt-segment-btn.active svg {
+      stroke: #0c0d0e !important;
     }
   </style>
 </head>
@@ -126,7 +160,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <!-- Dedicated Receipt App Logic -->
-  <script type="module" src="receipts.js?v=5.4.6"></script>
+  <script type="module" src="receipts.js?v=5.4.7"></script>
 
   <!-- Service Worker Registration -->
   <script>

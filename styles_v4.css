@@ -4652,9 +4652,9 @@ body.app-is-dragging * {
 
 /* Top Navigation & Segmented Switcher */
 .receipt-nav-header {
-  margin-bottom: 0.85rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1rem;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 @media (min-width: 881px) {
@@ -4682,9 +4682,9 @@ body.app-is-dragging * {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.75rem;
-    padding-bottom: 0.65rem;
-    margin-bottom: 0.65rem;
+    gap: 0.85rem;
+    padding-bottom: 0;
+    margin-bottom: 1.15rem;
   }
   .receipt-nav-header .receipt-nav-top-row {
     display: flex;
@@ -4701,18 +4701,18 @@ body.app-is-dragging * {
     flex: 1;
     justify-content: center;
     text-align: center;
-    padding: 8px 12px;
-    font-size: 0.82rem;
+    padding: 9px 12px;
+    font-size: 0.84rem;
   }
 }
 
 .receipt-segmented-control {
   display: flex;
   align-items: center;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 4px;
   border-radius: 9999px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 body.light-mode .receipt-segmented-control {
@@ -4723,28 +4723,37 @@ body.light-mode .receipt-segmented-control {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: 9999px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
   white-space: nowrap;
 }
 
+.receipt-segment-btn:not(.active):hover {
+  color: #ffffff;
+}
+
 .receipt-segment-btn.active {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  background: var(--accent-green, #8ddc04);
+  color: #0c0d0e;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(141, 220, 4, 0.4);
+}
+
+.receipt-segment-btn.active svg {
+  stroke: #0c0d0e;
 }
 
 body.light-mode .receipt-segment-btn.active {
-  background: #ffffff;
-  color: #111827;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  background: var(--accent-green, #8ddc04);
+  color: #0c0d0e;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .receipt-user-pill {
