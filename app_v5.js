@@ -1593,8 +1593,10 @@ function renderAppGrid() {
   const isForkliftChecklistOpen = forkliftChecklistPanel && forkliftChecklistPanel.style.display === 'flex';
   const forkliftHistoryPanel = document.getElementById('forklift-checklist-history-page-inline');
   const isForkliftHistoryOpen = forkliftHistoryPanel && forkliftHistoryPanel.style.display === 'flex';
+  const receiptVaultPanel = document.getElementById('receipt-vault-page-inline');
+  const isReceiptVaultOpen = receiptVaultPanel && receiptVaultPanel.style.display === 'flex';
   const topActions = document.getElementById('top-actions-bar');
-  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen || isForkliftTrainingOpen || isForkliftChecklistOpen || isForkliftHistoryOpen;
+  const isAnyModalOpen = isSettingsOpen || isBenefitsOpen || isDocsOpen || isForkliftOpen || isForkliftTrainingOpen || isForkliftChecklistOpen || isForkliftHistoryOpen || isReceiptVaultOpen;
   document.body.classList.toggle('subpage-open', Boolean(isAnyModalOpen));
   
   if (isAnyModalOpen) {
@@ -1603,6 +1605,16 @@ function renderAppGrid() {
     document.getElementById('ios-toolbar').style.display = 'none';
     if (topActions) topActions.style.display = 'none';
   } else {
+    // Explicitly guarantee all subpage panels are hidden when viewing main dashboard
+    if (receiptVaultPanel) receiptVaultPanel.style.display = 'none';
+    if (adminPanel) adminPanel.style.display = 'none';
+    if (benefitsPanel) benefitsPanel.style.display = 'none';
+    if (benefitsDocsPanel) benefitsDocsPanel.style.display = 'none';
+    if (forkliftPanel) forkliftPanel.style.display = 'none';
+    if (forkliftTrainingPanel) forkliftTrainingPanel.style.display = 'none';
+    if (forkliftChecklistPanel) forkliftChecklistPanel.style.display = 'none';
+    if (forkliftHistoryPanel) forkliftHistoryPanel.style.display = 'none';
+
     mainGrid.style.display = 'grid';
     if (subsequentContainer) subsequentContainer.style.display = 'block';
     document.getElementById('ios-toolbar').style.display = 'flex';
@@ -7668,6 +7680,7 @@ function openReceiptVaultPage(initialView = null) {
     }
 
     history.replaceState(null, '', '#receipt-vault');
+    receiptVaultState.selectedForBatch.clear();
     renderReceiptVaultPage();
     subscribeToReceipts();
     scrollToPageTop();
@@ -7679,6 +7692,10 @@ function closeReceiptVaultPage(restoreGrid = true) {
   const panel = document.getElementById('receipt-vault-page-inline');
   if (panel) panel.style.display = 'none';
 
+  // Also remove any open mobile detail modal
+  const mobileDetail = document.getElementById('receipt-mobile-detail-modal');
+  if (mobileDetail) mobileDetail.remove();
+
   if (receiptVaultState.unsubscribeReceipts) {
     receiptVaultState.unsubscribeReceipts();
     receiptVaultState.unsubscribeReceipts = null;
@@ -7687,6 +7704,7 @@ function closeReceiptVaultPage(restoreGrid = true) {
   receiptVaultState.capturedBlob = null;
   receiptVaultState.capturedDataUrl = null;
   receiptVaultState.capturedNotes = '';
+  receiptVaultState.selectedForBatch.clear();
 
   if (restoreGrid) {
     document.body.classList.remove('subpage-open');
@@ -7705,6 +7723,14 @@ function closeReceiptVaultPage(restoreGrid = true) {
   }
 }
 
+// Cleanly handle browser back navigation for Receipt Vault
+window.addEventListener('popstate', () => {
+  const panel = document.getElementById('receipt-vault-page-inline');
+  if (panel && panel.style.display === 'flex' && !window.location.hash.includes('receipt-vault')) {
+    closeReceiptVaultPage(true);
+  }
+});
+
 // Master Render for Receipt Vault container
 function renderReceiptVaultPage() {
   const panel = document.getElementById('receipt-vault-page-inline');
@@ -7716,7 +7742,7 @@ function renderReceiptVaultPage() {
   const isMobile = isMobileOrTabletDevice();
 
   const isCapturedView = receiptVaultState.activeView === 'captured-receipts';
-  const entryTabLabel = isMobile ? 'Camera' : 'Upload Receipt';
+  const entryTabLabel = isMobile ? 'Capture' : 'Upload Receipt';
   const entryTabIcon = isMobile 
     ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`
     : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`;
@@ -7798,7 +7824,11 @@ function renderReceiptVaultPage() {
 
   // Render specific subview
   if (receiptVaultState.activeView === 'capture') {
-    renderReceiptCaptureView();
+    if (isMobile) {
+      renderMobileCaptureChoiceView();
+    } else {
+      renderReceiptCaptureView();
+    }
   } else if (receiptVaultState.activeView === 'upload') {
     renderReceiptUploadView();
   } else if (receiptVaultState.activeView === 'preview') {
@@ -7806,6 +7836,86 @@ function renderReceiptVaultPage() {
   } else {
     renderCapturedReceiptsView();
   }
+}
+
+// --- SUBVIEW 1M: MOBILE CAPTURE CHOICE SCREEN (Native Camera & Gallery Buttons) ---
+function renderMobileCaptureChoiceView() {
+  const container = document.getElementById('receipt-vault-view-container');
+  if (!container) return;
+
+  stopReceiptCamera();
+  const receiptCount = receiptVaultState.receipts.length;
+
+  container.innerHTML = `
+    <div class="receipt-mobile-capture-shell">
+      <div class="receipt-mobile-card">
+        <div class="receipt-mobile-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;color:var(--accent-green);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+        </div>
+        <h3 class="receipt-mobile-title">Capture Receipt</h3>
+        <p class="receipt-mobile-subtitle">
+          Snap a receipt with your camera or select an existing photo from your library.
+        </p>
+
+        <div class="receipt-mobile-button-stack">
+          <!-- Button 1: Native Camera Launch -->
+          <label for="mobile-native-camera-input" class="btn-mobile-action btn-mobile-camera">
+            <span class="btn-action-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:26px;height:26px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            </span>
+            <span class="btn-action-text">
+              <span class="btn-action-primary">Take Receipt Photo</span>
+              <span class="btn-action-sub">Opens device camera</span>
+            </span>
+          </label>
+          <input type="file" id="mobile-native-camera-input" accept="image/*" capture="environment" style="display: none;">
+
+          <!-- Button 2: Upload from Photos / Files -->
+          <label for="mobile-gallery-input" class="btn-mobile-action btn-mobile-gallery">
+            <span class="btn-action-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:26px;height:26px;color:var(--accent-green);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            </span>
+            <span class="btn-action-text">
+              <span class="btn-action-primary">Upload from Photos / Files</span>
+              <span class="btn-action-sub">Choose from photo library or files</span>
+            </span>
+          </label>
+          <input type="file" id="mobile-gallery-input" accept="image/*" style="display: none;">
+        </div>
+
+        <button type="button" class="btn-link-captured" id="btn-mobile-goto-captured">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          View Captured Receipts (${receiptCount})
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Native camera file input listener
+  const cameraInput = document.getElementById('mobile-native-camera-input');
+  if (cameraInput) {
+    cameraInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleReceiptFileInput(e.target.files[0]);
+      }
+    });
+  }
+
+  // Gallery/Files input listener
+  const galleryInput = document.getElementById('mobile-gallery-input');
+  if (galleryInput) {
+    galleryInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleReceiptFileInput(e.target.files[0]);
+      }
+    });
+  }
+
+  // Go to captured receipts
+  document.getElementById('btn-mobile-goto-captured')?.addEventListener('click', () => {
+    receiptVaultState.activeView = 'captured-receipts';
+    renderReceiptVaultPage();
+  });
 }
 
 // --- SUBVIEW 1A: DESKTOP UPLOAD VIEW (Prominent Upload Button & Drag/Drop) ---
@@ -8308,18 +8418,23 @@ async function saveCurrentReceipt() {
       createdAt: new Date().toISOString()
     };
 
-    await addDoc(collection(db, "receipts"), receiptDoc);
+    // Use setDoc so the Firestore document ID is guaranteed identical to docId
+    await setDoc(doc(db, "receipts", docId), receiptDoc);
 
-    // Update local state immediately so user sees it right away
-    if (!receiptVaultState.receipts.some(r => r.id === docId)) {
+    // Update local state immediately without duplication
+    const existingIndex = receiptVaultState.receipts.findIndex(r => r.id === docId);
+    if (existingIndex === -1) {
       receiptVaultState.receipts.unshift(receiptDoc);
+    } else {
+      receiptVaultState.receipts[existingIndex] = receiptDoc;
     }
 
     // Cache locally
     try {
       const local = JSON.parse(localStorage.getItem('HGS_RECEIPTS_LOCAL')) || [];
-      local.unshift(receiptDoc);
-      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(local.slice(0, 15)));
+      const filteredLocal = local.filter(r => r.id !== docId);
+      filteredLocal.unshift(receiptDoc);
+      localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(filteredLocal.slice(0, 15)));
     } catch (e) {}
 
     showToast('✓ Receipt photo saved successfully!');
@@ -8353,9 +8468,26 @@ function renderCapturedReceiptsView() {
 
   const activeUser = getActiveUser();
   const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
+  const isMobile = isMobileOrTabletDevice();
 
-  // Filter receipts by search, year, month, and ownership
-  let receiptsList = [...receiptVaultState.receipts];
+  // Mobile defaults to clean grid view
+  if (isMobile && receiptVaultState.finderLayout !== 'grid') {
+    receiptVaultState.finderLayout = 'grid';
+  }
+
+  // Filter receipts by search, year, month, and ownership with strict deduplication
+  const seenIds = new Set();
+  const seenSignatures = new Set();
+  let receiptsList = [];
+
+  for (const r of receiptVaultState.receipts) {
+    if (!r || !r.id || seenIds.has(r.id)) continue;
+    const sig = `${r.userId || ''}_${r.receiptDate || ''}_${r.fileSize || 0}_${(r.notes || '').trim()}`;
+    if (r.fileSize && seenSignatures.has(sig)) continue;
+    seenIds.add(r.id);
+    if (r.fileSize) seenSignatures.add(sig);
+    receiptsList.push(r);
+  }
 
   // Ownership filtering: non-admins only see their own receipts
   if (!isAdminUser && auth.currentUser) {
@@ -8607,10 +8739,17 @@ function renderCapturedReceiptsView() {
         container.querySelectorAll('.receipt-card-item, .receipts-table-row').forEach(c => c.classList.remove('active-selection'));
         el.classList.add('active-selection');
         const r = receiptsList.find(item => item.id === id);
-        const inspector = document.getElementById('finder-inspector-pane');
-        if (inspector && r) {
-          inspector.innerHTML = renderInspectorHTML(r, isAdminUser);
-          attachInspectorListeners(r);
+
+        if (isMobileOrTabletDevice()) {
+          // On mobile: tap opens the full details and large image in a slide-up sheet modal!
+          if (r) openMobileReceiptDetailModal(r, isAdminUser);
+        } else {
+          // On desktop: update inspector pane
+          const inspector = document.getElementById('finder-inspector-pane');
+          if (inspector && r) {
+            inspector.innerHTML = renderInspectorHTML(r, isAdminUser);
+            attachInspectorListeners(r);
+          }
         }
       }
     });
@@ -8727,6 +8866,122 @@ function attachInspectorListeners(receipt) {
   });
 }
 
+// --- Mobile Tap-to-View Receipt Detail Sheet Modal ---
+function openMobileReceiptDetailModal(receipt, isAdminUser) {
+  const existing = document.getElementById('receipt-mobile-detail-modal');
+  if (existing) existing.remove();
+
+  const dateFormatted = formatReceiptDate(receipt.receiptDate);
+  const sizeKB = receipt.fileSize ? Math.round(receipt.fileSize / 1024) + ' KB' : '—';
+
+  const modal = document.createElement('div');
+  modal.id = 'receipt-mobile-detail-modal';
+  modal.className = 'receipt-mobile-detail-overlay';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+
+  modal.innerHTML = `
+    <div class="receipt-mobile-detail-sheet">
+      <div class="receipt-mobile-detail-header">
+        <div class="detail-header-info">
+          <h4 class="detail-header-title">Receipt Details</h4>
+          <span class="detail-header-date">${escapeHTML(dateFormatted)}</span>
+        </div>
+        <button type="button" class="btn-close-detail" id="btn-close-mobile-detail" aria-label="Close">&times;</button>
+      </div>
+      <div class="receipt-mobile-detail-body">
+        <div class="inspector-card" style="border: none; background: transparent; padding: 0;">
+          <div class="inspector-preview-wrap" id="mobile-detail-zoom-trigger">
+            <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt photo" class="inspector-img">
+            <span class="inspector-zoom-hint">Tap photo to view full size</span>
+          </div>
+
+          <div class="inspector-info-group" style="padding-top: 0.5rem;">
+            <div class="inspector-meta-row">
+              <label class="inspector-label">Receipt Date</label>
+              <div class="inspector-inline-edit">
+                <input type="date" id="mobile-detail-date-input" class="form-control inspector-date-field" value="${escapeHTML(receipt.receiptDate || '')}">
+                <button type="button" class="btn-ios-small" id="btn-mobile-save-date">Save Date</button>
+              </div>
+            </div>
+
+            <div class="inspector-meta-row" style="margin-top: 0.85rem;">
+              <label class="inspector-label">Notes</label>
+              <textarea id="mobile-detail-notes-input" class="form-control inspector-notes-field" rows="3" placeholder="Add notes...">${escapeHTML(receipt.notes || '')}</textarea>
+              <button type="button" class="btn-ios-small" id="btn-mobile-save-notes" style="align-self: flex-end; margin-top: 4px;">Save Notes</button>
+            </div>
+
+            <div class="inspector-details-table">
+              <div class="detail-row">
+                <span class="detail-key">File Size</span>
+                <span class="detail-val">${sizeKB}</span>
+              </div>
+              ${isAdminUser ? `
+                <div class="detail-row">
+                  <span class="detail-key">Captured By</span>
+                  <span class="detail-val">${escapeHTML(receipt.userName || receipt.userEmail || 'Unknown')}</span>
+                </div>
+              ` : ''}
+              <div class="detail-row">
+                <span class="detail-key">Uploaded At</span>
+                <span class="detail-val">${new Date(receipt.createdAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            </div>
+
+            <div class="inspector-actions">
+              <a href="${escapeHTML(receipt.downloadUrl)}" target="_blank" download="receipt_${receipt.receiptDate}_${receipt.id}.jpg" class="btn-ios inspector-btn-download">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download JPEG
+              </a>
+              <button type="button" class="btn-ios btn-ios-danger inspector-btn-delete" id="btn-mobile-delete-receipt" data-id="${receipt.id}">
+                Delete Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const closeModal = () => {
+    modal.remove();
+  };
+
+  document.getElementById('btn-close-mobile-detail')?.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  document.getElementById('mobile-detail-zoom-trigger')?.addEventListener('click', () => {
+    openReceiptZoomModal(receipt);
+  });
+
+  document.getElementById('btn-mobile-save-date')?.addEventListener('click', async () => {
+    const newDate = document.getElementById('mobile-detail-date-input')?.value;
+    if (newDate) {
+      await updateReceiptMetadata(receipt.id, { receiptDate: newDate });
+      receipt.receiptDate = newDate;
+      const dateEl = modal.querySelector('.detail-header-date');
+      if (dateEl) dateEl.textContent = formatReceiptDate(newDate);
+    }
+  });
+
+  document.getElementById('btn-mobile-save-notes')?.addEventListener('click', async () => {
+    const newNotes = document.getElementById('mobile-detail-notes-input')?.value || '';
+    await updateReceiptMetadata(receipt.id, { notes: newNotes.trim() });
+    receipt.notes = newNotes.trim();
+  });
+
+  document.getElementById('btn-mobile-delete-receipt')?.addEventListener('click', async () => {
+    if (confirm('Are you sure you want to permanently delete this receipt?')) {
+      closeModal();
+      await deleteReceiptRecord(receipt.id, receipt.storagePath);
+    }
+  });
+}
+
 // Format date helper: "2026-09-23" -> "Sep 23, 2026"
 function formatReceiptDate(isoStr) {
   if (!isoStr) return 'No Date';
@@ -8765,7 +9020,9 @@ function subscribeToReceipts() {
     // Try localStorage cache first for instantaneous load
     const cached = localStorage.getItem('HGS_RECEIPTS_LOCAL');
     if (cached) {
-      receiptVaultState.receipts = JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      const seenCached = new Set();
+      receiptVaultState.receipts = (Array.isArray(parsed) ? parsed : []).filter(p => p && p.id && !seenCached.has(p.id) && seenCached.add(p.id));
     }
   } catch (e) {}
 
@@ -8780,11 +9037,15 @@ function subscribeToReceipts() {
   }
   
   receiptVaultState.unsubscribeReceipts = onSnapshot(q, (snapshot) => {
+    const seen = new Set();
     const items = [];
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       data.id = docSnap.id;
-      items.push(data);
+      if (!seen.has(data.id)) {
+        seen.add(data.id);
+        items.push(data);
+      }
     });
 
     receiptVaultState.receipts = items;
