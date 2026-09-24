@@ -7671,6 +7671,8 @@ const receiptVaultState = {
   mediaStream: null,
   capturedBlob: null,
   capturedDataUrl: null,
+  capturedFileType: null, // 'image' | 'pdf'
+  capturedFileName: '',
   capturedDate: '',
   capturedNotes: '',
   receipts: [],
@@ -7686,6 +7688,15 @@ const receiptVaultState = {
   zoomModalReceipt: null,
   unsubscribeReceipts: null
 };
+
+// Check if a receipt record or captured item is a PDF
+function isPdfReceipt(receipt) {
+  if (!receipt) return false;
+  return receipt.fileType === 'pdf' ||
+    receipt.mimeType === 'application/pdf' ||
+    Boolean(receipt.storagePath && receipt.storagePath.toLowerCase().endsWith('.pdf')) ||
+    Boolean(receipt.downloadUrl && (receipt.downloadUrl.toLowerCase().includes('.pdf') || receipt.downloadUrl.startsWith('data:application/pdf')));
+}
 
 // Date utility for local timezone (YYYY-MM-DD)
 function getTodayISODate() {
@@ -7773,6 +7784,8 @@ function closeReceiptVaultPage(restoreGrid = true) {
 
   receiptVaultState.capturedBlob = null;
   receiptVaultState.capturedDataUrl = null;
+  receiptVaultState.capturedFileType = null;
+  receiptVaultState.capturedFileName = '';
   receiptVaultState.capturedNotes = '';
   receiptVaultState.selectedForBatch.clear();
 
@@ -7947,10 +7960,10 @@ function renderMobileCaptureChoiceView() {
             </span>
             <span class="btn-action-text">
               <span class="btn-action-primary">Upload from Photos / Files</span>
-              <span class="btn-action-sub">Choose from photo library or files</span>
+              <span class="btn-action-sub">Choose from photos or PDF documents</span>
             </span>
           </label>
-          <input type="file" id="mobile-gallery-input" accept="image/*" style="display: none;">
+          <input type="file" id="mobile-gallery-input" accept="image/*,application/pdf" style="display: none;">
         </div>
 
         <button type="button" class="btn-link-captured" id="btn-mobile-goto-captured">
@@ -8016,19 +8029,19 @@ function renderReceiptUploadView() {
         <div class="receipt-upload-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="width:40px;height:40px;color:var(--accent-green);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
         </div>
-        <h3 class="receipt-upload-title">Upload Receipt Photo</h3>
+        <h3 class="receipt-upload-title">Upload Receipt (Photo or PDF)</h3>
         <p class="receipt-upload-subtitle">
-          Drag and drop your receipt image here, or click the button below to browse from your computer.
+          Drag and drop your receipt image or PDF here, or click the button below to browse from your computer.
         </p>
 
         <label for="receipt-file-picker-input" class="btn-ios btn-ios-accent receipt-upload-cta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          Choose Receipt Photo
+          Choose Receipt (Photo or PDF)
         </label>
-        <input type="file" id="receipt-file-picker-input" accept="image/*" style="display: none;">
+        <input type="file" id="receipt-file-picker-input" accept="image/*,application/pdf" style="display: none;">
 
         <div class="receipt-upload-footer">
-          <span>Supports JPEG, PNG, HEIC, WebP</span>
+          <span>Supports JPEG, PNG, HEIC, WebP, PDF</span>
           <span class="upload-footer-dot">•</span>
           <button type="button" class="btn-link-subtle" id="btn-switch-to-webcam">
             Use Webcam / Camera
@@ -8069,7 +8082,7 @@ function renderReceiptUploadView() {
     dropZone.addEventListener('drop', (e) => {
       const dt = e.dataTransfer;
       const files = dt ? dt.files : null;
-      if (files && files[0] && files[0].type.startsWith('image/')) {
+      if (files && files[0] && (files[0].type.startsWith('image/') || files[0].type === 'application/pdf' || files[0].name.toLowerCase().endsWith('.pdf'))) {
         handleReceiptFileInput(files[0]);
       }
     });
@@ -8273,11 +8286,41 @@ function capturePhotoFromStream() {
 }
 
 async function handleReceiptFileInput(file) {
+  if (!file) return;
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+  if (isPdf) {
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('PDF file exceeds maximum 15MB size limit.', false);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      stopReceiptCamera();
+      receiptVaultState.capturedBlob = file;
+      receiptVaultState.capturedDataUrl = e.target.result;
+      receiptVaultState.capturedFileType = 'pdf';
+      receiptVaultState.capturedFileName = file.name || 'receipt.pdf';
+      receiptVaultState.capturedDate = getTodayISODate();
+      receiptVaultState.capturedNotes = '';
+      receiptVaultState.activeView = 'preview';
+      renderReceiptVaultPage();
+    };
+    reader.onerror = (err) => {
+      console.error('PDF file load error:', err);
+      showToast('Failed to load PDF file.', false);
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
+
   try {
     const { blob, dataUrl } = await compressImageToBlob(file, 0.75, 1280);
     stopReceiptCamera();
     receiptVaultState.capturedBlob = blob;
     receiptVaultState.capturedDataUrl = dataUrl;
+    receiptVaultState.capturedFileType = 'image';
+    receiptVaultState.capturedFileName = file.name || 'receipt.jpg';
     receiptVaultState.capturedDate = getTodayISODate();
     receiptVaultState.capturedNotes = '';
     receiptVaultState.activeView = 'preview';
@@ -8340,15 +8383,32 @@ function renderReceiptPreviewView() {
   const dataUrl = receiptVaultState.capturedDataUrl || '';
   const dateVal = receiptVaultState.capturedDate || getTodayISODate();
   const notesVal = receiptVaultState.capturedNotes || '';
+  const isPdf = receiptVaultState.capturedFileType === 'pdf' || (receiptVaultState.capturedFileName && receiptVaultState.capturedFileName.toLowerCase().endsWith('.pdf'));
 
   container.innerHTML = `
     <div class="receipt-preview-shell">
       <!-- 1. Captured Photo Preview Container -->
       <div class="receipt-preview-media">
-        <img src="${dataUrl}" alt="Captured receipt preview" class="receipt-preview-img" id="receipt-preview-img">
-        <button type="button" class="receipt-expand-btn" id="btn-expand-preview" title="Expand Preview">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-        </button>
+        ${isPdf ? `
+          <div class="receipt-preview-pdf-embed-box">
+            <object data="${dataUrl}#toolbar=0" type="application/pdf" class="receipt-preview-pdf-embed">
+              <div class="receipt-preview-pdf-fallback">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="receipt-pdf-icon-large"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12h4"></path><path d="M10 16h4"></path></svg>
+                <span class="receipt-card-pdf-tag" style="margin-bottom: 4px;">PDF DOCUMENT</span>
+                <span class="receipt-preview-pdf-name">${escapeHTML(receiptVaultState.capturedFileName || 'Receipt Document.pdf')}</span>
+                <span class="receipt-preview-pdf-size">${receiptVaultState.capturedBlob ? Math.round(receiptVaultState.capturedBlob.size / 1024) + ' KB' : ''}</span>
+              </div>
+            </object>
+            <button type="button" class="receipt-expand-btn" id="btn-expand-preview" title="Open Fullscreen Preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            </button>
+          </div>
+        ` : `
+          <img src="${dataUrl}" alt="Captured receipt preview" class="receipt-preview-img" id="receipt-preview-img">
+          <button type="button" class="receipt-expand-btn" id="btn-expand-preview" title="Expand Preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          </button>
+        `}
       </div>
 
       <!-- 2. Immediate Action Buttons Bar: Save / Discard / Re-take -->
@@ -8407,7 +8467,9 @@ function renderReceiptPreviewView() {
       openReceiptZoomModal({
         downloadUrl: receiptVaultState.capturedDataUrl,
         receiptDate: receiptVaultState.capturedDate,
-        notes: receiptVaultState.capturedNotes
+        notes: receiptVaultState.capturedNotes,
+        fileType: receiptVaultState.capturedFileType,
+        fileName: receiptVaultState.capturedFileName
       });
     });
   }
@@ -8419,6 +8481,8 @@ function renderReceiptPreviewView() {
   document.getElementById('btn-receipt-retake').addEventListener('click', () => {
     receiptVaultState.capturedBlob = null;
     receiptVaultState.capturedDataUrl = null;
+    receiptVaultState.capturedFileType = null;
+    receiptVaultState.capturedFileName = '';
     receiptVaultState.activeView = isMobileOrTabletDevice() ? 'capture' : 'upload';
     renderReceiptVaultPage();
   });
@@ -8427,6 +8491,8 @@ function renderReceiptPreviewView() {
   document.getElementById('btn-receipt-discard').addEventListener('click', () => {
     receiptVaultState.capturedBlob = null;
     receiptVaultState.capturedDataUrl = null;
+    receiptVaultState.capturedFileType = null;
+    receiptVaultState.capturedFileName = '';
     receiptVaultState.capturedNotes = '';
     receiptVaultState.activeView = isMobileOrTabletDevice() ? 'capture' : 'upload';
     renderReceiptVaultPage();
@@ -8460,6 +8526,9 @@ async function saveCurrentReceipt() {
   }
 
   try {
+    const isPdf = receiptVaultState.capturedFileType === 'pdf' || (receiptVaultState.capturedFileName && receiptVaultState.capturedFileName.toLowerCase().endsWith('.pdf'));
+    const fileExt = isPdf ? 'pdf' : 'jpg';
+    const contentType = isPdf ? 'application/pdf' : 'image/jpeg';
     const docId = `rec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     let downloadUrl = receiptVaultState.capturedDataUrl;
     let storagePath = 'firestore_direct';
@@ -8467,10 +8536,10 @@ async function saveCurrentReceipt() {
     // Attempt Firebase Cloud Storage upload if available, but fallback gracefully to direct Firestore
     try {
       if (storage && receiptVaultState.capturedBlob) {
-        const potentialPath = `receipts/${currentUser.uid}/${docId}.jpg`;
+        const potentialPath = `receipts/${currentUser.uid}/${docId}.${fileExt}`;
         const imageRef = storageRef(storage, potentialPath);
         const uploadResult = await uploadBytes(imageRef, receiptVaultState.capturedBlob, {
-          contentType: 'image/jpeg',
+          contentType: contentType,
           customMetadata: {
             userId: currentUser.uid,
             receiptDate: dateVal
@@ -8497,6 +8566,8 @@ async function saveCurrentReceipt() {
       userName: activeUser?.name || currentUser.displayName || currentUser.email || '4HGS User',
       receiptDate: dateVal,
       notes: notesVal.trim(),
+      fileType: isPdf ? 'pdf' : 'image',
+      fileName: receiptVaultState.capturedFileName || (isPdf ? `receipt_${dateVal}.pdf` : `receipt_${dateVal}.jpg`),
       storagePath: storagePath,
       downloadUrl: downloadUrl,
       fileSize: fileSize,
@@ -8522,11 +8593,13 @@ async function saveCurrentReceipt() {
       localStorage.setItem('HGS_RECEIPTS_LOCAL', JSON.stringify(filteredLocal.slice(0, 15)));
     } catch (e) {}
 
-    showToast('✓ Receipt photo saved successfully!');
+    showToast('✓ Receipt saved successfully!');
 
     // Reset capture state
     receiptVaultState.capturedBlob = null;
     receiptVaultState.capturedDataUrl = null;
+    receiptVaultState.capturedFileType = null;
+    receiptVaultState.capturedFileName = '';
     receiptVaultState.capturedNotes = '';
     receiptVaultState.isUploading = false;
 
@@ -8701,8 +8774,15 @@ function renderCapturedReceiptsView() {
                     <div class="receipt-card-check-wrap">
                       <input type="checkbox" class="finder-item-checkbox" data-id="${receipt.id}" ${isChecked ? 'checked' : ''} aria-label="Select receipt">
                     </div>
-                    <div class="receipt-card-thumb-wrap">
-                      <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt thumbnail" class="receipt-card-thumb-img" loading="lazy">
+                    <div class="receipt-card-thumb-wrap ${isPdfReceipt(receipt) ? 'receipt-card-thumb-pdf' : ''}">
+                      ${isPdfReceipt(receipt) ? `
+                        <div class="receipt-pdf-thumb-content">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="receipt-card-pdf-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12h4"></path><path d="M10 16h4"></path></svg>
+                          <span class="receipt-card-pdf-tag">PDF</span>
+                        </div>
+                      ` : `
+                        <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt thumbnail" class="receipt-card-thumb-img" loading="lazy">
+                      `}
                     </div>
                     <div class="receipt-card-meta">
                       <span class="receipt-card-date">${escapeHTML(dateDisplay)}</span>
@@ -8719,7 +8799,7 @@ function renderCapturedReceiptsView() {
                 <thead>
                   <tr>
                     <th style="width: 38px;"></th>
-                    <th style="width: 50px;">Photo</th>
+                    <th style="width: 50px;">File</th>
                     <th>Date</th>
                     <th>Notes</th>
                     ${isAdminUser ? `<th>Captured By</th>` : ''}
@@ -8739,7 +8819,14 @@ function renderCapturedReceiptsView() {
                           <input type="checkbox" class="finder-item-checkbox" data-id="${receipt.id}" ${isChecked ? 'checked' : ''} aria-label="Select receipt">
                         </td>
                         <td>
-                          <img src="${escapeHTML(receipt.downloadUrl)}" class="receipts-table-thumb" alt="thumbnail" loading="lazy">
+                          ${isPdfReceipt(receipt) ? `
+                            <div class="receipts-table-pdf-thumb" title="PDF Document">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                              <span>PDF</span>
+                            </div>
+                          ` : `
+                            <img src="${escapeHTML(receipt.downloadUrl)}" class="receipts-table-thumb" alt="thumbnail" loading="lazy">
+                          `}
                         </td>
                         <td class="receipts-table-date">${escapeHTML(dateDisplay)}</td>
                         <td class="receipts-table-notes">${escapeHTML(receipt.notes || '—')}</td>
@@ -8868,12 +8955,22 @@ function renderCapturedReceiptsView() {
 function renderInspectorHTML(receipt, isAdminUser) {
   const dateFormatted = formatReceiptDate(receipt.receiptDate);
   const sizeKB = receipt.fileSize ? Math.round(receipt.fileSize / 1024) + ' KB' : '—';
+  const isPdf = isPdfReceipt(receipt);
+  const fileExt = isPdf ? 'pdf' : 'jpg';
 
   return `
     <div class="inspector-card">
-      <div class="inspector-preview-wrap" id="btn-zoom-inspector">
-        <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt inspector view" class="inspector-img">
-        <span class="inspector-zoom-hint">Click to enlarge</span>
+      <div class="inspector-preview-wrap ${isPdf ? 'inspector-preview-pdf-wrap' : ''}" id="btn-zoom-inspector">
+        ${isPdf ? `
+          <div class="inspector-pdf-icon-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="inspector-pdf-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12h4"></path><path d="M10 16h4"></path></svg>
+            <span class="inspector-pdf-title">${escapeHTML(receipt.fileName || 'PDF Document')}</span>
+          </div>
+          <span class="inspector-zoom-hint">Click to preview PDF</span>
+        ` : `
+          <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt inspector view" class="inspector-img">
+          <span class="inspector-zoom-hint">Click to enlarge</span>
+        `}
       </div>
 
       <div class="inspector-info-group">
@@ -8893,6 +8990,10 @@ function renderInspectorHTML(receipt, isAdminUser) {
 
         <div class="inspector-details-table">
           <div class="detail-row">
+            <span class="detail-key">Format</span>
+            <span class="detail-val">${isPdf ? 'PDF Document' : 'JPEG Image'}</span>
+          </div>
+          <div class="detail-row">
             <span class="detail-key">File Size</span>
             <span class="detail-val">${sizeKB}</span>
           </div>
@@ -8910,9 +9011,9 @@ function renderInspectorHTML(receipt, isAdminUser) {
 
         <!-- Inspector Actions -->
         <div class="inspector-actions">
-          <a href="${escapeHTML(receipt.downloadUrl)}" target="_blank" download="receipt_${receipt.receiptDate}_${receipt.id}.jpg" class="btn-ios inspector-btn-download">
+          <a href="${escapeHTML(receipt.downloadUrl)}" target="_blank" download="receipt_${receipt.receiptDate}_${receipt.id}.${fileExt}" class="btn-ios inspector-btn-download">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Download JPEG
+            Download ${isPdf ? 'PDF' : 'JPEG'}
           </a>
           <button type="button" class="btn-ios btn-ios-danger inspector-btn-delete" id="btn-delete-receipt" data-id="${receipt.id}">
             Delete Receipt
@@ -8958,6 +9059,8 @@ function openMobileReceiptDetailModal(receipt, isAdminUser) {
 
   const dateFormatted = formatReceiptDate(receipt.receiptDate);
   const sizeKB = receipt.fileSize ? Math.round(receipt.fileSize / 1024) + ' KB' : '—';
+  const isPdf = isPdfReceipt(receipt);
+  const fileExt = isPdf ? 'pdf' : 'jpg';
 
   const modal = document.createElement('div');
   modal.id = 'receipt-mobile-detail-modal';
@@ -8976,9 +9079,17 @@ function openMobileReceiptDetailModal(receipt, isAdminUser) {
       </div>
       <div class="receipt-mobile-detail-body">
         <div class="inspector-card" style="border: none; background: transparent; padding: 0;">
-          <div class="inspector-preview-wrap" id="mobile-detail-zoom-trigger">
-            <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt photo" class="inspector-img">
-            <span class="inspector-zoom-hint">Tap photo to view full size</span>
+          <div class="inspector-preview-wrap ${isPdf ? 'inspector-preview-pdf-wrap' : ''}" id="mobile-detail-zoom-trigger">
+            ${isPdf ? `
+              <div class="inspector-pdf-icon-card">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="inspector-pdf-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12h4"></path><path d="M10 16h4"></path></svg>
+                <span class="inspector-pdf-title">${escapeHTML(receipt.fileName || 'PDF Document')}</span>
+              </div>
+              <span class="inspector-zoom-hint">Tap to preview PDF</span>
+            ` : `
+              <img src="${escapeHTML(receipt.downloadUrl)}" alt="Receipt photo" class="inspector-img">
+              <span class="inspector-zoom-hint">Tap photo to view full size</span>
+            `}
           </div>
 
           <div class="inspector-info-group" style="padding-top: 0.5rem;">
@@ -8998,6 +9109,10 @@ function openMobileReceiptDetailModal(receipt, isAdminUser) {
 
             <div class="inspector-details-table">
               <div class="detail-row">
+                <span class="detail-key">Format</span>
+                <span class="detail-val">${isPdf ? 'PDF Document' : 'JPEG Image'}</span>
+              </div>
+              <div class="detail-row">
                 <span class="detail-key">File Size</span>
                 <span class="detail-val">${sizeKB}</span>
               </div>
@@ -9014,9 +9129,9 @@ function openMobileReceiptDetailModal(receipt, isAdminUser) {
             </div>
 
             <div class="inspector-actions">
-              <a href="${escapeHTML(receipt.downloadUrl)}" target="_blank" download="receipt_${receipt.receiptDate}_${receipt.id}.jpg" class="btn-ios inspector-btn-download">
+              <a href="${escapeHTML(receipt.downloadUrl)}" target="_blank" download="receipt_${receipt.receiptDate}_${receipt.id}.${fileExt}" class="btn-ios inspector-btn-download">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Download JPEG
+                Download ${isPdf ? 'PDF' : 'JPEG'}
               </a>
               <button type="button" class="btn-ios btn-ios-danger inspector-btn-delete" id="btn-mobile-delete-receipt" data-id="${receipt.id}">
                 Delete Receipt
@@ -9085,16 +9200,46 @@ function openReceiptZoomModal(receipt) {
   const modal = document.getElementById('receipt-zoom-modal');
   const img = document.getElementById('receipt-zoom-image');
   const title = document.getElementById('receipt-zoom-title');
-  if (!modal || !img) return;
+  const body = modal?.querySelector('.receipt-zoom-body');
+  if (!modal) return;
 
-  img.src = receipt.downloadUrl;
-  if (title) title.textContent = `${formatReceiptDate(receipt.receiptDate)} - ${receipt.notes || 'Receipt Photo'}`;
+  const isPdf = isPdfReceipt(receipt);
+  if (title) title.textContent = `${formatReceiptDate(receipt.receiptDate)} - ${receipt.notes || (isPdf ? 'PDF Document' : 'Receipt Photo')}`;
+
+  if (isPdf) {
+    if (img) img.style.display = 'none';
+    let frame = document.getElementById('receipt-zoom-pdf-frame');
+    if (!frame && body) {
+      frame = document.createElement('iframe');
+      frame.id = 'receipt-zoom-pdf-frame';
+      frame.className = 'receipt-zoom-pdf-frame';
+      body.appendChild(frame);
+    }
+    if (frame) {
+      frame.style.display = 'block';
+      frame.src = receipt.downloadUrl;
+    }
+  } else {
+    const frame = document.getElementById('receipt-zoom-pdf-frame');
+    if (frame) {
+      frame.style.display = 'none';
+      frame.src = '';
+    }
+    if (img) {
+      img.style.display = 'block';
+      img.src = receipt.downloadUrl;
+    }
+  }
   modal.style.display = 'flex';
 }
 
 function closeReceiptZoomModal() {
   const modal = document.getElementById('receipt-zoom-modal');
-  if (modal) modal.style.display = 'none';
+  if (modal) {
+    modal.style.display = 'none';
+    const frame = document.getElementById('receipt-zoom-pdf-frame');
+    if (frame) frame.src = '';
+  }
 }
 
 // Realtime / Initial Receipts collection listener
@@ -9246,7 +9391,9 @@ async function exportSelectedReceiptsAsZip(filteredReceiptsList) {
 
       const safeDate = (receipt.receiptDate || 'nodate').replace(/[^a-zA-Z0-9_-]/g, '');
       const safeId = (receipt.id || `rec_${i}`).replace(/[^a-zA-Z0-9_-]/g, '');
-      const filename = `receipt_${safeDate}_${safeId}.jpg`;
+      const isPdf = isPdfReceipt(receipt);
+      const ext = isPdf ? 'pdf' : 'jpg';
+      const filename = `receipt_${safeDate}_${safeId}.${ext}`;
 
       // Fetch image binary blob
       try {
