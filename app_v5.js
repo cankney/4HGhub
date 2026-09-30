@@ -4374,6 +4374,7 @@ function openForkliftChecklistHistoryPage() {
 }
 
 function closeForkliftChecklistHistoryPage(restoreGrid = true) {
+  closeChecklistSubmissionDetail();
   const panel = document.getElementById('forklift-checklist-history-page-inline');
   if (panel) panel.style.display = 'none';
 
@@ -5131,8 +5132,17 @@ function filterAndRenderHistoryCards() {
 }
 
 function openChecklistSubmissionDetail(submission) {
-  const overlay = document.getElementById('forklift-checklist-modal-overlay');
-  if (!overlay) return;
+  let overlay = document.getElementById('forklift-checklist-modal-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'forklift-checklist-modal-overlay';
+    overlay.className = 'forklift-checklist-modal-overlay';
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('role', 'dialog');
+    document.body.appendChild(overlay);
+  } else if (overlay.parentElement !== document.body) {
+    document.body.appendChild(overlay);
+  }
 
   const isFlagged = submission.hasFlagged;
   const items = submission.items || [];

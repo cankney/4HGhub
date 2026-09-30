@@ -26,7 +26,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/4hgs_logo.png">
   <link rel="apple-touch-icon-precomposed" href="assets/4hgs_logo.png">
 
-  <link rel="stylesheet" href="styles_v4.css?v=5.4.8">
+  <link rel="stylesheet" href="styles_v4.css?v=5.4.9">
 </head>
 <body>
 
@@ -233,10 +233,6 @@
           <!-- Injected dynamically by renderReceiptVaultPage() -->
         </div>
 
-        <!-- CHECKLIST DETAIL VIEW MODAL -->
-        <div class="forklift-checklist-modal-overlay" id="forklift-checklist-modal-overlay" style="display: none;" aria-modal="true" role="dialog">
-          <!-- Injected dynamically by openChecklistSubmissionDetail() -->
-        </div>
 
         <!-- INLINE ADMIN CONFIGURATION PANEL (Replaces Popup!) -->
         <div class="admin-panel-inline" id="admin-panel-inline" style="display: none;">
@@ -649,6 +645,11 @@
 
   </main>
 
+  <!-- CHECKLIST DETAIL VIEW MODAL -->
+  <div class="forklift-checklist-modal-overlay" id="forklift-checklist-modal-overlay" style="display: none;" aria-modal="true" role="dialog">
+    <!-- Injected dynamically by openChecklistSubmissionDetail() -->
+  </div>
+
   <!-- iOS / Mobile PWA Installation Guide Modal -->
   <div id="ios-install-modal" class="forklift-checklist-modal-overlay" style="display: none;" aria-modal="true" role="dialog">
     <div class="ios-install-sheet">
@@ -710,7 +711,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <!-- Loaded as ES Module to support Firebase SDK Imports natively -->
-  <script type="module" src="app_v5.js?v=5.4.8"></script>
+  <script type="module" src="app_v5.js?v=5.4.9"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>

@@ -4205,10 +4205,13 @@ body.light-mode .supervisor-sig-img {
 /* Submission Detail Modal Overlay */
 .forklift-checklist-modal-overlay {
   position: fixed;
+  inset: 0;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
