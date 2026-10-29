@@ -42,7 +42,7 @@ export function CalibrationOverlay({
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-auto max-w-2xl w-[92vw] p-3.5 rounded-2xl bg-slate-950/95 text-white border border-amber-500/40 shadow-2xl backdrop-blur-xl flex flex-wrap items-center justify-between gap-3">
+    <div className="fixed bottom-[calc(1rem+var(--safe-bottom))] left-1/2 -translate-x-1/2 z-40 pointer-events-auto max-w-2xl w-[92vw] p-3.5 rounded-2xl bg-slate-950/95 text-white border border-amber-500/40 shadow-2xl backdrop-blur-xl flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
           <Crosshair className="w-4 h-4 animate-spin" style={{ animationDuration: '8s' }} />
@@ -67,7 +67,7 @@ export function CalibrationOverlay({
           <>
             <button
               onClick={handleCopy}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1.5 touch-target rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center gap-1 cursor-pointer"
             >
               {copied ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -78,19 +78,19 @@ export function CalibrationOverlay({
             </button>
             <button
               onClick={() => onCreateMarkerAtPoint('inventory_bin', calibratedPoint)}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 text-slate-950 hover:bg-amber-400 flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1.5 touch-target rounded-xl text-xs font-semibold bg-amber-500 text-slate-950 hover:bg-amber-400 flex items-center justify-center gap-1 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" /> Bin Here
             </button>
             <button
               onClick={() => onCreateMarkerAtPoint('camera', calibratedPoint)}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500 text-slate-950 hover:bg-cyan-400 flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1.5 touch-target rounded-xl text-xs font-semibold bg-cyan-500 text-slate-950 hover:bg-cyan-400 flex items-center justify-center gap-1 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" /> Cam Here
             </button>
             <button
               onClick={() => onCreateMarkerAtPoint('network_ap', calibratedPoint)}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-slate-950 hover:bg-emerald-400 flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1.5 touch-target rounded-xl text-xs font-semibold bg-emerald-500 text-slate-950 hover:bg-emerald-400 flex items-center justify-center gap-1 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" /> AP Here
             </button>
@@ -100,7 +100,7 @@ export function CalibrationOverlay({
         {calibratedMeshIndex !== null && calibratedMeshIndex >= 0 && (
           <button
             onClick={() => onHideClickedMesh(calibratedMeshIndex)}
-            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500 hover:text-white cursor-pointer"
+            className="px-2.5 py-1.5 touch-target rounded-xl text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500 hover:text-white flex items-center justify-center cursor-pointer"
           >
             Hide Segment #{calibratedMeshIndex + 1}
           </button>
@@ -108,7 +108,7 @@ export function CalibrationOverlay({
 
         <button
           onClick={onClose}
-          className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+          className="p-1.5 touch-target flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>

@@ -39,6 +39,13 @@ import {
   CardinalFacing,
   applyCardinalOrientation,
 } from '@/lib/compass';
+import {
+  enterBrowserFullscreen,
+  exitBrowserFullscreen,
+  isBrowserFullscreen,
+  onFullscreenChange,
+} from '@/lib/fullscreen';
+import { SidebarToggleTab } from '@/components/ui/SidebarToggleTab';
 
 const WarehouseCanvas = dynamic(
   () =>
@@ -103,6 +110,11 @@ export default function WarehouseDigitalTwinPage() {
     position?: [number, number, number];
     timestamp: number;
   }>({ type: null, timestamp: 0 });
+
+  // Full Screen & Sidebar Layout States
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const enteredBrowserFs = React.useRef<boolean>(false);
 
   // Settings & ERP Integration States
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -188,6 +200,13 @@ export default function WarehouseDigitalTwinPage() {
 
       const savedLastUnifiSync = localStorage.getItem('waretrack_last_unifi_sync_time');
       if (savedLastUnifiSync) setLastUnifiSyncTime(savedLastUnifiSync);
+
+      const savedCollapsed = localStorage.getItem('waretrack_sidebar_collapsed');
+      if (savedCollapsed !== null) {
+        setIsSidebarCollapsed(savedCollapsed === 'true');
+      } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setIsSidebarCollapsed(true);
+      }
 
       const saved =
         localStorage.getItem(STORAGE_KEY) ||
@@ -1018,11 +1037,54 @@ export default function WarehouseDigitalTwinPage() {
     }
   };
 
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('waretrack_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleToggleFullscreen = async () => {
+    if (!isFullscreen) {
+      setIsFullscreen(true);
+      enteredBrowserFs.current = await enterBrowserFullscreen();
+    } else {
+      setIsFullscreen(false);
+      if (isBrowserFullscreen()) {
+        await exitBrowserFullscreen();
+      }
+      enteredBrowserFs.current = false;
+    }
+  };
+
+  useEffect(() => {
+    return onFullscreenChange(() => {
+      if (enteredBrowserFs.current && !isBrowserFullscreen()) {
+        enteredBrowserFs.current = false;
+        setIsFullscreen(false);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isBrowserFullscreen()) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isFullscreen]);
+
   const activeDisplayMode: DisplayMode =
     appMode === 'view' ? 'clean_shell' : displayMode;
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden">
+    <main className="relative w-full h-dvh overflow-hidden">
       <TopNavbar
         appMode={appMode}
         onAppModeChange={handleAppModeChange}
@@ -1052,11 +1114,15 @@ export default function WarehouseDigitalTwinPage() {
         totalMeshCount={meshOverrides.length}
         isSettingsOpen={isSettingsOpen}
         onToggleSettings={() => {
-          setIsSettingsOpen((prev) => !prev);
-          if (!isSettingsOpen) {
-            setSelectedBlueprintId(null);
-            setSelectedMarkerId(null);
-          }
+          setIsSettingsOpen((prev) => {
+            const next = !prev;
+            if (next) {
+              setIsSidebarCollapsed(false);
+              setSelectedBlueprintId(null);
+              setSelectedMarkerId(null);
+            }
+            return next;
+          });
         }}
         showCameraFeeds3D={showCameraFeeds3D}
         onToggleCameraFeeds3D={() => {
@@ -1082,6 +1148,8 @@ export default function WarehouseDigitalTwinPage() {
             return next;
           });
         }}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
       />
 
       <HudOverlays
@@ -1105,6 +1173,7 @@ export default function WarehouseDigitalTwinPage() {
         }
         onSelectMarker={(marker) => setSelectedMarkerId(marker.id)}
         selectedMarkerId={selectedMarkerId}
+        hidden={isFullscreen}
       />
 
       <WarehouseCanvas
@@ -1250,10 +1319,21 @@ export default function WarehouseDigitalTwinPage() {
         onUndo={handleUndo}
         onRedo={handleRedo}
         unifiConfig={unifiConfig}
+        isCollapsed={isSidebarCollapsed || isFullscreen}
       />
 
+      {!isFullscreen && (
+        <SidebarToggleTab
+          collapsed={isSidebarCollapsed}
+          hasSelection={Boolean(selectedMarkerId || selectedBlueprintId)}
+          theme={theme}
+          onToggle={handleToggleSidebar}
+        />
+      )}
+
       <SettingsDrawer
-        isOpen={isSettingsOpen}
+        isOpen={isSettingsOpen && !isFullscreen}
+        isCollapsed={isSidebarCollapsed || isFullscreen}
         onClose={() => setIsSettingsOpen(false)}
         theme={theme}
         onToggleTheme={() =>
@@ -1279,7 +1359,7 @@ export default function WarehouseDigitalTwinPage() {
       />
 
       <CalibrationOverlay
-        calibrationMode={calibrationMode}
+        calibrationMode={calibrationMode && !isFullscreen}
         calibratedPoint={calibratedPoint}
         calibratedMeshIndex={calibratedMeshIndex}
         onClose={() => setCalibrationMode(false)}
@@ -1293,7 +1373,7 @@ export default function WarehouseDigitalTwinPage() {
         }}
       />
 
-      {appMode === 'view' && (
+      {appMode === 'view' && !isFullscreen && (
         <FsdVisionSettingsPanel
           isOpen={isFsdSettingsOpen}
           onClose={() => setIsFsdSettingsOpen(false)}

@@ -10,7 +10,7 @@ import {
   useProgress,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { MOUSE } from 'three';
+import { MOUSE, TOUCH } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import {
   CutoutBox,
@@ -232,6 +232,10 @@ function CameraRig({
         MIDDLE: MOUSE.DOLLY,
         RIGHT: MOUSE.PAN,
       }}
+      touches={{
+        ONE: isPanActive ? TOUCH.PAN : TOUCH.ROTATE,
+        TWO: TOUCH.DOLLY_PAN,
+      }}
       minDistance={2.2}
       maxDistance={38}
       maxPolarAngle={Math.PI / 2 - 0.03} // Prevent going below ground plane
@@ -384,10 +388,11 @@ export function WarehouseCanvas({
   const bgColor = theme === 'daylight' ? '#e8eef7' : '#090d16';
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden select-none">
+    <div className="relative w-full h-dvh overflow-hidden select-none touch-none">
       <Canvas
+        dpr={[1, 2]}
         shadows="percentage"
-        gl={{ localClippingEnabled: true, antialias: true }}
+        gl={{ localClippingEnabled: true, antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: [13.5, 10.5, 14.5], fov: 40, near: 0.1, far: 150 }}
       >
         <color attach="background" args={[bgColor]} />

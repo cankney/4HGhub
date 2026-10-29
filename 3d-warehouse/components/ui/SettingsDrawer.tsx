@@ -86,6 +86,7 @@ interface SettingsDrawerProps {
   onSyncUnifi?: () => void;
   lastUnifiSyncTime?: string | null;
   unifiSyncStatusMsg?: { type: 'success' | 'error'; text: string } | null;
+  isCollapsed?: boolean;
 }
 
 export function SettingsDrawer({
@@ -110,6 +111,7 @@ export function SettingsDrawer({
   onSyncUnifi,
   lastUnifiSyncTime,
   unifiSyncStatusMsg,
+  isCollapsed = false,
 }: SettingsDrawerProps) {
   const isDark = theme === 'dark';
 
@@ -221,7 +223,9 @@ export function SettingsDrawer({
 
   return (
     <aside
-      className={`fixed top-20 right-4 bottom-4 w-92 sm:w-96 z-40 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden transition-all ${panelBg}`}
+      data-collapsed={isCollapsed}
+      inert={isCollapsed ? true : undefined}
+      className={`sidebar-panel z-40 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden ${panelBg}`}
     >
       {/* Header */}
       <div
@@ -242,7 +246,7 @@ export function SettingsDrawer({
         </div>
         <button
           onClick={onClose}
-          className={`p-1.5 rounded-xl transition cursor-pointer ${
+          className={`p-1.5 touch-target flex items-center justify-center rounded-xl transition cursor-pointer ${
             isDark
               ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
               : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'

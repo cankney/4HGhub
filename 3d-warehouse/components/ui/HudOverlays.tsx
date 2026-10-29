@@ -18,6 +18,7 @@ import {
 import { DisplayMode, FacilityMarker, MarkerType } from '@/lib/markers';
 import { formatFeetInches } from '@/lib/units';
 import { CardinalFacing, getCardinalMapping } from '@/lib/compass';
+import { FacilityAnchorsDock } from '@/components/ui/FacilityAnchorsDock';
 
 interface HudOverlaysProps {
   appMode: 'view' | 'edit';
@@ -36,6 +37,7 @@ interface HudOverlaysProps {
   onCameraAction: (action: 'reset' | 'zoom_in' | 'zoom_out' | 'top_down') => void;
   onSelectMarker: (marker: FacilityMarker) => void;
   selectedMarkerId: string | null;
+  hidden?: boolean;
 }
 
 export function HudOverlays({
@@ -55,7 +57,10 @@ export function HudOverlays({
   onCameraAction,
   onSelectMarker,
   selectedMarkerId,
+  hidden = false,
 }: HudOverlaysProps) {
+  if (hidden) return null;
+
   const isDark = theme === 'dark';
   const cardinalMapping = getCardinalMapping(cardinalFacing);
 
@@ -77,7 +82,7 @@ export function HudOverlays({
   return (
     <>
       {/* Top-Left KPI Row (Matches WareTrack Screenshot) */}
-      <div className="fixed top-20 left-4 z-20 pointer-events-none flex flex-wrap items-center gap-3">
+      <div className="fixed top-[var(--hud-top)] left-[calc(1rem+var(--safe-left))] z-20 pointer-events-none flex flex-wrap items-center gap-2.5 sm:gap-3">
         {/* Card 1: Stock on Hand */}
         <button
           onClick={() =>
@@ -85,26 +90,26 @@ export function HudOverlays({
               activeFilter === 'inventory_bin' ? 'all' : 'inventory_bin'
             )
           }
-          className={`pointer-events-auto text-left px-4 py-3 rounded-2xl border shadow-lg backdrop-blur-xl transition-all cursor-pointer flex items-center gap-3.5 ${cardClass} ${
+          className={`pointer-events-auto text-left px-3 py-2 sm:px-4 sm:py-3 rounded-2xl border shadow-lg backdrop-blur-xl transition-all cursor-pointer flex items-center gap-3 ${cardClass} ${
             activeFilter === 'inventory_bin' ? 'ring-2 ring-[#8DDB05]' : ''
           }`}
         >
-          <div className="w-10 h-10 rounded-xl bg-[#8DDB05]/15 border border-[#8DDB05]/30 flex items-center justify-center text-[#65a30d] dark:text-[#8DDB05]">
-            <Package className="w-5 h-5" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#8DDB05]/15 border border-[#8DDB05]/30 flex items-center justify-center text-[#65a30d] dark:text-[#8DDB05] shrink-0">
+            <Package className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
             <div className="text-[11px] font-medium text-slate-500">
               Stock on hand
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold tracking-tight">
+              <span className="text-base sm:text-lg font-bold tracking-tight">
                 {totalUnits.toLocaleString()}
               </span>
-              <span className="text-[11px] font-semibold text-[#65a30d] dark:text-[#8DDB05]">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-[#65a30d] dark:text-[#8DDB05]">
                 ↑ +18 today
               </span>
             </div>
-            <div className="text-[10px] text-slate-400">
+            <div className="text-[10px] text-slate-400 hidden lg:block">
               {bins.length} active zones • 4HG-01
             </div>
           </div>
@@ -115,26 +120,26 @@ export function HudOverlays({
           onClick={() =>
             onFilterChange(activeFilter === 'camera' ? 'all' : 'camera')
           }
-          className={`pointer-events-auto text-left px-4 py-3 rounded-2xl border shadow-lg backdrop-blur-xl transition-all cursor-pointer flex items-center gap-3.5 ${cardClass} ${
+          className={`pointer-events-auto text-left px-3 py-2 sm:px-4 sm:py-3 rounded-2xl border shadow-lg backdrop-blur-xl transition-all cursor-pointer flex items-center gap-3 ${cardClass} ${
             activeFilter === 'camera' ? 'ring-2 ring-cyan-500' : ''
           }`}
         >
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500">
-            <Camera className="w-5 h-5" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500 shrink-0">
+            <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
             <div className="text-[11px] font-medium text-slate-500">
               Vision Feeds
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold tracking-tight">
+              <span className="text-base sm:text-lg font-bold tracking-tight">
                 {onlineCams}/{cameras.length}
               </span>
-              <span className="text-[11px] font-semibold text-cyan-500">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-cyan-500">
                 RTSP 4K
               </span>
             </div>
-            <div className="text-[10px] text-slate-400">
+            <div className="text-[10px] text-slate-400 hidden lg:block">
               AI perimeter active • 4HG-01
             </div>
           </div>
@@ -145,24 +150,24 @@ export function HudOverlays({
           onClick={() =>
             onFilterChange(activeFilter === 'network_ap' ? 'all' : 'network_ap')
           }
-          className={`pointer-events-auto text-left px-4 py-3 rounded-2xl border shadow-lg backdrop-blur-xl transition-all cursor-pointer flex items-center gap-3.5 ${cardClass} ${
+          className={`pointer-events-auto text-left px-3 py-2 sm:px-4 sm:py-3 rounded-2xl border shadow-lg backdrop-blur-xl transition-all cursor-pointer flex items-center gap-3 ${cardClass} ${
             activeFilter === 'network_ap' ? 'ring-2 ring-emerald-500' : ''
           }`}
         >
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-            <Wifi className="w-5 h-5" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+            <Wifi className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
             <div className="text-[11px] font-medium text-slate-500">
               Mesh Telemetry
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold tracking-tight">99.8%</span>
-              <span className="text-[11px] font-semibold text-emerald-500">
+              <span className="text-base sm:text-lg font-bold tracking-tight">99.8%</span>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-emerald-500">
                 {totalClients} devices
               </span>
             </div>
-            <div className="text-[10px] text-slate-400">
+            <div className="text-[10px] text-slate-400 hidden lg:block">
               {aps.length} UniFi 6GHz APs • 4HG-01
             </div>
           </div>
@@ -170,48 +175,53 @@ export function HudOverlays({
       </div>
 
       {/* Left-Side Vertical Camera & Roof Cutaway Control Strip */}
-      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-20 flex flex-col items-start gap-2">
+      <div className="fixed left-[calc(1rem+var(--safe-left))] top-[calc(var(--hud-top)+5.5rem)] bottom-[calc(5rem+var(--safe-bottom))] z-20 flex flex-col items-start gap-2 overflow-y-auto pointer-events-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div
           className={`w-fit flex flex-col items-center p-1 rounded-2xl border shadow-lg backdrop-blur-xl gap-1 ${cardClass}`}
         >
           <button
             onClick={() => onCameraAction('zoom_in')}
-            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
+            className="w-8 h-8 pointer-coarse:w-11 pointer-coarse:h-11 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
             title="Zoom In"
+            aria-label="Zoom In"
           >
             <Plus className="w-4 h-4" />
           </button>
           <button
             onClick={() => onCameraAction('zoom_out')}
-            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
+            className="w-8 h-8 pointer-coarse:w-11 pointer-coarse:h-11 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
             title="Zoom Out"
+            aria-label="Zoom Out"
           >
             <Minus className="w-4 h-4" />
           </button>
           <div className="w-5 h-px bg-slate-200 dark:bg-slate-800 my-0.5" />
           <button
             onClick={() => onCameraAction('reset')}
-            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
+            className="w-8 h-8 pointer-coarse:w-11 pointer-coarse:h-11 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
             title="Reset Isometric View"
+            aria-label="Reset Isometric View"
           >
             <Home className="w-4 h-4" />
           </button>
           <button
             onClick={() => onCameraAction('top_down')}
-            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
+            className="w-8 h-8 pointer-coarse:w-11 pointer-coarse:h-11 flex items-center justify-center rounded-xl hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05] transition cursor-pointer"
             title="Top-Down Plan View"
+            aria-label="Top-Down Plan View"
           >
             <Compass className="w-4 h-4" />
           </button>
           <div className="w-5 h-px bg-slate-200 dark:bg-slate-800 my-0.5" />
           <button
             onClick={onTogglePanMode}
-            className={`w-8 h-8 flex items-center justify-center rounded-xl transition cursor-pointer ${
+            className={`w-8 h-8 pointer-coarse:w-11 pointer-coarse:h-11 flex items-center justify-center rounded-xl transition cursor-pointer ${
               panMode
                 ? 'bg-[#8DDB05] text-slate-950 shadow-sm'
                 : 'hover:bg-[#8DDB05]/15 hover:text-[#65a30d] dark:hover:text-[#8DDB05]'
             }`}
             title="Toggle Pan Mode (or hold Spacebar + Left-Click Drag)"
+            aria-label="Toggle Pan Mode"
           >
             <Hand className="w-4 h-4" />
           </button>
@@ -233,7 +243,7 @@ export function HudOverlays({
             step={0.05}
             value={roofCutoffY}
             onChange={(e) => onRoofCutoffChange( parseFloat(e.target.value) )}
-            className="w-20 accent-[#8DDB05] cursor-pointer"
+            className="w-20 pointer-coarse:w-28 accent-[#8DDB05] cursor-pointer"
           />
           <span className="text-[10px] font-mono text-slate-500">
             {roofCutoffY >= 1.65 ? 'Full' : formatFeetInches(roofCutoffY + 1.55)}
@@ -290,16 +300,18 @@ export function HudOverlays({
               <button
                 type="button"
                 onClick={() => onRotateOrientation('ccw')}
-                className="p-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-[#8DDB05]/20 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                className="p-1 touch-target flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-[#8DDB05]/20 text-slate-600 dark:text-slate-300 transition cursor-pointer"
                 title="Rotate Cardinal Orientation 90° CCW (Updates N/S/E/W wall labels)"
+                aria-label="Rotate Cardinal Orientation 90° CCW"
               >
                 <RotateCcw className="w-3 h-3" />
               </button>
               <button
                 type="button"
                 onClick={() => onRotateOrientation('cw')}
-                className="p-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-[#8DDB05]/20 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                className="p-1 touch-target flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-[#8DDB05]/20 text-slate-600 dark:text-slate-300 transition cursor-pointer"
                 title="Rotate Cardinal Orientation 90° CW (Updates N/S/E/W wall labels)"
+                aria-label="Rotate Cardinal Orientation 90° CW"
               >
                 <RotateCw className="w-3 h-3" />
               </button>
@@ -321,58 +333,22 @@ export function HudOverlays({
                 order[(order.indexOf(displayMode) + 1) % order.length];
               onDisplayModeChange(next);
             }}
-            className={`xl:hidden p-2.5 rounded-2xl border shadow-lg backdrop-blur-xl flex items-center justify-center ${cardClass}`}
+            className={`lg:hidden p-2.5 touch-target rounded-2xl border shadow-lg backdrop-blur-xl flex items-center justify-center ${cardClass}`}
             title="Switch 3D Render Style"
+            aria-label="Switch 3D Render Style"
           >
             <Layers className="w-4 h-4 text-[#8DDB05]" />
           </button>
         )}
       </div>
 
-      {/* Bottom-Left Quick Facility Dock & Bay Status Bar */}
-      <div
-        className={`fixed bottom-4 left-4 z-20 max-w-xl px-4 py-3 rounded-2xl border shadow-xl backdrop-blur-xl hidden md:flex items-center gap-4 ${cardClass}`}
-      >
-        <div className="pr-3 border-r border-slate-200 dark:border-slate-800">
-          <div className="text-xs font-bold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#8DDB05]" />
-            <span>Facility Anchors</span>
-          </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            Click any pin to focus camera
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto py-0.5 max-w-md">
-          {markers.map((m) => {
-            const isSel = selectedMarkerId === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => onSelectMarker(m)}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap border transition flex items-center gap-1.5 cursor-pointer ${
-                  isSel
-                    ? 'bg-[#8DDB05] text-slate-950 font-bold border-[#8DDB05] shadow-sm'
-                    : isDark
-                    ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
-                    : 'bg-slate-100/80 border-slate-200 text-slate-700 hover:bg-slate-200/70'
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    m.type === 'camera'
-                      ? 'bg-cyan-400'
-                      : m.type === 'network_ap'
-                      ? 'bg-emerald-400'
-                      : 'bg-amber-400'
-                  }`}
-                />
-                <span>{m.name}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Rebuilt Grouped & Collapsible Facility Anchors Dock */}
+      <FacilityAnchorsDock
+        markers={markers}
+        selectedMarkerId={selectedMarkerId}
+        onSelectMarker={onSelectMarker}
+        theme={theme}
+      />
     </>
   );
 }

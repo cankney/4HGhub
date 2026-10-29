@@ -84,6 +84,7 @@ interface DetailDrawerProps {
   onUndo: () => void;
   onRedo: () => void;
   unifiConfig?: UnifiSettingsConfig;
+  isCollapsed?: boolean;
 }
 
 export function DetailDrawer({
@@ -122,6 +123,7 @@ export function DetailDrawer({
   onUndo,
   onRedo,
   unifiConfig,
+  isCollapsed = false,
 }: DetailDrawerProps) {
   const isDark = theme === 'dark';
   const [copiedJson, setCopiedJson] = useState(false);
@@ -596,7 +598,9 @@ export function DetailDrawer({
 
     return (
       <aside
-        className={`fixed top-20 right-4 bottom-4 w-92 sm:w-96 z-30 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden transition-all ${panelClass}`}
+        data-collapsed={isCollapsed}
+        inert={isCollapsed ? true : undefined}
+        className={`sidebar-panel z-30 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden ${panelClass}`}
       >
         <div
           className={`p-4 border-b flex items-start justify-between gap-2 ${
@@ -638,7 +642,7 @@ export function DetailDrawer({
                   onClick={onUndo}
                   disabled={!canUndo}
                   title="Undo Edit"
-                  className={`p-1.5 rounded-xl border transition ${
+                  className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition ${
                     canUndo
                       ? isDark
                         ? 'border-slate-700 text-slate-200 hover:bg-slate-800 cursor-pointer'
@@ -652,7 +656,7 @@ export function DetailDrawer({
                   onClick={onRedo}
                   disabled={!canRedo}
                   title="Redo Edit"
-                  className={`p-1.5 rounded-xl border transition ${
+                  className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition ${
                     canRedo
                       ? isDark
                         ? 'border-slate-700 text-slate-200 hover:bg-slate-800 cursor-pointer'
@@ -666,7 +670,7 @@ export function DetailDrawer({
             )}
             <button
               onClick={onCloseBlueprintItem}
-              className={`p-1.5 rounded-xl transition cursor-pointer ${
+              className={`p-1.5 touch-target flex items-center justify-center rounded-xl transition cursor-pointer ${
                 isDark
                   ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
                   : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
@@ -1874,8 +1878,10 @@ export function DetailDrawer({
     return (
       <>
         <aside
-        className={`fixed top-20 right-4 bottom-4 w-88 sm:w-96 z-30 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden transition-all ${panelClass}`}
-      >
+          data-collapsed={isCollapsed}
+          inert={isCollapsed ? true : undefined}
+          className={`sidebar-panel z-30 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden ${panelClass}`}
+        >
         {/* Header */}
         <div
           className={`p-4 border-b flex items-start justify-between gap-3 ${
@@ -1939,7 +1945,7 @@ export function DetailDrawer({
               onClick={onUndo}
               disabled={!canUndo}
               title="Undo Edit"
-              className={`p-1.5 rounded-xl border transition ${
+              className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition ${
                 canUndo
                   ? isDark
                     ? 'border-slate-700 text-slate-200 hover:bg-slate-800 cursor-pointer'
@@ -1953,7 +1959,7 @@ export function DetailDrawer({
               onClick={onRedo}
               disabled={!canRedo}
               title="Redo Edit"
-              className={`p-1.5 rounded-xl border transition ${
+              className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition ${
                 canRedo
                   ? isDark
                     ? 'border-slate-700 text-slate-200 hover:bg-slate-800 cursor-pointer'
@@ -1965,7 +1971,7 @@ export function DetailDrawer({
             </button>
             <button
               onClick={onCloseMarker}
-              className={`p-1.5 rounded-xl transition cursor-pointer ${
+              className={`p-1.5 touch-target flex items-center justify-center rounded-xl transition cursor-pointer ${
                 isDark
                   ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
                   : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
@@ -2717,7 +2723,9 @@ export function DetailDrawer({
 
   return (
     <aside
-      className={`fixed top-20 right-4 bottom-4 w-88 sm:w-96 z-20 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden transition-all ${panelClass}`}
+      data-collapsed={isCollapsed}
+      inert={isCollapsed ? true : undefined}
+      className={`sidebar-panel z-20 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden ${panelClass}`}
     >
       {/* Top Depot Header */}
       <div
@@ -2749,7 +2757,7 @@ export function DetailDrawer({
                 onClick={onUndo}
                 disabled={!canUndo}
                 title="Undo Last Edit"
-                className={`p-1.5 rounded-xl border transition ${
+                className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition ${
                   canUndo
                     ? isDark
                       ? 'border-slate-700 text-slate-200 hover:bg-slate-800 cursor-pointer'
@@ -2763,7 +2771,7 @@ export function DetailDrawer({
                 onClick={onRedo}
                 disabled={!canRedo}
                 title="Redo Last Edit"
-                className={`p-1.5 rounded-xl border transition ${
+                className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition ${
                   canRedo
                     ? isDark
                       ? 'border-slate-700 text-slate-200 hover:bg-slate-800 cursor-pointer'
@@ -2777,7 +2785,7 @@ export function DetailDrawer({
           )}
           <button
             onClick={handleCopyConfig}
-            className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#8DDB05] text-slate-950 hover:opacity-90 transition flex items-center gap-1 cursor-pointer shadow-sm"
+            className="px-2.5 py-1.5 touch-target rounded-xl text-xs font-bold bg-[#8DDB05] text-slate-950 hover:opacity-90 transition flex items-center justify-center gap-1 cursor-pointer shadow-sm"
             title="Copy Odoo rack locations & digital twin JSON"
           >
             {copiedJson ? (
