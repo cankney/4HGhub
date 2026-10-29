@@ -88,7 +88,8 @@ const DEFAULT_APPS = [
   // Folder containing Ops apps
   { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'], sectionId: 'default' },
   { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app', sectionId: 'default' },
-  { id: 'receipt-vault', name: 'Receipt Vault', icon: 'receipt', order: 9, type: 'app', sectionId: 'default', allUsers: true },
+  { id: 'warehouse-3d', name: '3D Warehouse', link: '/3d-warehouse', icon: 'box', order: 9, type: 'app', sectionId: 'default' },
+  { id: 'receipt-vault', name: 'Receipt Vault', icon: 'receipt', order: 10, type: 'app', sectionId: 'default', allUsers: true },
   // Useful Links Section Apps (Visible to All Users)
   { id: 'health-benefits', name: 'Health Benefits', icon: 'shield', order: 0, type: 'app', sectionId: 'useful-links', allUsers: true },
   { id: 'benefits-docs', name: 'Benefits Documents', icon: 'file-text', order: 1, type: 'app', sectionId: 'useful-links', allUsers: true },
@@ -193,9 +194,9 @@ const DEFAULT_USERS = [
 ];
 
 const DEFAULT_PERMISSIONS = {
-  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'],
-  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'], 
-  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist']
+  'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'],
+  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'], 
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -601,6 +602,37 @@ async function loadDatabaseFromFirestore() {
       }
     }
 
+    // Auto-register 3D Warehouse if missing from database
+    if (isCole && appsList.length > 0 && !appsList.some(a => a.id === 'warehouse-3d')) {
+      const newApp = {
+        id: 'warehouse-3d',
+        name: '3D Warehouse',
+        link: '/3d-warehouse',
+        icon: 'box',
+        order: appsList.length,
+        type: 'app',
+        sectionId: 'default'
+      };
+      try {
+        await setDoc(doc(db, "apps", newApp.id), newApp);
+        appsList.push(newApp);
+        showToast("Auto-registered 3D Warehouse in database!", true);
+        
+        // Auto-grant permission to Cole
+        const colePermRef = doc(db, "permissions", auth.currentUser.uid);
+        const colePermSnap = await getDoc(colePermRef);
+        if (colePermSnap.exists()) {
+          const currentPerms = colePermSnap.data().appIds || [];
+          if (!currentPerms.includes('warehouse-3d')) {
+            currentPerms.push('warehouse-3d');
+            await setDoc(colePermRef, { appIds: currentPerms });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to auto-register 3D Warehouse:", err);
+      }
+    }
+
     // Active user doc was fetched in parallel Promise.all above
     const activeUserDocRef = doc(db, "users", auth.currentUser.uid);
     let activeUser = null;
@@ -922,9 +954,9 @@ function getRoleDefaultPermissions(role) {
   if (r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief')) {
     return state.apps.map(a => a.id);
   } else if (r.includes('sale')) {
-    return ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker'];
+    return ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d'];
   } else if (r.includes('ship')) {
-    return ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker'];
+    return ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d'];
   }
   return ['catalog', 'ai-troubleshoot', 'gif-screenshot-maker'];
 }
@@ -1816,7 +1848,11 @@ function renderAppGrid() {
               openReceiptVaultPage();
             } else if (item.link) {
               showToast(`Opening ${item.name}...`);
-              setTimeout(() => window.open(item.link, '_blank'), 800);
+              if (item.link.startsWith('/')) {
+                setTimeout(() => { window.location.href = item.link; }, 300);
+              } else {
+                setTimeout(() => window.open(item.link, '_blank'), 800);
+              }
             }
           }
         });
@@ -1934,7 +1970,11 @@ function openFolderDrawer(folderId) {
           openReceiptVaultPage();
         } else if (app.link) {
           showToast(`Opening ${app.name}...`);
-          setTimeout(() => window.open(app.link, '_blank'), 800);
+          if (app.link.startsWith('/')) {
+            setTimeout(() => { window.location.href = app.link; }, 300);
+          } else {
+            setTimeout(() => window.open(app.link, '_blank'), 800);
+          }
         }
       });
     }

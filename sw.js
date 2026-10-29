@@ -1,4 +1,4 @@
-const CACHE_NAME = '4hghub-cache-v14';
+const CACHE_NAME = '4hghub-cache-v15';
 const ASSETS = [
   './',
   './index.html',
@@ -44,9 +44,10 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   
-  // Bypass caching for Firestore database requests and Firebase Auth endpoints
+  // Bypass caching for Firestore database requests, Firebase Auth, and 3D Warehouse
   if (e.request.url.includes('firestore.googleapis.com') || 
       e.request.url.includes('identitytoolkit.googleapis.com') ||
+      e.request.url.includes('/3d-warehouse') ||
       e.request.method !== 'GET') {
     return;
   }

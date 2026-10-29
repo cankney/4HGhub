@@ -1,0 +1,13 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/3d-warehouse",
+      "destination": "https://3d-warehouse-five.vercel.app/3d-warehouse"
+    },
+    {
+      "source": "/3d-warehouse/:path*",
+      "destination": "https://3d-warehouse-five.vercel.app/3d-warehouse/:path*"
+    }
+  ]
+}
