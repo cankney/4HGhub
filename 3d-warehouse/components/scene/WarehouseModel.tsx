@@ -2165,7 +2165,7 @@ export function WarehouseModel({
   onUpdateBlueprintItem,
   onCalibrateClick,
 }: WarehouseModelProps) {
-  const gltf = useGLTF('/models/warehouse.glb');
+  const gltf = useGLTF('/3d-warehouse/models/warehouse.glb');
   const [hoveredMesh, setHoveredMesh] = useState<number | null>(null);
   const [hoveredBpId, setHoveredBpId] = useState<string | null>(null);
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -2402,4 +2402,4 @@ export function WarehouseModel({
   );
 }
 
-useGLTF.preload('/models/warehouse.glb');
+useGLTF.preload('/3d-warehouse/models/warehouse.glb');

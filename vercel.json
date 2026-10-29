@@ -8,6 +8,18 @@
     {
       "source": "/3d-warehouse/:path*",
       "destination": "https://3d-warehouse-five.vercel.app/3d-warehouse/:path*"
+    },
+    {
+      "source": "/models/:path*",
+      "destination": "https://3d-warehouse-five.vercel.app/3d-warehouse/models/:path*"
+    },
+    {
+      "source": "/api/odoo/:path*",
+      "destination": "https://3d-warehouse-five.vercel.app/3d-warehouse/api/odoo/:path*"
+    },
+    {
+      "source": "/api/unifi/:path*",
+      "destination": "https://3d-warehouse-five.vercel.app/3d-warehouse/api/unifi/:path*"
     }
   ]
 }
