@@ -128,15 +128,23 @@ export async function POST(req: NextRequest) {
     const payload: OdooSyncPayload = await req.json();
     const { baseUrl, database, username, apiKey, stockLocationPrefix = 'WH/Stock', testOnly } = payload;
 
-    const cleanBaseUrl = cleanOdooUrl(baseUrl);
-    const cleanDb = (database || '').trim();
-    const cleanUser = (username || '').trim();
-    const cleanApiKey = (apiKey || '').trim();
+    const cleanBaseUrl = cleanOdooUrl(
+      baseUrl || process.env.ODOO_BASE_URL || process.env.NEXT_PUBLIC_ODOO_BASE_URL || ''
+    );
+    const cleanDb = (
+      database || process.env.ODOO_DB || process.env.NEXT_PUBLIC_ODOO_DB || ''
+    ).trim();
+    const cleanUser = (
+      username || process.env.ODOO_LOGIN || process.env.NEXT_PUBLIC_ODOO_LOGIN || ''
+    ).trim();
+    const cleanApiKey = (
+      apiKey || process.env.ODOO_API_KEY || process.env.NEXT_PUBLIC_ODOO_API_KEY || ''
+    ).trim();
 
     if (!cleanBaseUrl || !cleanDb || !cleanUser || !cleanApiKey) {
       return NextResponse.json({
         success: false,
-        error: 'Missing required Odoo credentials. Please fill in URL, Database, Username, and API Key in Settings.',
+        error: 'Missing required Odoo credentials. Please fill in URL, Database, Username, and API Key in Settings or set ODOO_API_KEY in Vercel.',
       });
     }
 

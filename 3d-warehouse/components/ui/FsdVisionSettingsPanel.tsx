@@ -291,7 +291,7 @@ export function FsdVisionSettingsPanel({
 
   return (
     <div
-      className={`fixed top-[var(--hud-top)] left-[calc(1rem+var(--safe-left))] z-40 w-[min(26rem,calc(100vw-2rem))] max-h-[calc(100dvh-6rem)] rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden transition-all ${
+      className={`fixed top-[var(--hud-top)] left-[calc(1.25rem+var(--safe-left))] z-40 w-[min(26rem,calc(100vw-2.5rem))] max-h-[calc(100dvh-6rem)] rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden transition-all ${
         isDark
           ? 'bg-slate-900/95 border-slate-800 text-slate-100'
           : 'bg-white/95 border-slate-200 text-slate-900'

@@ -48,6 +48,112 @@ import {
   feetDecimalToMeters,
 } from '@/lib/units';
 
+interface MeasurementInputProps {
+  value: number;
+  onCommit: (val: number) => void;
+  min?: number;
+  max?: number;
+  className?: string;
+  title?: string;
+}
+
+function MeasurementInput({
+  value,
+  onCommit,
+  min,
+  max,
+  className,
+  title,
+}: MeasurementInputProps) {
+  const [text, setText] = useState<string>(() => String(value));
+  const isEditingRef = React.useRef(false);
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    if (!isEditingRef.current) {
+      setText(String(value));
+    }
+  }, [value]);
+
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCommit = (rawStr: string) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    isEditingRef.current = false;
+    const trimmed = rawStr.trim();
+    if (!trimmed) {
+      setText(String(value));
+      return;
+    }
+    let parsed = parseFloat(trimmed);
+    if (isNaN(parsed)) {
+      setText(String(value));
+      return;
+    }
+    if (min !== undefined && parsed < min) parsed = min;
+    if (max !== undefined && parsed > max) parsed = max;
+    parsed = Math.round(parsed * 100) / 100;
+    setText(String(parsed));
+    if (parsed !== value) {
+      onCommit(parsed);
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={text}
+      title={title}
+      className={className}
+      onFocus={() => {
+        isEditingRef.current = true;
+      }}
+      onChange={(e) => {
+        const nextVal = e.target.value;
+        setText(nextVal);
+        const trimmed = nextVal.trim();
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+          let num = parseFloat(trimmed);
+          if (min !== undefined && num < min) return;
+          if (max !== undefined && num > max) return;
+          num = Math.round(num * 100) / 100;
+          debounceTimerRef.current = setTimeout(() => {
+            if (num !== value) {
+              onCommit(num);
+            }
+          }, 450);
+        }
+      }}
+      onBlur={(e) => handleCommit(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          handleCommit((e.target as HTMLInputElement).value);
+          (e.target as HTMLInputElement).blur();
+        } else if (e.key === 'Escape') {
+          if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+          }
+          isEditingRef.current = false;
+          setText(String(value));
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+    />
+  );
+}
+
 interface DetailDrawerProps {
   appMode: 'view' | 'edit';
   theme: 'daylight' | 'dark';
@@ -858,16 +964,13 @@ export function DetailDrawer({
                       >
                         -
                       </button>
-                      <input
-                        type="number"
+                      <MeasurementInput
+                        value={parseInt(curRowNumber, 10) || 1}
                         min={1}
                         max={99}
-                        value={parseInt(curRowNumber, 10) || 1}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val) && val >= 1) handleUpdateRowNumber(val);
-                        }}
+                        onCommit={(val) => handleUpdateRowNumber(val)}
                         className={`flex-1 py-1 text-center rounded-lg text-xs font-bold font-mono ${inputClass}`}
+                        title="Row Number"
                       />
                       <button
                         type="button"
@@ -1554,17 +1657,10 @@ export function DetailDrawer({
                         </span>
                       </label>
                       <div className="relative">
-                        <input
-                          type="number"
-                          step={2}
-                          min={4}
+                        <MeasurementInput
                           value={inchesVal}
-                          onChange={(e) =>
-                            updateBpSizeInches(
-                              idx,
-                              parseInt(e.target.value, 10) || 12
-                            )
-                          }
+                          min={4}
+                          onCommit={(val) => updateBpSizeInches(idx, val)}
                           className={`w-full pl-2.5 pr-6 py-1.5 rounded-xl text-xs font-mono font-bold ${inputClass}`}
                         />
                         <span
@@ -1665,17 +1761,10 @@ export function DetailDrawer({
                         >
                           -1&quot;
                         </button>
-                        <input
-                          type="number"
-                          step={0.25}
+                        <MeasurementInput
                           value={ftVal}
-                          onChange={(e) =>
-                            updateBpPosMeters(
-                              axis,
-                              feetDecimalToMeters(
-                                parseFloat(e.target.value) || 0
-                              )
-                            )
+                          onCommit={(val) =>
+                            updateBpPosMeters(axis, feetDecimalToMeters(val))
                           }
                           className={`w-16 px-1.5 py-1 rounded-lg text-center text-xs font-mono font-bold ${inputClass}`}
                           title="Position in Feet"
@@ -2418,15 +2507,10 @@ export function DetailDrawer({
                       {formatFeetInches(selectedMarker.position[idx])}
                     </span>
                   </label>
-                  <input
-                    type="number"
-                    step={0.5}
+                  <MeasurementInput
                     value={metersToFeetDecimal(selectedMarker.position[idx])}
-                    onChange={(e) =>
-                      updateCoord(
-                        idx as 0 | 1 | 2,
-                        feetDecimalToMeters(parseFloat(e.target.value) || 0)
-                      )
+                    onCommit={(val) =>
+                      updateCoord(idx as 0 | 1 | 2, feetDecimalToMeters(val))
                     }
                     className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold ${inputClass}`}
                   />
@@ -3078,21 +3162,20 @@ export function DetailDrawer({
                             <label className={`text-[9px] block ${labelClass}`}>
                               Offset {axis}
                             </label>
-                            <input
-                              type="number"
-                              step={0.25}
+                            <MeasurementInput
                               value={m.positionOffset[aIdx]}
-                              onChange={(e) => {
+                              onCommit={(val) => {
                                 const next: [number, number, number] = [
                                   ...m.positionOffset,
                                 ];
-                                next[aIdx] = parseFloat(e.target.value) || 0;
+                                next[aIdx] = val;
                                 onUpdateMeshOverride({
                                   ...m,
                                   positionOffset: next,
                                 });
                               }}
                               className={`w-full px-1.5 py-0.5 rounded text-[11px] font-mono font-bold ${inputClass}`}
+                              title={`Offset ${axis}`}
                             />
                           </div>
                         ))}
@@ -3155,16 +3238,14 @@ export function DetailDrawer({
                   {box.active && (
                     <div className="grid grid-cols-3 gap-1">
                       {(['X', 'Y', 'Z'] as const).map((ax, idx) => (
-                        <input
+                        <MeasurementInput
                           key={ax}
-                          type="number"
-                          step={0.5}
                           value={box.position[idx]}
-                          onChange={(e) => {
+                          onCommit={(val) => {
                             const nextPos: [number, number, number] = [
                               ...box.position,
                             ];
-                            nextPos[idx] = parseFloat(e.target.value) || 0;
+                            nextPos[idx] = val;
                             onUpdateCutoutBox({ ...box, position: nextPos });
                           }}
                           className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${inputClass}`}

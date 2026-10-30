@@ -157,6 +157,30 @@ function CameraRig({
     };
   }, [isPanActive]);
 
+  // Real-time camera azimuth angle tracking for compass widget
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const updateCompassAzimuth = () => {
+      const target = controls.target;
+      const dx = camera.position.x - target.x;
+      const dz = camera.position.z - target.z;
+      const rad = Math.atan2(dx, dz);
+      const deg = (rad * 180) / Math.PI;
+      document.documentElement.style.setProperty(
+        '--camera-azimuth-deg',
+        `${deg.toFixed(2)}deg`
+      );
+    };
+
+    controls.addEventListener('change', updateCompassAzimuth);
+    updateCompassAzimuth();
+
+    return () => {
+      controls.removeEventListener('change', updateCompassAzimuth);
+    };
+  }, [camera]);
+
   // Smooth focus when a marker is selected
   useEffect(() => {
     if (selectedMarker) {
@@ -211,6 +235,16 @@ function CameraRig({
       camera.position.lerp(desiredPosition.current, step);
     }
     controlsRef.current.update();
+
+    const target = controlsRef.current.target;
+    const dx = camera.position.x - target.x;
+    const dz = camera.position.z - target.z;
+    const rad = Math.atan2(dx, dz);
+    const deg = (rad * 180) / Math.PI;
+    document.documentElement.style.setProperty(
+      '--camera-azimuth-deg',
+      `${deg.toFixed(2)}deg`
+    );
 
     if (
       desiredPosition.current &&

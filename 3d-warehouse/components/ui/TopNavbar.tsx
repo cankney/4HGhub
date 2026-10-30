@@ -122,25 +122,29 @@ export function TopNavbar({
   ];
 
   return (
-    <header className="fixed top-[calc(0.75rem+var(--safe-top))] left-[calc(1rem+var(--safe-left))] right-[calc(1rem+var(--safe-right))] z-30 pointer-events-none flex items-center justify-between gap-2 sm:gap-3">
+    <header className="fixed top-[calc(0.875rem+var(--safe-top))] left-[calc(1.25rem+var(--safe-left))] right-[calc(1.25rem+var(--safe-right))] z-30 pointer-events-none flex items-center justify-between gap-2 sm:gap-3 max-w-full">
       {/* Left Brand + Search Bar */}
       <div
-        className={`pointer-events-auto flex items-center gap-2 sm:gap-3 px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl border shadow-lg backdrop-blur-xl transition-colors ${
+        className={`pointer-events-auto shrink-0 flex items-center gap-2 sm:gap-3 px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl border shadow-lg backdrop-blur-xl transition-colors ${
           isDark
             ? 'bg-slate-900/90 border-slate-800 text-slate-100'
             : 'bg-white/95 border-slate-200/80 text-slate-900'
         }`}
       >
         {/* Hub Back Navigation Button */}
-        <Link
-          href="/"
+        <a
+          href="https://4hghub.com/"
+          onClick={(e) => {
+            e.preventDefault();
+            window.location.assign('https://4hghub.com/');
+          }}
           title="Back to 4HG Hub"
           aria-label="Back to 4HG Hub"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#8DDB05]/15 hover:bg-[#8DDB05]/25 text-[#72b104] dark:text-[#8DDB05] border border-[#8DDB05]/40 transition-all shadow-sm active:scale-95 touch-target"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#8DDB05]/15 hover:bg-[#8DDB05]/25 text-[#72b104] dark:text-[#8DDB05] border border-[#8DDB05]/40 transition-all shadow-sm active:scale-95 touch-target cursor-pointer"
         >
           <span className="text-sm font-black leading-none">&larr;</span>
           <span className="hidden sm:inline">Hub</span>
-        </Link>
+        </a>
 
         <div className="flex items-center gap-2.5 pr-2 border-r border-slate-200/60 dark:border-slate-700/60">
           <div className="w-8 h-8 rounded-xl bg-[#8DDB05] flex items-center justify-center text-slate-950 shadow-sm shrink-0">
@@ -157,7 +161,7 @@ export function TopNavbar({
         </div>
 
         {/* Search Input with Autocomplete Results */}
-        <div className="relative w-36 sm:w-48 md:w-56 xl:w-64 2xl:w-72">
+        <div className="relative w-32 sm:w-40 md:w-44 lg:w-48 xl:w-52 2xl:w-64">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -265,40 +269,10 @@ export function TopNavbar({
         )}
       </div>
 
-      {/* Center Display Mode Switcher (Only shown in Edit Mode; View Mode is locked to Clean Blueprint) */}
-      {appMode === 'edit' ? (
+      {/* Center View Mode Status & Overlay Toggles (View Mode) */}
+      {appMode === 'view' && (
         <div
-          className={`pointer-events-auto hidden lg:flex items-center gap-1 p-1.5 rounded-2xl border shadow-lg backdrop-blur-xl ${
-            isDark
-              ? 'bg-slate-900/90 border-slate-800'
-              : 'bg-white/95 border-slate-200/80'
-          }`}
-        >
-          {modeOptions.map((m) => {
-            const active = displayMode === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => onDisplayModeChange(m.id)}
-                className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 xl:px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer touch-target ${
-                  active
-                    ? 'bg-[#8DDB05] text-slate-950 shadow-sm'
-                    : isDark
-                    ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-                title={m.label}
-                aria-label={m.label}
-              >
-                {m.icon}
-                <span className="hidden xl:inline">{m.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div
-          className={`pointer-events-auto flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 rounded-2xl border shadow-lg backdrop-blur-xl text-xs font-semibold ${
+          className={`pointer-events-auto shrink-0 flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 rounded-2xl border shadow-lg backdrop-blur-xl text-xs font-semibold ${
             isDark
               ? 'bg-slate-900/90 border-slate-800 text-slate-200'
               : 'bg-white/95 border-slate-200/80 text-slate-800'
@@ -306,90 +280,88 @@ export function TopNavbar({
         >
           <div className="flex items-center gap-2 pr-1">
             <span className="w-2 h-2 rounded-full bg-[#8DDB05]" />
-            <span className="hidden xl:inline">Clean Blueprint Model</span>
+            <span className="hidden sm:inline">Clean Blueprint Model</span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#8DDB05]/15 text-[#65a30d] dark:text-[#8DDB05]">
               VIEW MODE
             </span>
           </div>
 
           <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+          <button
+            onClick={() => onToggleCameraFeeds3D?.()}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition cursor-pointer touch-target ${
+              showCameraFeeds3D
+                ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+            title="Show live 3D Video Billboard Frustums"
+          >
+            <Video className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">3D Camera Feeds</span>
+          </button>
+          <button
+            onClick={() => onToggleSpatialVision3D?.()}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition cursor-pointer touch-target ${
+              showSpatialVision3D
+                ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+            title="Toggle AI Spatial Vision & Ground Projection"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">3D FSD Vision</span>
+          </button>
+          {showSpatialVision3D && onToggleFsdSettings && (
+            <button
+              onClick={onToggleFsdSettings}
+              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition cursor-pointer"
+              title="Camera Vision Calibration Settings"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
-          {/* View Mode Overlay Toggles right alongside the Clean Blueprint Model pill */}
-          <div className="flex items-center gap-1.5">
-            {onToggleCameraFeeds3D && (
+      {/* Center 3D Model Render Styles Switcher (Edit Mode) */}
+      {appMode === 'edit' && (
+        <div
+          className={`pointer-events-auto shrink-0 flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl border shadow-lg backdrop-blur-xl ${
+            isDark
+              ? 'bg-slate-900/90 border-slate-800'
+              : 'bg-white/95 border-slate-200/80'
+          }`}
+        >
+          {modeOptions.map((opt) => {
+            const isSelected = displayMode === opt.id;
+            return (
               <button
+                key={opt.id}
                 type="button"
-                onClick={onToggleCameraFeeds3D}
-                className={`flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border touch-target ${
-                  showCameraFeeds3D
-                    ? 'bg-cyan-500 text-white border-cyan-400 shadow-sm ring-2 ring-cyan-500/30'
+                onClick={() => onDisplayModeChange(opt.id)}
+                className={`group flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer touch-target ${
+                  isSelected
+                    ? 'bg-[#8DDB05] text-slate-950 shadow-sm'
                     : isDark
-                    ? 'bg-slate-800/90 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-cyan-500/50'
-                    : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80 hover:border-cyan-500/50'
+                    ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/70'
+                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100'
                 }`}
-                title="Toggle live 3D camera feed popups floating above cameras on the warehouse model"
-                aria-label="Toggle 3D Camera Feeds"
+                title={opt.label}
+                aria-label={opt.label}
               >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    showCameraFeeds3D ? 'bg-white animate-pulse' : 'bg-cyan-400'
-                  }`}
-                />
-                <Video className="w-3.5 h-3.5" />
-                <span className="hidden xl:inline">3D Camera Feeds</span>
+                {opt.icon}
+                <span className="hidden xl:inline whitespace-nowrap">
+                  {opt.label}
+                </span>
               </button>
-            )}
-
-            {onToggleSpatialVision3D && (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={onToggleSpatialVision3D}
-                  className={`flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border touch-target ${
-                    showSpatialVision3D
-                      ? 'bg-sky-500 text-white border-sky-400 shadow-sm ring-2 ring-sky-400/40'
-                      : isDark
-                      ? 'bg-slate-800/90 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-sky-400/50'
-                      : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80 hover:border-sky-400/50'
-                  }`}
-                  title="Tesla FSD-style 3D Spatial Vision: Renders holographic 3D ghost models of forklifts, vehicles, and people outside the warehouse from camera feeds"
-                  aria-label="Toggle 3D FSD Vision"
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      showSpatialVision3D ? 'bg-white animate-ping' : 'bg-sky-400'
-                    }`}
-                  />
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span className="hidden xl:inline">3D FSD Vision</span>
-                </button>
-
-                {onToggleFsdSettings && (
-                  <button
-                    type="button"
-                    onClick={onToggleFsdSettings}
-                    className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition-all cursor-pointer ${
-                      isFsdSettingsOpen
-                        ? 'bg-sky-500 text-white border-sky-400 shadow-sm ring-2 ring-sky-400/40'
-                        : isDark
-                        ? 'bg-slate-800/90 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-sky-300'
-                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                    }`}
-                    title="Calibrate FSD Vision: Adjust confidence threshold, filter false positives, and align 3D exterior camera mapping zones"
-                    aria-label="FSD Settings"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+            );
+          })}
         </div>
       )}
 
       {/* Right Action Pills: View Mode / Edit Mode Switch, Edit Tools, Fullscreen, Theme */}
       <div
-        className={`pointer-events-auto flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 rounded-2xl border shadow-lg backdrop-blur-xl ${
+        className={`pointer-events-auto shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 rounded-2xl border shadow-lg backdrop-blur-xl ${
           isDark
             ? 'bg-slate-900/90 border-slate-800 text-slate-100'
             : 'bg-white/95 border-slate-200/80 text-slate-900'
@@ -416,7 +388,7 @@ export function TopNavbar({
             aria-label="View Mode"
           >
             <Eye className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">View Mode</span>
+            <span className="hidden 2xl:inline">View Mode</span>
           </button>
           <button
             onClick={() => onAppModeChange('edit')}
@@ -431,7 +403,7 @@ export function TopNavbar({
             aria-label="Edit Mode"
           >
             <Pencil className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Edit Mode</span>
+            <span className="hidden 2xl:inline">Edit Mode</span>
           </button>
         </div>
 
@@ -440,36 +412,32 @@ export function TopNavbar({
           <>
             <button
               onClick={onToggleEditModel}
-              className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer touch-target ${
+              className={`p-2 flex items-center justify-center rounded-xl border transition-all cursor-pointer touch-target ${
                 editModelMode
-                  ? 'bg-[#8DDB05] text-slate-950 shadow-sm ring-2 ring-[#8DDB05]/40'
+                  ? 'bg-[#8DDB05] border-[#8DDB05] text-slate-950 shadow-sm ring-2 ring-[#8DDB05]/40'
                   : isDark
-                  ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
+                  ? 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
+                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
-              title="Edit 3D Scan Segments, Remove Clutter & Add Objects"
+              title={`Edit 3D Scan Segments (${visibleMeshCount}/${totalMeshCount})`}
               aria-label="Scan Edit Mode"
             >
-              <Wrench className="w-3.5 h-3.5" />
-              <span className="hidden 2xl:inline">
-                Scan ({visibleMeshCount}/{totalMeshCount})
-              </span>
+              <Wrench className="w-4 h-4" />
             </button>
 
             <button
               onClick={onToggleCalibration}
-              className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer touch-target ${
+              className={`p-2 flex items-center justify-center rounded-xl border transition-all cursor-pointer touch-target ${
                 calibrationMode
-                  ? 'bg-[#8DDB05] text-slate-950 shadow-sm ring-2 ring-[#8DDB05]/50'
+                  ? 'bg-[#8DDB05] border-[#8DDB05] text-slate-950 shadow-sm ring-2 ring-[#8DDB05]/50'
                   : isDark
-                  ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
+                  ? 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
+                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
               title="Dev Mode Coordinate Helper: Click anywhere to log [x, y, z]"
               aria-label="Calibrate"
             >
-              <Crosshair className="w-3.5 h-3.5" />
-              <span className="hidden 2xl:inline">Calibrate</span>
+              <Crosshair className="w-4 h-4" />
             </button>
           </>
         )}

@@ -155,6 +155,286 @@ export default function WarehouseDigitalTwinPage() {
     text: string;
   } | null>(null);
 
+  // Cloud Synchronization States
+  const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
+  const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string | null>(null);
+  const [cloudSyncMsg, setCloudSyncMsg] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
+  const hasHydratedRef = React.useRef<boolean>(false);
+  const isHydratingRef = React.useRef<boolean>(false);
+  const isUserDirtyRef = React.useRef<boolean>(false);
+
+  // Always keep a ref to the latest state snapshot to avoid re-creating sync callbacks
+  const latestStateRef = React.useRef({
+    markers,
+    meshOverrides,
+    blueprintItems,
+    cutoutBoxes,
+    cardinalFacing,
+    odooConfig,
+    unifiConfig,
+  });
+  latestStateRef.current = {
+    markers,
+    meshOverrides,
+    blueprintItems,
+    cutoutBoxes,
+    cardinalFacing,
+    odooConfig,
+    unifiConfig,
+  };
+
+  // Helper to apply hydrated twin state safely
+  const applyHydratedState = React.useCallback(
+    (parsed: any, fallbackFacing: CardinalFacing = 'north') => {
+      if (!parsed || typeof parsed !== 'object') return false;
+      let applied = false;
+
+      const facing: CardinalFacing =
+        parsed.cardinalFacing &&
+        ['north', 'east', 'south', 'west'].includes(parsed.cardinalFacing)
+          ? parsed.cardinalFacing
+          : fallbackFacing;
+
+      if (parsed.cardinalFacing) {
+        setCardinalFacing(facing);
+      }
+
+      if (parsed.odooConfig && typeof parsed.odooConfig === 'object') {
+        setOdooConfig((prev) => ({ ...prev, ...parsed.odooConfig }));
+        try {
+          localStorage.setItem('waretrack_odoo_config', JSON.stringify(parsed.odooConfig));
+        } catch {}
+      }
+
+      if (parsed.unifiConfig && typeof parsed.unifiConfig === 'object') {
+        setUnifiConfig((prev) => ({ ...prev, ...parsed.unifiConfig }));
+        try {
+          localStorage.setItem('waretrack_unifi_config', JSON.stringify(parsed.unifiConfig));
+        } catch {}
+      }
+
+      if (Array.isArray(parsed.markers) && parsed.markers.length > 0) {
+        const defaultCamMap = new Map(
+          DEFAULT_MARKERS.filter((m) => m.type === 'camera').map((m) => [m.id, m])
+        );
+        const hydratedMarkers = parsed.markers.map((m: FacilityMarker) => {
+          if (m.type === 'camera' && !m.metadata?.unifiId) {
+            const fallbackCam = defaultCamMap.get(m.id);
+            if (fallbackCam) {
+              return {
+                ...m,
+                metadata: {
+                  ...fallbackCam.metadata,
+                  ...m.metadata,
+                  unifiId: fallbackCam.metadata.unifiId,
+                  unifiModel: m.metadata?.unifiModel || fallbackCam.metadata.unifiModel,
+                  unifiConsoleId:
+                    m.metadata?.unifiConsoleId || fallbackCam.metadata.unifiConsoleId,
+                  rtspHigh: m.metadata?.rtspHigh || fallbackCam.metadata.rtspHigh,
+                },
+              };
+            }
+          }
+          return m;
+        });
+        setMarkers(hydratedMarkers);
+        applied = true;
+      }
+
+      if (Array.isArray(parsed.meshOverrides)) {
+        setMeshOverrides(parsed.meshOverrides);
+        applied = true;
+      }
+
+      if (Array.isArray(parsed.blueprintItems) && parsed.blueprintItems.length > 0) {
+        const upgraded = parsed.blueprintItems.map((item: BlueprintItem) => {
+          const derived = deriveZoneAndRack(item);
+          const z = item.zone || derived.zone;
+          const r = item.rowNumber || item.rackNumber || derived.rowNumber;
+
+          let cleanedLocations = item.shelfLocations;
+          if (cleanedLocations) {
+            const nextLocs: Record<string, any> = {};
+            let hasChanges = false;
+            for (const [key, slot] of Object.entries(cleanedLocations)) {
+              if (slot.shortCode && /-R(\d+)-/.test(slot.shortCode)) {
+                hasChanges = true;
+                const match = slot.shortCode.match(/^([A-Z])-(\d+)-R(\d+)-(\d+)-(\d+)$/);
+                if (match) {
+                  const zone = match[1];
+                  const baseRow = parseInt(match[2], 10);
+                  const rowOffset = parseInt(match[3], 10) - 1;
+                  const finalRow = baseRow + rowOffset;
+                  const bay = match[4];
+                  const shelf = match[5];
+                  const fixedCode = `${zone}-${String(finalRow).padStart(2, '0')}-${bay}-${shelf}`;
+                  nextLocs[key] = {
+                    ...slot,
+                    shortCode: fixedCode,
+                    locationCode: fixedCode,
+                  };
+                  continue;
+                }
+              }
+              nextLocs[key] = slot;
+            }
+            if (hasChanges) cleanedLocations = nextLocs;
+          }
+
+          return {
+            ...item,
+            zone: z,
+            rowNumber: r,
+            rackNumber: r,
+            shelfLocations: cleanedLocations,
+          };
+        });
+        setBlueprintItems(applyCardinalOrientation(upgraded, facing));
+        applied = true;
+      }
+
+      if (Array.isArray(parsed.cutoutBoxes)) {
+        setCutoutBoxes(parsed.cutoutBoxes);
+        applied = true;
+      }
+
+      return applied;
+    },
+    []
+  );
+
+  // Push customizations to 4HG Cloud (reads from stable latestStateRef)
+  const handlePushToCloud = React.useCallback(
+    async (stateToPush?: any) => {
+      setIsSyncingCloud(true);
+      setCloudSyncMsg(null);
+      try {
+        const payload = stateToPush || latestStateRef.current;
+
+        const res = await fetch('/3d-warehouse/api/cloud-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            state: payload,
+            deviceId:
+              typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+          }),
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          const timeStr = new Date(json.updatedAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          setLastCloudSyncTime(timeStr);
+          try {
+            localStorage.setItem('waretrack_last_cloud_sync_time', timeStr);
+          } catch {}
+          setCloudSyncMsg({
+            type: 'success',
+            text: `Synced to 4HG Cloud (${timeStr}). Available on all devices!`,
+          });
+        } else {
+          setCloudSyncMsg({
+            type: 'error',
+            text: json.error || 'Failed to sync to cloud.',
+          });
+        }
+      } catch (err: any) {
+        setCloudSyncMsg({
+          type: 'error',
+          text: err.message || 'Network error syncing to cloud.',
+        });
+      } finally {
+        setIsSyncingCloud(false);
+      }
+    },
+    []
+  );
+
+  // Pull customizations from 4HG Cloud
+  const handlePullFromCloud = React.useCallback(async () => {
+    setIsSyncingCloud(true);
+    setCloudSyncMsg(null);
+    try {
+      const res = await fetch('/3d-warehouse/api/cloud-sync', {
+        cache: 'no-store',
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        isHydratingRef.current = true;
+        applyHydratedState(json.data);
+        isHydratingRef.current = false;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
+        } catch {}
+        const timeStr = json.updatedAt
+          ? new Date(json.updatedAt).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+        setLastCloudSyncTime(timeStr);
+        try {
+          localStorage.setItem('waretrack_last_cloud_sync_time', timeStr);
+        } catch {}
+        setCloudSyncMsg({
+          type: 'success',
+          text: `Loaded 3D model from 4HG Cloud (${timeStr})!`,
+        });
+      } else {
+        setCloudSyncMsg({
+          type: 'error',
+          text: 'No cloud layout found yet. Push from your desktop first!',
+        });
+      }
+    } catch (err: any) {
+      setCloudSyncMsg({
+        type: 'error',
+        text: err.message || 'Network error pulling from cloud.',
+      });
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  }, [applyHydratedState]);
+
+  // Export JSON backup file (reads from stable latestStateRef)
+  const handleExportJson = React.useCallback(() => {
+    try {
+      const state = latestStateRef.current;
+      const backup = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        markers: state.markers,
+        meshOverrides: state.meshOverrides,
+        blueprintItems: state.blueprintItems,
+        cutoutBoxes: state.cutoutBoxes,
+        cardinalFacing: state.cardinalFacing,
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `waretrack-twin-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export backup JSON', err);
+    }
+  }, []);
+
   // Sync theme class to html root
   useEffect(() => {
     if (theme === 'dark') {
@@ -166,8 +446,13 @@ export default function WarehouseDigitalTwinPage() {
     }
   }, [theme]);
 
-  // Hydrate persisted modifications from localStorage
+  // Hydrate persisted modifications from localStorage & 4HG Cloud (Runs strictly once on mount)
   useEffect(() => {
+    let localSavedState: any = null;
+    let initialFacing: CardinalFacing = 'north';
+
+    isHydratingRef.current = true;
+
     try {
       const savedConfig = localStorage.getItem('waretrack_odoo_config');
       if (savedConfig) setOdooConfig(JSON.parse(savedConfig));
@@ -186,7 +471,7 @@ export default function WarehouseDigitalTwinPage() {
       const savedFacing = localStorage.getItem(
         'waretrack_cardinal_facing'
       ) as CardinalFacing;
-      const initialFacing: CardinalFacing =
+      initialFacing =
         savedFacing && ['north', 'east', 'south', 'west'].includes(savedFacing)
           ? savedFacing
           : 'north';
@@ -198,8 +483,13 @@ export default function WarehouseDigitalTwinPage() {
       const savedLastSync = localStorage.getItem('waretrack_last_sync_time');
       if (savedLastSync) setLastSyncTime(savedLastSync);
 
-      const savedLastUnifiSync = localStorage.getItem('waretrack_last_unifi_sync_time');
+      const savedLastUnifiSync = localStorage.getItem(
+        'waretrack_last_unifi_sync_time'
+      );
       if (savedLastUnifiSync) setLastUnifiSyncTime(savedLastUnifiSync);
+
+      const savedLastCloud = localStorage.getItem('waretrack_last_cloud_sync_time');
+      if (savedLastCloud) setLastCloudSyncTime(savedLastCloud);
 
       const savedCollapsed = localStorage.getItem('waretrack_sidebar_collapsed');
       if (savedCollapsed !== null) {
@@ -212,90 +502,66 @@ export default function WarehouseDigitalTwinPage() {
         localStorage.getItem(STORAGE_KEY) ||
         localStorage.getItem('waretrack_4hg_twin_state_v8');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed.markers)) {
-          const defaultCamMap = new Map(
-            DEFAULT_MARKERS.filter((m) => m.type === 'camera').map((m) => [m.id, m])
-          );
-          const hydratedMarkers = parsed.markers.map((m: FacilityMarker) => {
-            if (m.type === 'camera' && !m.metadata?.unifiId) {
-              const fallbackCam = defaultCamMap.get(m.id);
-              if (fallbackCam) {
-                return {
-                  ...m,
-                  metadata: {
-                    ...fallbackCam.metadata,
-                    ...m.metadata,
-                    unifiId: fallbackCam.metadata.unifiId,
-                    unifiModel: m.metadata?.unifiModel || fallbackCam.metadata.unifiModel,
-                    unifiConsoleId:
-                      m.metadata?.unifiConsoleId || fallbackCam.metadata.unifiConsoleId,
-                    rtspHigh: m.metadata?.rtspHigh || fallbackCam.metadata.rtspHigh,
-                  },
-                };
-              }
-            }
-            return m;
-          });
-          setMarkers(hydratedMarkers);
-        }
-        if (Array.isArray(parsed.meshOverrides))
-          setMeshOverrides(parsed.meshOverrides);
-        if (Array.isArray(parsed.blueprintItems)) {
-          const upgraded = parsed.blueprintItems.map((item: BlueprintItem) => {
-            const derived = deriveZoneAndRack(item);
-            const z = item.zone || derived.zone;
-            const r = item.rowNumber || item.rackNumber || derived.rowNumber;
-
-            let cleanedLocations = item.shelfLocations;
-            if (cleanedLocations) {
-              const nextLocs: Record<string, any> = {};
-              let hasChanges = false;
-              for (const [key, slot] of Object.entries(cleanedLocations)) {
-                if (slot.shortCode && /-R(\d+)-/.test(slot.shortCode)) {
-                  hasChanges = true;
-                  const match = slot.shortCode.match(/^([A-Z])-(\d+)-R(\d+)-(\d+)-(\d+)$/);
-                  if (match) {
-                    const zone = match[1];
-                    const baseRow = parseInt(match[2], 10);
-                    const rowOffset = parseInt(match[3], 10) - 1;
-                    const finalRow = baseRow + rowOffset;
-                    const bay = match[4];
-                    const shelf = match[5];
-                    const fixedCode = `${zone}-${String(finalRow).padStart(2, '0')}-${bay}-${shelf}`;
-                    nextLocs[key] = {
-                      ...slot,
-                      shortCode: fixedCode,
-                      locationCode: fixedCode,
-                    };
-                    continue;
-                  }
-                }
-                nextLocs[key] = slot;
-              }
-              if (hasChanges) cleanedLocations = nextLocs;
-            }
-
-            return {
-              ...item,
-              zone: z,
-              rowNumber: r,
-              rackNumber: r,
-              shelfLocations: cleanedLocations,
-            };
-          });
-          setBlueprintItems(applyCardinalOrientation(upgraded, initialFacing));
-        }
-        if (Array.isArray(parsed.cutoutBoxes))
-          setCutoutBoxes(parsed.cutoutBoxes);
+        localSavedState = JSON.parse(saved);
+        applyHydratedState(localSavedState, initialFacing);
       }
     } catch {
       // Ignore storage errors
     }
-  }, []);
 
-  // Persist changes to localStorage
+    hasHydratedRef.current = true;
+    isHydratingRef.current = false;
+
+    // Background Cloud Sync Check (ensures tablets and desktops load saved customization)
+    const checkCloudSync = async () => {
+      try {
+        const res = await fetch('/3d-warehouse/api/cloud-sync', {
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const cloudData = json.data;
+          const hasCustomLayout =
+            (Array.isArray(cloudData.blueprintItems) && cloudData.blueprintItems.length > 0) ||
+            (Array.isArray(cloudData.meshOverrides) && cloudData.meshOverrides.length > 0) ||
+            Boolean(cloudData.odooConfig) ||
+            Boolean(cloudData.unifiConfig);
+
+          if (hasCustomLayout) {
+            isHydratingRef.current = true;
+            applyHydratedState(cloudData, initialFacing);
+            isHydratingRef.current = false;
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
+            } catch {}
+            if (json.updatedAt) {
+              const formatted = new Date(json.updatedAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              setLastCloudSyncTime(formatted);
+              try {
+                localStorage.setItem('waretrack_last_cloud_sync_time', formatted);
+              } catch {}
+            }
+          }
+        } else if (localSavedState) {
+          // If Cloud is empty and this device has local customizations, push to cloud
+          await handlePushToCloud(localSavedState);
+        }
+      } catch (err) {
+        console.warn('Cloud sync error:', err);
+      }
+    };
+
+    checkCloudSync();
+  }, []); // Strictly empty array - runs once on mount without re-rendering loops
+
+  // Persist changes to localStorage (only after initial hydration is done)
   useEffect(() => {
+    if (!hasHydratedRef.current) return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -304,12 +570,30 @@ export default function WarehouseDigitalTwinPage() {
           meshOverrides,
           blueprintItems,
           cutoutBoxes,
+          cardinalFacing,
+          odooConfig,
+          unifiConfig,
         })
       );
     } catch {
       // Ignore storage errors
     }
-  }, [markers, meshOverrides, blueprintItems, cutoutBoxes]);
+  }, [markers, meshOverrides, blueprintItems, cutoutBoxes, cardinalFacing, odooConfig, unifiConfig]);
+
+  // Debounced auto-sync to cloud strictly on user modifications (1.5s debounce)
+  useEffect(() => {
+    if (!hasHydratedRef.current || isHydratingRef.current) return;
+
+    isUserDirtyRef.current = true;
+    const timer = setTimeout(() => {
+      if (isUserDirtyRef.current) {
+        isUserDirtyRef.current = false;
+        handlePushToCloud();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [markers, meshOverrides, blueprintItems, cutoutBoxes, cardinalFacing, odooConfig, unifiConfig, handlePushToCloud]);
 
   const filteredMarkers = useMemo(() => {
     return markers.filter((m) => {
@@ -573,6 +857,11 @@ export default function WarehouseDigitalTwinPage() {
     } catch {
       // Ignore
     }
+    // Auto-sync Odoo credentials to cloud immediately so all devices receive them
+    handlePushToCloud({
+      ...latestStateRef.current,
+      odooConfig: cfg,
+    });
   };
 
   const handleToggleShelfTags = () => {
@@ -885,6 +1174,11 @@ export default function WarehouseDigitalTwinPage() {
     } catch {
       // Ignore
     }
+    // Auto-sync UniFi credentials to cloud immediately so all devices receive them
+    handlePushToCloud({
+      ...latestStateRef.current,
+      unifiConfig: cfg,
+    });
   };
 
   const handleUpdateFsdConfig = (cfg: FsdVisionSettingsConfig) => {
@@ -894,6 +1188,10 @@ export default function WarehouseDigitalTwinPage() {
     } catch {
       // Ignore
     }
+    handlePushToCloud({
+      ...latestStateRef.current,
+      fsdConfig: cfg,
+    });
   };
 
   const handleSyncUnifiCameras = async () => {
@@ -1096,9 +1394,7 @@ export default function WarehouseDigitalTwinPage() {
         onSyncOdoo={handleSyncOdoo}
         lastSyncTime={lastSyncTime}
         displayMode={activeDisplayMode}
-        onDisplayModeChange={(mode) => {
-          if (appMode === 'edit') setDisplayMode(mode);
-        }}
+        onDisplayModeChange={setDisplayMode}
         theme={theme}
         onToggleTheme={() =>
           setTheme((prev) => (prev === 'daylight' ? 'dark' : 'daylight'))
@@ -1356,6 +1652,8 @@ export default function WarehouseDigitalTwinPage() {
         onSyncUnifi={handleSyncUnifiCameras}
         lastUnifiSyncTime={lastUnifiSyncTime}
         unifiSyncStatusMsg={unifiSyncStatusMsg}
+        onExportJson={handleExportJson}
+        lastCloudSyncTime={lastCloudSyncTime}
       />
 
       <CalibrationOverlay

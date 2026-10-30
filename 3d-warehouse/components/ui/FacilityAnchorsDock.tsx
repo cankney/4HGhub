@@ -9,6 +9,7 @@ interface FacilityAnchorsDockProps {
   selectedMarkerId: string | null;
   onSelectMarker: (marker: FacilityMarker) => void;
   theme: 'daylight' | 'dark';
+  className?: string;
 }
 
 const GROUPS: { type: MarkerType; label: string; dotColor: string }[] = [
@@ -22,6 +23,7 @@ export function FacilityAnchorsDock({
   selectedMarkerId,
   onSelectMarker,
   theme,
+  className,
 }: FacilityAnchorsDockProps) {
   const isDark = theme === 'dark';
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -53,7 +55,7 @@ export function FacilityAnchorsDock({
 
   return (
     <div
-      className={`fixed left-[calc(1rem+var(--safe-left))] bottom-[calc(1rem+var(--safe-bottom))] z-20 w-[22rem] lg:w-[28rem] max-w-[calc(100vw-2rem)] rounded-2xl border shadow-xl backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300 ${cardClass}`}
+      className={`rounded-2xl border shadow-xl backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300 ${cardClass} ${className || 'w-[19rem] sm:w-[21rem] xl:w-[26rem] max-w-[calc(100vw-2.5rem)]'}`}
     >
       {/* Header bar / Toggle button */}
       <button
@@ -61,7 +63,7 @@ export function FacilityAnchorsDock({
         onClick={handleToggle}
         aria-expanded={!collapsed}
         aria-label={collapsed ? 'Expand Facility Anchors' : 'Collapse Facility Anchors'}
-        className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-slate-500/5 transition select-none"
+        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-slate-500/5 transition select-none"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-2 h-2 rounded-full bg-[#8DDB05] shrink-0" />

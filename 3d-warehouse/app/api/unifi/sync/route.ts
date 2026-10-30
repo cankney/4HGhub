@@ -126,8 +126,12 @@ export async function POST(req: NextRequest) {
       testOnly = false,
     } = payload;
 
-    const cleanOrigin = cleanUnifiUrl(baseUrl);
-    const cleanKey = (apiKey || '').trim();
+    const cleanOrigin = cleanUnifiUrl(
+      baseUrl || process.env.UNIFI_IP || process.env.NEXT_PUBLIC_UNIFI_IP || ''
+    );
+    const cleanKey = (
+      apiKey || process.env.UNIFI_API_KEY || process.env.NEXT_PUBLIC_UNIFI_API_KEY || ''
+    ).trim();
     const cleanUser = (username || '').trim();
     const cleanPass = (password || '').trim();
 

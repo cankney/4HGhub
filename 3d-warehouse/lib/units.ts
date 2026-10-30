@@ -3,7 +3,7 @@ const INCHES_PER_METER = 39.37007874;
 const FEET_PER_METER = 3.280839895;
 
 export function metersToInches(m: number): number {
-  return Math.round(m * INCHES_PER_METER);
+  return Math.round(m * INCHES_PER_METER * 10) / 10;
 }
 
 export function inchesToMeters(inches: number): number {

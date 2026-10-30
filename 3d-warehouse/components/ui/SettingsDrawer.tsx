@@ -86,6 +86,8 @@ interface SettingsDrawerProps {
   onSyncUnifi?: () => void;
   lastUnifiSyncTime?: string | null;
   unifiSyncStatusMsg?: { type: 'success' | 'error'; text: string } | null;
+  onExportJson?: () => void;
+  lastCloudSyncTime?: string | null;
   isCollapsed?: boolean;
 }
 
@@ -111,6 +113,8 @@ export function SettingsDrawer({
   onSyncUnifi,
   lastUnifiSyncTime,
   unifiSyncStatusMsg,
+  onExportJson,
+  lastCloudSyncTime,
   isCollapsed = false,
 }: SettingsDrawerProps) {
   const isDark = theme === 'dark';
@@ -266,16 +270,15 @@ export function SettingsDrawer({
                 isDark ? 'text-[#8DDB05]' : 'text-[#3f6212]'
               }`}
             >
-              <Database className="w-4 h-4" /> Odoo ERP API Settings
+              <Database className="w-4 h-4" /> Odoo ERP Integration
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold bg-[#8DDB05]/20 text-[#8DDB05]">
-              JSON-RPC
+              AUTO-SYNC
             </span>
           </div>
 
           <p className="text-[11px] text-slate-500 leading-tight">
-            Connect your warehouse digital twin to Odoo to sync shelf stock
-            locations, inventory counts, and barcodes.
+            Connect to Odoo to map warehouse rack coordinates to Odoo Stock Locations. Saved credentials automatically sync across all your devices and can also be defined via Vercel Environment Variables.
           </p>
 
           <div className="space-y-2.5">
@@ -887,6 +890,22 @@ export function SettingsDrawer({
               {showShelfTags ? 'Visible' : 'Hidden'}
             </button>
           </div>
+
+          {/* Export Offline JSON Backup */}
+          {onExportJson && (
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-slate-500 text-[11px]">
+                {lastCloudSyncTime ? `Cloud synced: ${lastCloudSyncTime}` : 'Cloud auto-sync active'}
+              </span>
+              <button
+                type="button"
+                onClick={onExportJson}
+                className="text-[#8DDB05] hover:underline font-semibold cursor-pointer text-xs"
+              >
+                Export JSON Backup
+              </button>
+            </div>
+          )}
 
           {/* Reset to Factory Defaults */}
           <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
