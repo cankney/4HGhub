@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Cloud,
   Compass,
   Database,
   Eye,
@@ -89,6 +90,9 @@ interface SettingsDrawerProps {
   onExportJson?: () => void;
   lastCloudSyncTime?: string | null;
   isCollapsed?: boolean;
+  onPullCloud?: () => void;
+  onPushCloud?: () => void;
+  isSyncingCloud?: boolean;
 }
 
 export function SettingsDrawer({
@@ -116,6 +120,9 @@ export function SettingsDrawer({
   onExportJson,
   lastCloudSyncTime,
   isCollapsed = false,
+  onPullCloud,
+  onPushCloud,
+  isSyncingCloud = false,
 }: SettingsDrawerProps) {
   const isDark = theme === 'dark';
 
@@ -891,11 +898,48 @@ export function SettingsDrawer({
             </button>
           </div>
 
+          {/* 4HG Cloud Sync Status & Actions */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className={`flex items-center gap-1.5 font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                <Cloud className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-bounce text-sky-400' : 'text-sky-400'}`} />
+                4HG Cloud Sync
+              </span>
+              <span className="text-[10.5px] font-mono text-slate-400">
+                {lastCloudSyncTime ? `Synced: ${lastCloudSyncTime}` : 'Shared across all users'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {onPullCloud && (
+                <button
+                  type="button"
+                  onClick={onPullCloud}
+                  disabled={isSyncingCloud}
+                  className="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-1"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSyncingCloud ? 'animate-spin' : ''}`} />
+                  Pull from Cloud
+                </button>
+              )}
+              {onPushCloud && (
+                <button
+                  type="button"
+                  onClick={onPushCloud}
+                  disabled={isSyncingCloud}
+                  className="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-xs transition cursor-pointer flex items-center justify-center gap-1"
+                >
+                  <Cloud className="w-3 h-3" />
+                  Push to Cloud
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Export Offline JSON Backup */}
           {onExportJson && (
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
               <span className="text-slate-500 text-[11px]">
-                {lastCloudSyncTime ? `Cloud synced: ${lastCloudSyncTime}` : 'Cloud auto-sync active'}
+                {lastCloudSyncTime ? `Cloud: ${lastCloudSyncTime}` : 'All devices synchronized'}
               </span>
               <button
                 type="button"

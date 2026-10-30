@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import {
   Box,
+  Cloud,
   Crosshair,
   Eye,
   Layers,
@@ -63,6 +64,9 @@ interface TopNavbarProps {
   onToggleFsdSettings?: () => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  isSyncingCloud?: boolean;
+  onPullCloud?: () => void;
+  lastCloudSyncTime?: string | null;
 }
 
 export function TopNavbar({
@@ -95,6 +99,9 @@ export function TopNavbar({
   onToggleFsdSettings,
   isFullscreen = false,
   onToggleFullscreen,
+  isSyncingCloud,
+  onPullCloud,
+  lastCloudSyncTime,
 }: TopNavbarProps) {
   const isDark = theme === 'dark';
 
@@ -267,6 +274,37 @@ export function TopNavbar({
             </span>
           </button>
         )}
+
+        {/* Sync with 4HG Cloud (Synced across all devices) */}
+        {onPullCloud && (
+          <button
+            type="button"
+            onClick={onPullCloud}
+            disabled={isSyncingCloud}
+            className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-bold transition cursor-pointer border shadow-xs touch-target ${
+              isSyncingCloud
+                ? 'bg-sky-500/20 text-sky-400 border-sky-500/40 opacity-75 cursor-wait'
+                : isDark
+                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:border-sky-400'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-sky-400'
+            }`}
+            title={
+              lastCloudSyncTime
+                ? `Live warehouse state synced across all devices (${lastCloudSyncTime}). Click to pull latest.`
+                : 'Sync with 4HG Cloud across all devices'
+            }
+            aria-label="Sync Cloud"
+          >
+            <Cloud
+              className={`w-3.5 h-3.5 ${
+                isSyncingCloud ? 'animate-bounce text-sky-400' : 'text-sky-400'
+              }`}
+            />
+            <span className="hidden 2xl:inline">
+              {isSyncingCloud ? 'Syncing...' : lastCloudSyncTime ? `Synced ${lastCloudSyncTime}` : 'Cloud Sync'}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Center View Mode Status & Overlay Toggles (View Mode) */}
@@ -311,11 +349,15 @@ export function TopNavbar({
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden md:inline">3D FSD Vision</span>
           </button>
-          {showSpatialVision3D && onToggleFsdSettings && (
+          {onToggleFsdSettings && (
             <button
               onClick={onToggleFsdSettings}
-              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition cursor-pointer"
-              title="Camera Vision Calibration Settings"
+              className={`p-1.5 rounded-xl transition cursor-pointer ${
+                isFsdSettingsOpen
+                  ? 'bg-sky-500 text-slate-950 font-bold'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-200'
+              }`}
+              title="Camera Vision Calibration Settings & Compass"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
             </button>
@@ -356,6 +398,33 @@ export function TopNavbar({
               </button>
             );
           })}
+
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
+          <button
+            onClick={() => onToggleSpatialVision3D?.()}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition cursor-pointer touch-target ${
+              showSpatialVision3D
+                ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+            title="Toggle AI Spatial Vision & Ground Projection"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">3D FSD Vision</span>
+          </button>
+          {onToggleFsdSettings && (
+            <button
+              onClick={onToggleFsdSettings}
+              className={`p-1.5 rounded-xl transition cursor-pointer ${
+                isFsdSettingsOpen
+                  ? 'bg-sky-500 text-slate-950 font-bold'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-200'
+              }`}
+              title="Camera Vision Calibration Settings & Compass"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       )}
 

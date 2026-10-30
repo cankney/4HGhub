@@ -11,6 +11,7 @@ import {
   DisplayMode,
   FacilityMarker,
   FsdVisionSettingsConfig,
+  getDefaultCameraVisionMapping,
   MarkerType,
   MeshOverride,
 } from '@/lib/markers';
@@ -63,7 +64,7 @@ interface HistorySnapshot {
 }
 
 export default function WarehouseDigitalTwinPage() {
-  const [appMode, setAppMode] = useState<'view' | 'edit'>('edit');
+  const [appMode, setAppMode] = useState<'view' | 'edit'>('view');
   const [theme, setTheme] = useState<'daylight' | 'dark'>('daylight');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('clean_shell');
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,7 +126,7 @@ export default function WarehouseDigitalTwinPage() {
   const [cardinalFacing, setCardinalFacing] = useState<CardinalFacing>('north');
   const [showShelfTags, setShowShelfTags] = useState<boolean>(true);
   const [showCameraFeeds3D, setShowCameraFeeds3D] = useState<boolean>(false);
-  const [showSpatialVision3D, setShowSpatialVision3D] = useState<boolean>(false);
+  const [showSpatialVision3D, setShowSpatialVision3D] = useState<boolean>(true);
   const [isFsdSettingsOpen, setIsFsdSettingsOpen] = useState<boolean>(false);
   const [selectedFsdCameraId, setSelectedFsdCameraId] =
     useState<string>('CAM-03');
@@ -166,6 +167,8 @@ export default function WarehouseDigitalTwinPage() {
   const hasHydratedRef = React.useRef<boolean>(false);
   const isHydratingRef = React.useRef<boolean>(false);
   const isUserDirtyRef = React.useRef<boolean>(false);
+  const lastCloudUpdatedAtRef = React.useRef<string | null>(null);
+  const skipNextSyncRef = React.useRef<boolean>(false);
 
   // Always keep a ref to the latest state snapshot to avoid re-creating sync callbacks
   const latestStateRef = React.useRef({
@@ -176,6 +179,13 @@ export default function WarehouseDigitalTwinPage() {
     cardinalFacing,
     odooConfig,
     unifiConfig,
+    fsdConfig,
+    showSpatialVision3D,
+    showCameraFeeds3D,
+    showShelfTags,
+    displayMode,
+    theme,
+    roofCutoffY,
   });
   latestStateRef.current = {
     markers,
@@ -185,6 +195,13 @@ export default function WarehouseDigitalTwinPage() {
     cardinalFacing,
     odooConfig,
     unifiConfig,
+    fsdConfig,
+    showSpatialVision3D,
+    showCameraFeeds3D,
+    showShelfTags,
+    displayMode,
+    theme,
+    roofCutoffY,
   };
 
   // Helper to apply hydrated twin state safely
@@ -201,6 +218,9 @@ export default function WarehouseDigitalTwinPage() {
 
       if (parsed.cardinalFacing) {
         setCardinalFacing(facing);
+        try {
+          localStorage.setItem('waretrack_cardinal_facing', facing);
+        } catch {}
       }
 
       if (parsed.odooConfig && typeof parsed.odooConfig === 'object') {
@@ -217,27 +237,89 @@ export default function WarehouseDigitalTwinPage() {
         } catch {}
       }
 
+      // 3D FSD Vision Settings
+      if (parsed.fsdConfig && typeof parsed.fsdConfig === 'object') {
+        const mergedFsd: FsdVisionSettingsConfig = {
+          ...DEFAULT_FSD_VISION_CONFIG,
+          ...parsed.fsdConfig,
+        };
+        setFsdConfig(mergedFsd);
+        try {
+          localStorage.setItem('waretrack_fsd_vision_config', JSON.stringify(mergedFsd));
+        } catch {}
+        applied = true;
+      }
+
+      // App & 3D View Preferences (ensures all users share the exact same view)
+      if (typeof parsed.showSpatialVision3D === 'boolean') {
+        setShowSpatialVision3D(parsed.showSpatialVision3D);
+        try {
+          localStorage.setItem('waretrack_show_spatial_vision_3d', String(parsed.showSpatialVision3D));
+        } catch {}
+        applied = true;
+      }
+
+      if (typeof parsed.showCameraFeeds3D === 'boolean') {
+        setShowCameraFeeds3D(parsed.showCameraFeeds3D);
+        try {
+          localStorage.setItem('waretrack_show_camera_feeds_3d', String(parsed.showCameraFeeds3D));
+        } catch {}
+        applied = true;
+      }
+
+      if (typeof parsed.showShelfTags === 'boolean') {
+        setShowShelfTags(parsed.showShelfTags);
+        try {
+          localStorage.setItem('waretrack_show_shelf_tags', String(parsed.showShelfTags));
+        } catch {}
+        applied = true;
+      }
+
+      if (parsed.displayMode && ['clean_shell', 'stylized', 'realistic', 'ghost'].includes(parsed.displayMode)) {
+        setDisplayMode(parsed.displayMode);
+        try {
+          localStorage.setItem('waretrack_display_mode', parsed.displayMode);
+        } catch {}
+        applied = true;
+      }
+
+      if (parsed.theme && ['daylight', 'dark'].includes(parsed.theme)) {
+        setTheme(parsed.theme);
+        try {
+          localStorage.setItem('waretrack_theme', parsed.theme);
+        } catch {}
+        applied = true;
+      }
+
+      if (typeof parsed.roofCutoffY === 'number' && !isNaN(parsed.roofCutoffY)) {
+        setRoofCutoffY(parsed.roofCutoffY);
+        try {
+          localStorage.setItem('waretrack_roof_cutoff_y', String(parsed.roofCutoffY));
+        } catch {}
+        applied = true;
+      }
+
       if (Array.isArray(parsed.markers) && parsed.markers.length > 0) {
         const defaultCamMap = new Map(
           DEFAULT_MARKERS.filter((m) => m.type === 'camera').map((m) => [m.id, m])
         );
         const hydratedMarkers = parsed.markers.map((m: FacilityMarker) => {
-          if (m.type === 'camera' && !m.metadata?.unifiId) {
+          if (m.type === 'camera') {
             const fallbackCam = defaultCamMap.get(m.id);
-            if (fallbackCam) {
-              return {
-                ...m,
-                metadata: {
-                  ...fallbackCam.metadata,
-                  ...m.metadata,
-                  unifiId: fallbackCam.metadata.unifiId,
-                  unifiModel: m.metadata?.unifiModel || fallbackCam.metadata.unifiModel,
-                  unifiConsoleId:
-                    m.metadata?.unifiConsoleId || fallbackCam.metadata.unifiConsoleId,
-                  rtspHigh: m.metadata?.rtspHigh || fallbackCam.metadata.rtspHigh,
-                },
-              };
-            }
+            const fallbackMapping = fallbackCam ? getDefaultCameraVisionMapping(fallbackCam) : undefined;
+            return {
+              ...m,
+              metadata: {
+                ...(fallbackCam?.metadata || {}),
+                ...m.metadata,
+                visionMapping: m.metadata?.visionMapping || fallbackMapping,
+                unifiId: m.metadata?.unifiId || fallbackCam?.metadata?.unifiId,
+                unifiModel: m.metadata?.unifiModel || fallbackCam?.metadata?.unifiModel,
+                unifiConsoleId:
+                  m.metadata?.unifiConsoleId || fallbackCam?.metadata?.unifiConsoleId,
+                rtspHigh: m.metadata?.rtspHigh || fallbackCam?.metadata?.rtspHigh,
+              },
+            };
           }
           return m;
         });
@@ -327,13 +409,22 @@ export default function WarehouseDigitalTwinPage() {
 
         const json = await res.json();
         if (json.success) {
-          const timeStr = new Date(json.updatedAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          if (json.updatedAt) {
+            lastCloudUpdatedAtRef.current = json.updatedAt;
+          }
+          const timeStr = json.updatedAt
+            ? new Date(json.updatedAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
           setLastCloudSyncTime(timeStr);
           try {
             localStorage.setItem('waretrack_last_cloud_sync_time', timeStr);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
           } catch {}
           setCloudSyncMsg({
             type: 'success',
@@ -358,53 +449,87 @@ export default function WarehouseDigitalTwinPage() {
   );
 
   // Pull customizations from 4HG Cloud
-  const handlePullFromCloud = React.useCallback(async () => {
-    setIsSyncingCloud(true);
-    setCloudSyncMsg(null);
-    try {
-      const res = await fetch('/3d-warehouse/api/cloud-sync', {
-        cache: 'no-store',
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        isHydratingRef.current = true;
-        applyHydratedState(json.data);
-        isHydratingRef.current = false;
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
-        } catch {}
-        const timeStr = json.updatedAt
-          ? new Date(json.updatedAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          : new Date().toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
-        setLastCloudSyncTime(timeStr);
-        try {
-          localStorage.setItem('waretrack_last_cloud_sync_time', timeStr);
-        } catch {}
-        setCloudSyncMsg({
-          type: 'success',
-          text: `Loaded 3D model from 4HG Cloud (${timeStr})!`,
-        });
-      } else {
-        setCloudSyncMsg({
-          type: 'error',
-          text: 'No cloud layout found yet. Push from your desktop first!',
-        });
+  const handlePullFromCloud = React.useCallback(
+    async (silent = false) => {
+      if (!silent) {
+        setIsSyncingCloud(true);
+        setCloudSyncMsg(null);
       }
-    } catch (err: any) {
-      setCloudSyncMsg({
-        type: 'error',
-        text: err.message || 'Network error pulling from cloud.',
-      });
-    } finally {
-      setIsSyncingCloud(false);
-    }
-  }, [applyHydratedState]);
+      try {
+        const res = await fetch('/3d-warehouse/api/cloud-sync', {
+          cache: 'no-store',
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          // If we already have this exact server version and silent is true, skip
+          if (
+            json.updatedAt &&
+            lastCloudUpdatedAtRef.current &&
+            json.updatedAt === lastCloudUpdatedAtRef.current
+          ) {
+            if (!silent) {
+              setCloudSyncMsg({
+                type: 'success',
+                text: `Already up to date with 4HG Cloud (${lastCloudSyncTime || 'now'})!`,
+              });
+            }
+            return;
+          }
+
+          skipNextSyncRef.current = true;
+          isHydratingRef.current = true;
+          applyHydratedState(json.data);
+          isHydratingRef.current = false;
+
+          if (json.updatedAt) {
+            lastCloudUpdatedAtRef.current = json.updatedAt;
+          }
+
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
+          } catch {}
+
+          const timeStr = json.updatedAt
+            ? new Date(json.updatedAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+          setLastCloudSyncTime(timeStr);
+          try {
+            localStorage.setItem('waretrack_last_cloud_sync_time', timeStr);
+          } catch {}
+
+          if (!silent) {
+            setCloudSyncMsg({
+              type: 'success',
+              text: `Loaded latest 3D model & vision settings from 4HG Cloud (${timeStr})!`,
+            });
+          }
+        } else if (!silent) {
+          setCloudSyncMsg({
+            type: 'error',
+            text: 'No cloud layout found yet. Push from your desktop first!',
+          });
+        }
+      } catch (err: any) {
+        if (!silent) {
+          setCloudSyncMsg({
+            type: 'error',
+            text: err.message || 'Network error pulling from cloud.',
+          });
+        }
+      } finally {
+        if (!silent) {
+          setIsSyncingCloud(false);
+        }
+      }
+    },
+    [applyHydratedState, lastCloudSyncTime]
+  );
 
   // Export JSON backup file (reads from stable latestStateRef)
   const handleExportJson = React.useCallback(() => {
@@ -418,6 +543,13 @@ export default function WarehouseDigitalTwinPage() {
         blueprintItems: state.blueprintItems,
         cutoutBoxes: state.cutoutBoxes,
         cardinalFacing: state.cardinalFacing,
+        fsdConfig: state.fsdConfig,
+        showSpatialVision3D: state.showSpatialVision3D,
+        showCameraFeeds3D: state.showCameraFeeds3D,
+        showShelfTags: state.showShelfTags,
+        displayMode: state.displayMode,
+        theme: state.theme,
+        roofCutoffY: state.roofCutoffY,
       };
       const blob = new Blob([JSON.stringify(backup, null, 2)], {
         type: 'application/json',
@@ -448,10 +580,10 @@ export default function WarehouseDigitalTwinPage() {
 
   // Hydrate persisted modifications from localStorage & 4HG Cloud (Runs strictly once on mount)
   useEffect(() => {
-    let localSavedState: any = null;
     let initialFacing: CardinalFacing = 'north';
 
     isHydratingRef.current = true;
+    skipNextSyncRef.current = true;
 
     try {
       const savedConfig = localStorage.getItem('waretrack_odoo_config');
@@ -480,6 +612,28 @@ export default function WarehouseDigitalTwinPage() {
       const savedTags = localStorage.getItem('waretrack_show_shelf_tags');
       if (savedTags !== null) setShowShelfTags(savedTags === 'true');
 
+      const savedSpatial = localStorage.getItem('waretrack_show_spatial_vision_3d');
+      if (savedSpatial !== null) setShowSpatialVision3D(savedSpatial === 'true');
+
+      const savedFeeds = localStorage.getItem('waretrack_show_camera_feeds_3d');
+      if (savedFeeds !== null) setShowCameraFeeds3D(savedFeeds === 'true');
+
+      const savedDisplayMode = localStorage.getItem('waretrack_display_mode') as DisplayMode;
+      if (savedDisplayMode && ['clean_shell', 'stylized', 'realistic', 'ghost'].includes(savedDisplayMode)) {
+        setDisplayMode(savedDisplayMode);
+      }
+
+      const savedTheme = localStorage.getItem('waretrack_theme') as 'daylight' | 'dark';
+      if (savedTheme && ['daylight', 'dark'].includes(savedTheme)) {
+        setTheme(savedTheme);
+      }
+
+      const savedRoofCutoff = localStorage.getItem('waretrack_roof_cutoff_y');
+      if (savedRoofCutoff !== null) {
+        const parsedCutoff = parseFloat(savedRoofCutoff);
+        if (!isNaN(parsedCutoff)) setRoofCutoffY(parsedCutoff);
+      }
+
       const savedLastSync = localStorage.getItem('waretrack_last_sync_time');
       if (savedLastSync) setLastSyncTime(savedLastSync);
 
@@ -502,7 +656,7 @@ export default function WarehouseDigitalTwinPage() {
         localStorage.getItem(STORAGE_KEY) ||
         localStorage.getItem('waretrack_4hg_twin_state_v8');
       if (saved) {
-        localSavedState = JSON.parse(saved);
+        const localSavedState = JSON.parse(saved);
         applyHydratedState(localSavedState, initialFacing);
       }
     } catch {
@@ -512,52 +666,33 @@ export default function WarehouseDigitalTwinPage() {
     hasHydratedRef.current = true;
     isHydratingRef.current = false;
 
-    // Background Cloud Sync Check (ensures tablets and desktops load saved customization)
-    const checkCloudSync = async () => {
-      try {
-        const res = await fetch('/3d-warehouse/api/cloud-sync', {
-          cache: 'no-store',
-        });
-        if (!res.ok) return;
-        const json = await res.json();
+    // Pull authoritative configuration from 4HG Cloud
+    handlePullFromCloud(true);
+  }, [applyHydratedState, handlePullFromCloud]);
 
-        if (json.success && json.data) {
-          const cloudData = json.data;
-          const hasCustomLayout =
-            (Array.isArray(cloudData.blueprintItems) && cloudData.blueprintItems.length > 0) ||
-            (Array.isArray(cloudData.meshOverrides) && cloudData.meshOverrides.length > 0) ||
-            Boolean(cloudData.odooConfig) ||
-            Boolean(cloudData.unifiConfig);
+  // Periodic background check to keep all users in sync with admin changes
+  useEffect(() => {
+    // Check every 12 seconds
+    const interval = setInterval(() => {
+      if (!isUserDirtyRef.current) {
+        handlePullFromCloud(true);
+      }
+    }, 12000);
 
-          if (hasCustomLayout) {
-            isHydratingRef.current = true;
-            applyHydratedState(cloudData, initialFacing);
-            isHydratingRef.current = false;
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
-            } catch {}
-            if (json.updatedAt) {
-              const formatted = new Date(json.updatedAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              });
-              setLastCloudSyncTime(formatted);
-              try {
-                localStorage.setItem('waretrack_last_cloud_sync_time', formatted);
-              } catch {}
-            }
-          }
-        } else if (localSavedState) {
-          // If Cloud is empty and this device has local customizations, push to cloud
-          await handlePushToCloud(localSavedState);
-        }
-      } catch (err) {
-        console.warn('Cloud sync error:', err);
+    const onFocus = () => {
+      if (!isUserDirtyRef.current) {
+        handlePullFromCloud(true);
       }
     };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
 
-    checkCloudSync();
-  }, []); // Strictly empty array - runs once on mount without re-rendering loops
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [handlePullFromCloud]);
 
   // Persist changes to localStorage (only after initial hydration is done)
   useEffect(() => {
@@ -573,18 +708,46 @@ export default function WarehouseDigitalTwinPage() {
           cardinalFacing,
           odooConfig,
           unifiConfig,
+          fsdConfig,
+          showSpatialVision3D,
+          showCameraFeeds3D,
+          showShelfTags,
+          displayMode,
+          theme,
+          roofCutoffY,
         })
       );
     } catch {
       // Ignore storage errors
     }
-  }, [markers, meshOverrides, blueprintItems, cutoutBoxes, cardinalFacing, odooConfig, unifiConfig]);
+  }, [
+    markers,
+    meshOverrides,
+    blueprintItems,
+    cutoutBoxes,
+    cardinalFacing,
+    odooConfig,
+    unifiConfig,
+    fsdConfig,
+    showSpatialVision3D,
+    showCameraFeeds3D,
+    showShelfTags,
+    displayMode,
+    theme,
+    roofCutoffY,
+  ]);
 
   // Debounced auto-sync to cloud strictly on user modifications (1.5s debounce)
   useEffect(() => {
     if (!hasHydratedRef.current || isHydratingRef.current) return;
 
-    isUserDirtyRef.current = true;
+    if (skipNextSyncRef.current) {
+      skipNextSyncRef.current = false;
+      return;
+    }
+
+    if (!isUserDirtyRef.current) return;
+
     const timer = setTimeout(() => {
       if (isUserDirtyRef.current) {
         isUserDirtyRef.current = false;
@@ -593,7 +756,23 @@ export default function WarehouseDigitalTwinPage() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [markers, meshOverrides, blueprintItems, cutoutBoxes, cardinalFacing, odooConfig, unifiConfig, handlePushToCloud]);
+  }, [
+    markers,
+    meshOverrides,
+    blueprintItems,
+    cutoutBoxes,
+    cardinalFacing,
+    odooConfig,
+    unifiConfig,
+    fsdConfig,
+    showSpatialVision3D,
+    showCameraFeeds3D,
+    showShelfTags,
+    displayMode,
+    theme,
+    roofCutoffY,
+    handlePushToCloud,
+  ]);
 
   const filteredMarkers = useMemo(() => {
     return markers.filter((m) => {
@@ -747,6 +926,7 @@ export default function WarehouseDigitalTwinPage() {
 
   const handleUpdateMarker = (updated: FacilityMarker) => {
     pushHistory();
+    isUserDirtyRef.current = true;
     setMarkers((prev) =>
       prev.map((m) => (m.id === updated.id ? updated : m))
     );
@@ -754,16 +934,19 @@ export default function WarehouseDigitalTwinPage() {
 
   const handleDeleteMarker = (id: string) => {
     pushHistory();
+    isUserDirtyRef.current = true;
     setMarkers((prev) => prev.filter((m) => m.id !== id));
     if (selectedMarkerId === id) setSelectedMarkerId(null);
   };
 
   const handleAddMarker = (newMarker: FacilityMarker) => {
     pushHistory();
+    isUserDirtyRef.current = true;
     setMarkers((prev) => [...prev, newMarker]);
   };
 
   const handleUpdateMeshOverride = (override: MeshOverride) => {
+    isUserDirtyRef.current = true;
     setMeshOverrides((prev) =>
       prev.map((m) => (m.meshIndex === override.meshIndex ? override : m))
     );
@@ -773,6 +956,7 @@ export default function WarehouseDigitalTwinPage() {
     type: MarkerType,
     point: [number, number, number]
   ) => {
+    isUserDirtyRef.current = true;
     const prefix =
       type === 'camera' ? 'CAM' : type === 'network_ap' ? 'AP' : 'BIN';
     const num = markers.length + 101;
@@ -831,6 +1015,7 @@ export default function WarehouseDigitalTwinPage() {
 
   const handleSelectCardinalFacing = (newFacing: CardinalFacing) => {
     pushHistory();
+    isUserDirtyRef.current = true;
     setCardinalFacing(newFacing);
     setBlueprintItems((prev) => applyCardinalOrientation(prev, newFacing));
     try {
@@ -857,6 +1042,7 @@ export default function WarehouseDigitalTwinPage() {
     } catch {
       // Ignore
     }
+    isUserDirtyRef.current = true;
     // Auto-sync Odoo credentials to cloud immediately so all devices receive them
     handlePushToCloud({
       ...latestStateRef.current,
@@ -865,25 +1051,36 @@ export default function WarehouseDigitalTwinPage() {
   };
 
   const handleToggleShelfTags = () => {
-    setShowShelfTags((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('waretrack_show_shelf_tags', String(next));
-      } catch {
-        // Ignore
-      }
-      return next;
+    const next = !showShelfTags;
+    setShowShelfTags(next);
+    try {
+      localStorage.setItem('waretrack_show_shelf_tags', String(next));
+    } catch {
+      // Ignore
+    }
+    isUserDirtyRef.current = true;
+    handlePushToCloud({
+      ...latestStateRef.current,
+      showShelfTags: next,
     });
   };
 
   const handleResetToDefaults = () => {
     pushHistory();
+    isUserDirtyRef.current = true;
     setMarkers(DEFAULT_MARKERS);
     setMeshOverrides(DEFAULT_MESH_OVERRIDES);
     setBlueprintItems(
       applyCardinalOrientation(DEFAULT_BLUEPRINT_ITEMS, cardinalFacing)
     );
     setCutoutBoxes(DEFAULT_CUTOUT_BOXES);
+    handlePushToCloud({
+      ...latestStateRef.current,
+      markers: DEFAULT_MARKERS,
+      meshOverrides: DEFAULT_MESH_OVERRIDES,
+      blueprintItems: applyCardinalOrientation(DEFAULT_BLUEPRINT_ITEMS, cardinalFacing),
+      cutoutBoxes: DEFAULT_CUTOUT_BOXES,
+    });
   };
 
   const handleSelectSearchResult = (result: SearchResultItem) => {
@@ -1174,6 +1371,7 @@ export default function WarehouseDigitalTwinPage() {
     } catch {
       // Ignore
     }
+    isUserDirtyRef.current = true;
     // Auto-sync UniFi credentials to cloud immediately so all devices receive them
     handlePushToCloud({
       ...latestStateRef.current,
@@ -1188,6 +1386,7 @@ export default function WarehouseDigitalTwinPage() {
     } catch {
       // Ignore
     }
+    isUserDirtyRef.current = true;
     handlePushToCloud({
       ...latestStateRef.current,
       fsdConfig: cfg,
@@ -1394,11 +1593,24 @@ export default function WarehouseDigitalTwinPage() {
         onSyncOdoo={handleSyncOdoo}
         lastSyncTime={lastSyncTime}
         displayMode={activeDisplayMode}
-        onDisplayModeChange={setDisplayMode}
+        onDisplayModeChange={(mode) => {
+          setDisplayMode(mode);
+          isUserDirtyRef.current = true;
+          handlePushToCloud({
+            ...latestStateRef.current,
+            displayMode: mode,
+          });
+        }}
         theme={theme}
-        onToggleTheme={() =>
-          setTheme((prev) => (prev === 'daylight' ? 'dark' : 'daylight'))
-        }
+        onToggleTheme={() => {
+          const next = theme === 'daylight' ? 'dark' : 'daylight';
+          setTheme(next);
+          isUserDirtyRef.current = true;
+          handlePushToCloud({
+            ...latestStateRef.current,
+            theme: next,
+          });
+        }}
         editModelMode={editModelMode}
         onToggleEditModel={() => {
           setEditModelMode((prev) => !prev);
@@ -1427,12 +1639,23 @@ export default function WarehouseDigitalTwinPage() {
             if (next && activeFilter !== 'all' && activeFilter !== 'camera') {
               setActiveFilter('all');
             }
+            isUserDirtyRef.current = true;
+            handlePushToCloud({
+              ...latestStateRef.current,
+              showCameraFeeds3D: next,
+            });
             return next;
           });
         }}
         showSpatialVision3D={showSpatialVision3D}
         onToggleSpatialVision3D={() => {
-          setShowSpatialVision3D((prev) => !prev);
+          const next = !showSpatialVision3D;
+          setShowSpatialVision3D(next);
+          isUserDirtyRef.current = true;
+          handlePushToCloud({
+            ...latestStateRef.current,
+            showSpatialVision3D: next,
+          });
         }}
         isFsdSettingsOpen={isFsdSettingsOpen}
         onToggleFsdSettings={() => {
@@ -1446,6 +1669,9 @@ export default function WarehouseDigitalTwinPage() {
         }}
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
+        isSyncingCloud={isSyncingCloud}
+        onPullCloud={() => handlePullFromCloud(false)}
+        lastCloudSyncTime={lastCloudSyncTime}
       />
 
       <HudOverlays
@@ -1455,10 +1681,18 @@ export default function WarehouseDigitalTwinPage() {
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         roofCutoffY={roofCutoffY}
-        onRoofCutoffChange={setRoofCutoffY}
+        onRoofCutoffChange={(val) => {
+          setRoofCutoffY(val);
+          isUserDirtyRef.current = true;
+        }}
         displayMode={activeDisplayMode}
         onDisplayModeChange={(mode) => {
-          if (appMode === 'edit') setDisplayMode(mode);
+          setDisplayMode(mode);
+          isUserDirtyRef.current = true;
+          handlePushToCloud({
+            ...latestStateRef.current,
+            displayMode: mode,
+          });
         }}
         panMode={panMode}
         onTogglePanMode={() => setPanMode((prev) => !prev)}
@@ -1491,13 +1725,13 @@ export default function WarehouseDigitalTwinPage() {
         calibratedPoint={calibratedPoint}
         cameraCommand={cameraCommand}
         searchQuery={searchQuery}
-        showCameraFeeds3D={appMode === 'view' && showCameraFeeds3D}
-        showSpatialVision3D={appMode === 'view' && showSpatialVision3D}
+        showCameraFeeds3D={showCameraFeeds3D}
+        showSpatialVision3D={showSpatialVision3D || isFsdSettingsOpen}
         fsdConfig={fsdConfig}
         unifiConfig={unifiConfig}
         cardinalFacing={cardinalFacing}
         onSelectCardinalFacing={handleSelectCardinalFacing}
-        isFsdSettingsOpen={appMode === 'view' && isFsdSettingsOpen}
+        isFsdSettingsOpen={isFsdSettingsOpen}
         selectedFsdCameraId={selectedFsdCameraId}
         onSelectFsdCameraId={setSelectedFsdCameraId}
         onUpdateMarker={handleUpdateMarker}
@@ -1523,6 +1757,7 @@ export default function WarehouseDigitalTwinPage() {
         onSelectSlot={(slotKey) => setSelectedSlotKey(slotKey)}
         onUpdateBlueprintItem={(updated) => {
           pushHistory();
+          isUserDirtyRef.current = true;
           setBlueprintItems((prev) =>
             prev.map((b) => (b.id === updated.id ? updated : b))
           );
@@ -1562,32 +1797,41 @@ export default function WarehouseDigitalTwinPage() {
         }}
         onAddBlueprintItem={(item) => {
           pushHistory();
+          isUserDirtyRef.current = true;
           setBlueprintItems((prev) => [...prev, item]);
         }}
         onUpdateBlueprintItem={(updated) => {
           pushHistory();
+          isUserDirtyRef.current = true;
           setBlueprintItems((prev) =>
             prev.map((b) => (b.id === updated.id ? updated : b))
           );
         }}
         onDeleteBlueprintItem={(id) => {
           pushHistory();
+          isUserDirtyRef.current = true;
           setBlueprintItems((prev) => prev.filter((b) => b.id !== id));
           if (selectedBlueprintId === id) setSelectedBlueprintId(null);
         }}
         onResetBlueprintItems={() => {
           pushHistory();
+          isUserDirtyRef.current = true;
           setBlueprintItems(DEFAULT_BLUEPRINT_ITEMS);
         }}
         onSelectMesh={setSelectedMeshIndex}
         onUpdateMeshOverride={handleUpdateMeshOverride}
-        onResetMeshOverrides={() => setMeshOverrides(DEFAULT_MESH_OVERRIDES)}
-        onToggleCutoutBox={(id) =>
+        onResetMeshOverrides={() => {
+          isUserDirtyRef.current = true;
+          setMeshOverrides(DEFAULT_MESH_OVERRIDES);
+        }}
+        onToggleCutoutBox={(id) => {
+          isUserDirtyRef.current = true;
           setCutoutBoxes((prev) =>
             prev.map((b) => (b.id === id ? { ...b, active: !b.active } : b))
-          )
-        }
+          );
+        }}
         onAddCutoutBox={() => {
+          isUserDirtyRef.current = true;
           const nextId = `CUT-0${cutoutBoxes.length + 1}`;
           setCutoutBoxes((prev) => [
             ...prev,
@@ -1602,18 +1846,26 @@ export default function WarehouseDigitalTwinPage() {
             },
           ]);
         }}
-        onDeleteCutoutBox={(id) =>
-          setCutoutBoxes((prev) => prev.filter((b) => b.id !== id))
-        }
-        onUpdateCutoutBox={(updated) =>
+        onDeleteCutoutBox={(id) => {
+          isUserDirtyRef.current = true;
+          setCutoutBoxes((prev) => prev.filter((b) => b.id !== id));
+        }}
+        onUpdateCutoutBox={(updated) => {
+          isUserDirtyRef.current = true;
           setCutoutBoxes((prev) =>
             prev.map((b) => (b.id === updated.id ? updated : b))
-          )
-        }
+          );
+        }}
         canUndo={pastHistory.length > 0}
         canRedo={futureHistory.length > 0}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
+        onUndo={() => {
+          isUserDirtyRef.current = true;
+          handleUndo();
+        }}
+        onRedo={() => {
+          isUserDirtyRef.current = true;
+          handleRedo();
+        }}
         unifiConfig={unifiConfig}
         isCollapsed={isSidebarCollapsed || isFullscreen}
       />
@@ -1654,6 +1906,9 @@ export default function WarehouseDigitalTwinPage() {
         unifiSyncStatusMsg={unifiSyncStatusMsg}
         onExportJson={handleExportJson}
         lastCloudSyncTime={lastCloudSyncTime}
+        onPullCloud={() => handlePullFromCloud(false)}
+        onPushCloud={() => handlePushToCloud()}
+        isSyncingCloud={isSyncingCloud}
       />
 
       <CalibrationOverlay
@@ -1671,7 +1926,7 @@ export default function WarehouseDigitalTwinPage() {
         }}
       />
 
-      {appMode === 'view' && !isFullscreen && (
+      {!isFullscreen && (
         <FsdVisionSettingsPanel
           isOpen={isFsdSettingsOpen}
           onClose={() => setIsFsdSettingsOpen(false)}
@@ -1698,6 +1953,9 @@ export default function WarehouseDigitalTwinPage() {
             })
           }
           latestDetectionsByCamera={latestDetectionsByCamera}
+          lastCloudSyncTime={lastCloudSyncTime}
+          isSyncingCloud={isSyncingCloud}
+          onPushToCloud={() => handlePushToCloud()}
         />
       )}
     </main>

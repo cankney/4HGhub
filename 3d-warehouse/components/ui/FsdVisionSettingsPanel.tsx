@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Camera,
+  Cloud,
   Compass,
   Crosshair,
   Eye,
@@ -56,6 +57,9 @@ interface FsdVisionSettingsPanelProps {
     string,
     { u: number; v: number; label: string; confidence: number }[]
   >;
+  lastCloudSyncTime?: string | null;
+  isSyncingCloud?: boolean;
+  onPushToCloud?: () => void;
 }
 
 export function FsdVisionSettingsPanel({
@@ -77,6 +81,9 @@ export function FsdVisionSettingsPanel({
   onChangeTestPreviewPoint,
   onFocus3DCamera,
   latestDetectionsByCamera = {},
+  lastCloudSyncTime,
+  isSyncingCloud = false,
+  onPushToCloud,
 }: FsdVisionSettingsPanelProps) {
   const isDark = theme === 'dark';
   const [liveSnapshotSrc, setLiveSnapshotSrc] = useState<string | null>(null);
@@ -314,21 +321,35 @@ export function FsdVisionSettingsPanel({
               Visual 3D Vision &amp; Compass Setup
             </div>
             <div className="text-[10px] text-slate-400">
-              Click the map or live camera photo — no sliders required
+              {lastCloudSyncTime ? `Cloud synced: ${lastCloudSyncTime}` : 'Shared live across all users'}
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            onChangeTestPreviewPoint(null);
-            onToggleClickGroundToPlaceZone(false);
-            onClose();
-          }}
-          className="p-1.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onPushToCloud && (
+            <button
+              type="button"
+              onClick={onPushToCloud}
+              disabled={isSyncingCloud}
+              className="px-2.5 py-1 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-[10.5px] flex items-center gap-1 shadow-sm transition cursor-pointer"
+              title="Publish all 3D vision zones and settings to cloud for all users"
+            >
+              <Cloud className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-bounce' : ''}`} />
+              <span>{isSyncingCloud ? 'Syncing...' : 'Save & Sync'}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              onChangeTestPreviewPoint(null);
+              onToggleClickGroundToPlaceZone(false);
+              onClose();
+            }}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable Visual Setup Body */}
