@@ -66,3 +66,30 @@ select {
     min-height: 2.25rem;
   }
 }
+
+/* Edit mode view switcher buttons:
+   - Tablets & Touch devices (pointer: coarse or width < 1440px): ALWAYS icon-only so right header buttons are never cut off
+   - Desktop wide screens (>= 1440px with pointer: fine): full labels displayed
+   - Desktop medium screens (< 1440px with mouse): icon by default, slides out label on hover
+*/
+.view-mode-label {
+  display: none;
+}
+
+@media (pointer: fine) and (min-width: 1440px) {
+  .view-mode-label {
+    display: inline;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (max-width: 1439px) {
+  .group:hover .view-mode-label {
+    display: inline;
+  }
+}
+
+@media (pointer: coarse) {
+  .view-mode-label {
+    display: none !important;
+  }
+}

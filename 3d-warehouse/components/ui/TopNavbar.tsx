@@ -339,7 +339,7 @@ export function TopNavbar({
                 key={opt.id}
                 type="button"
                 onClick={() => onDisplayModeChange(opt.id)}
-                className={`group flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer touch-target ${
+                className={`group flex items-center justify-center gap-1.5 px-2 py-1.5 sm:px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer touch-target ${
                   isSelected
                     ? 'bg-[#8DDB05] text-slate-950 shadow-sm'
                     : isDark
@@ -349,8 +349,8 @@ export function TopNavbar({
                 title={opt.label}
                 aria-label={opt.label}
               >
-                {opt.icon}
-                <span className="hidden xl:inline whitespace-nowrap">
+                <span className="shrink-0">{opt.icon}</span>
+                <span className="view-mode-label whitespace-nowrap">
                   {opt.label}
                 </span>
               </button>
