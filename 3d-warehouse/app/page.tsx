@@ -23,6 +23,7 @@ import {
   deriveZoneAndRack,
   generateAllShelfLocations,
   isShelfModel,
+  isZoneTrackedLocation,
   parseSlotKey,
 } from '@/lib/blueprint-geometry';
 import { TopNavbar, SearchResultItem } from '@/components/ui/TopNavbar';
@@ -348,13 +349,20 @@ export default function WarehouseDigitalTwinPage() {
       if (Array.isArray(parsed.blueprintItems) && parsed.blueprintItems.length > 0) {
         const upgraded = parsed.blueprintItems.map((item: BlueprintItem) => {
           const isShelf = isShelfModel(item.kind);
-          const derived = isShelf ? deriveZoneAndRack(item) : { zone: '', rowNumber: '', rackNumber: '' };
-          const z = isShelf ? (item.zone || derived.zone) : undefined;
-          const r = isShelf ? (item.rowNumber || item.rackNumber || derived.rowNumber) : undefined;
+          const isZoneTracked = isZoneTrackedLocation(item);
+          const derived =
+            isShelf && !isZoneTracked
+              ? deriveZoneAndRack(item)
+              : { zone: '', rowNumber: '', rackNumber: '' };
+          const z = isShelf && !isZoneTracked ? item.zone || derived.zone : undefined;
+          const r =
+            isShelf && !isZoneTracked
+              ? item.rowNumber || item.rackNumber || derived.rowNumber
+              : undefined;
 
           // Derives sensible facility area name for non-shelving models if not already explicitly assigned
           let customLocation = item.customLocation;
-          if (!isShelf && !customLocation) {
+          if (!isShelf && !isZoneTracked && !customLocation) {
             if (/office|desk|chair|monitor|computer|pc|terminal/i.test(item.name || '')) {
               customLocation = 'Office';
             } else if (/nook|alcove|printer/i.test(item.name || '')) {
@@ -365,7 +373,7 @@ export default function WarehouseDigitalTwinPage() {
           }
 
           let cleanedLocations = item.shelfLocations;
-          if (isShelf) {
+          if (isShelf && !isZoneTracked) {
             if (cleanedLocations) {
               const nextLocs: Record<string, any> = {};
               let hasChanges = false;
@@ -410,10 +418,13 @@ export default function WarehouseDigitalTwinPage() {
 
           return {
             ...item,
-            zone: isShelf ? z : undefined,
-            rowNumber: isShelf ? r : undefined,
-            rackNumber: isShelf ? r : undefined,
+            zone: isShelf && !isZoneTracked ? z : undefined,
+            rowNumber: isShelf && !isZoneTracked ? r : undefined,
+            rackNumber: isShelf && !isZoneTracked ? r : undefined,
             customLocation,
+            trackZoneInventory: isZoneTracked ? true : item.trackZoneInventory,
+            products: item.products,
+            totalQuantity: item.totalQuantity,
             shelfLocations: cleanedLocations,
           };
         });
@@ -880,6 +891,27 @@ export default function WarehouseDigitalTwinPage() {
         (item.locationPrefix && item.locationPrefix.toLowerCase().includes(q)) ||
         (item.odooWarehouseCode && item.odooWarehouseCode.toLowerCase().includes(q));
 
+      // Check direct products on zone-tracked models (e.g. WH/Packing Zone)
+      if (item.products && item.products.length > 0) {
+        for (const prod of item.products) {
+          const skuMatches = prod.sku.toLowerCase().includes(q);
+          const nameMatches = prod.name.toLowerCase().includes(q);
+          const lotMatches = prod.lot ? prod.lot.toLowerCase().includes(q) : false;
+          const locMatches = (prod.locationName || '').toLowerCase().includes(q);
+
+          if (skuMatches || nameMatches || lotMatches || locMatches) {
+            results.push({
+              type: 'product',
+              title: `${prod.sku} • ${prod.name}`,
+              subtitle: `${prod.locationName || item.odooWarehouseCode || 'WH/Packing Zone'} (${item.name}) • On Hand: ${prod.quantity}${prod.lot ? ` • Lot: ${prod.lot}` : ''}`,
+              badge: `${prod.quantity} in stock`,
+              rackId: item.id,
+              position: item.position,
+            });
+          }
+        }
+      }
+
       if (item.shelfLocations && !item.isNonInventory) {
         for (const [slotKey, slot] of Object.entries(item.shelfLocations)) {
           const shortCode = slot.shortCode || slot.locationCode || '';
@@ -1316,14 +1348,81 @@ export default function WarehouseDigitalTwinPage() {
         setBlueprintItems((prev) => {
           const next = prev.map((bp) => {
             if (bp.isNonInventory) return bp;
+
+            const isZoneTracked = isZoneTrackedLocation(bp);
             const isShelfOrRack = isShelfModel(bp.kind);
-            if (!isShelfOrRack) return bp;
+
+            if (!isShelfOrRack && !isZoneTracked) return bp;
+
+            // ZONE INVENTORY TRACKING (e.g. WH/Packing Zone)
+            // No shelves: aggregate all items across parent location and its child locations (Input, Output, etc.)
+            if (isZoneTracked) {
+              const targetLoc = (
+                bp.odooWarehouseCode ||
+                bp.customLocation ||
+                bp.locationPrefix ||
+                'WH/Packing Zone'
+              ).trim();
+              const normTarget = targetLoc.toUpperCase().trim();
+              const isParentZone =
+                normTarget === 'WH/PACKING ZONE' ||
+                normTarget === 'PACKING ZONE' ||
+                normTarget === 'PACKING AREA' ||
+                normTarget.includes('PACK');
+
+              const matchedProds = inventory.filter((quant) => {
+                const qLoc = (quant.locationName || '').toUpperCase().trim();
+                if (isParentZone) {
+                  // Matches "WH/Packing Zone", "WH/Packing Zone/Input", "WH/Packing Zone/Output", etc.
+                  return (
+                    qLoc === 'WH/PACKING ZONE' ||
+                    qLoc.startsWith('WH/PACKING ZONE/') ||
+                    qLoc.includes('PACKING ZONE') ||
+                    quant.aliases?.some((a) => {
+                      const na = a.toUpperCase().trim();
+                      return (
+                        na === 'WH/PACKING ZONE' ||
+                        na.startsWith('WH/PACKING ZONE/') ||
+                        na.includes('PACKING ZONE')
+                      );
+                    })
+                  );
+                }
+                // Specific child location e.g. "WH/Packing Zone/Output"
+                return (
+                  qLoc === normTarget ||
+                  qLoc.endsWith(normTarget) ||
+                  quant.aliases?.some((a) => a.toUpperCase().trim() === normTarget)
+                );
+              });
+
+              const totalQty = matchedProds.reduce(
+                (sum, p) => sum + (p.quantity || 0),
+                0
+              );
+              if (matchedProds.length > 0) {
+                matchedSlotCount++;
+                matchedProductCount += matchedProds.length;
+              }
+
+              return {
+                ...bp,
+                trackZoneInventory: true,
+                odooWarehouseCode: bp.odooWarehouseCode || 'WH/Packing Zone',
+                zone: undefined,
+                rowNumber: undefined,
+                rackNumber: undefined,
+                products: matchedProds,
+                totalQuantity: totalQty,
+                shelfLocations: undefined, // Clear any slot matrix for zone-tracked models
+              };
+            }
 
             const parentLoc = bp.odooWarehouseCode || 'WH/Stock';
-            const isPacking = /pack/i.test(parentLoc);
+            const isPacking = false; // standard shelf mode
 
             const derived = deriveZoneAndRack(bp);
-            const zone = (bp.zone || derived.zone || (isPacking ? 'P' : 'A')).toUpperCase();
+            const zone = (bp.zone || derived.zone || 'A').toUpperCase();
             const baseRowInt =
               parseInt(
                 String(bp.rowNumber || bp.rackNumber || derived.rowNumber),

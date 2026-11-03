@@ -61,12 +61,26 @@ export interface BlueprintItem {
   odooWarehouseCode?: string; // e.g. "WH/Stock" or "WH/Packing Zone"
   customLocation?: string; // e.g. "Office", "Packing Area", "Receiving", "Shipping"
   isNonInventory?: boolean; // When true, shelf is general storage with no Odoo stock location
+  trackZoneInventory?: boolean; // When true or when parent location is WH/Packing Zone, tracks all items across that and child locations without shelf slots
+  products?: OdooProductQuant[]; // Synced inventory products for zone-tracked models (e.g. WH/Packing Zone)
+  totalQuantity?: number; // Total on-hand quantity for zone-tracked models
   shelfLocations?: Record<string, ShelfLocationAssignment>; // Keyed by "R{row}-B{bay}-L{level}"
   visible: boolean;
 }
 
 export function isShelfModel(kind?: string): boolean {
   return kind === 'rack' || kind === 'workbench' || kind === 'work_station_rack';
+}
+
+/**
+ * Determines if a blueprint item is tracked as a whole-zone inventory location
+ * (like "WH/Packing Zone") rather than having individual bay/tier shelf slots.
+ */
+export function isZoneTrackedLocation(item?: Partial<BlueprintItem> | null): boolean {
+  if (!item) return false;
+  if (item.trackZoneInventory) return true;
+  const loc = (item.odooWarehouseCode || item.customLocation || item.locationPrefix || '').toLowerCase().trim();
+  return loc.includes('pack');
 }
 
 /**
@@ -108,11 +122,11 @@ export function deriveZoneAndRack(item: Partial<BlueprintItem>): {
   rowNumber: string;
   rackNumber: string;
 } {
-  // Desks, computers, printers, chairs, doors, forklifts do not use Zone/Row inventory shelving coordinates
-  if (!isShelfModel(item.kind)) {
+  // Desks, computers, printers, chairs, doors, forklifts, or zone-tracked models (Packing Zone) do not use Zone/Row inventory shelving coordinates
+  if (!isShelfModel(item.kind) || isZoneTrackedLocation(item)) {
     return { zone: '', rowNumber: '', rackNumber: '' };
   }
-  if (item.customLocation) {
+  if (item.customLocation && !isZoneTrackedLocation(item)) {
     return { zone: '', rowNumber: '', rackNumber: '' };
   }
 

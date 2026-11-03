@@ -11,7 +11,7 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { CutoutBox, DisplayMode, MeshOverride } from '@/lib/markers';
-import { BlueprintItem, isShelfModel, ShelfLocationAssignment } from '@/lib/blueprint-geometry';
+import { BlueprintItem, isShelfModel, isZoneTrackedLocation, ShelfLocationAssignment } from '@/lib/blueprint-geometry';
 import { formatFeetInches } from '@/lib/units';
 
 interface WarehouseModelProps {
@@ -533,6 +533,8 @@ function ArchitecturalRack3D({
   rows = 1,
   showBoxes = true,
   isNonInventory = false,
+  isZoneTracked = false,
+  products,
   locationPrefix,
   shelfLocations,
   selectedSlotKey,
@@ -549,6 +551,8 @@ function ArchitecturalRack3D({
   rows?: number;
   showBoxes?: boolean;
   isNonInventory?: boolean;
+  isZoneTracked?: boolean;
+  products?: import('@/lib/blueprint-geometry').OdooProductQuant[];
   locationPrefix?: string;
   shelfLocations?: Record<string, ShelfLocationAssignment>;
   selectedSlotKey?: string | null;
@@ -562,6 +566,17 @@ function ArchitecturalRack3D({
   const [sx, sy, sz] = size;
   const postThick = 0.065;
   const shelfThick = 0.055;
+
+  const matchingZoneProduct = useMemo(() => {
+    if (!products || !searchQuery || searchQuery.trim().length < 1) return null;
+    const q = searchQuery.trim().toLowerCase();
+    return products.find(
+      (p) =>
+        p.sku.toLowerCase().includes(q) ||
+        p.name.toLowerCase().includes(q) ||
+        (p.lot && p.lot.toLowerCase().includes(q))
+    );
+  }, [products, searchQuery]);
 
   // Unified Grey Color matching the vertical supports for the entire rack & shelves
   const unifiedRackColor = isSelected
@@ -659,7 +674,7 @@ function ArchitecturalRack3D({
                     />
                   </RoundedBox>
 
-                  {!isTop &&
+                  {!isTop && !isZoneTracked &&
                     Array.from({ length: numBays }).map((__, bIdx) => {
                       const slotKey = `R${rIdx + 1}-B${bIdx + 1}-L${lIdx + 1}`;
                       const assignedLoc = shelfLocations?.[slotKey];
@@ -785,6 +800,78 @@ function ArchitecturalRack3D({
           </group>
         );
       })}
+
+      {/* If Zone Tracked Location (e.g. WH/Packing Zone): render staged packages & unified 3D tag */}
+      {isZoneTracked && (
+        <group>
+          {showBoxes && (
+            <>
+              {/* Staged Package 1 on main shelf */}
+              <RoundedBox
+                position={[-sx * 0.2, -sy * 0.1, 0]}
+                args={[Math.min(0.5, sx * 0.35), 0.28, Math.min(0.45, sz * 0.7)]}
+                radius={0.02}
+                castShadow
+              >
+                <meshStandardMaterial
+                  color={matchingZoneProduct ? '#8DDB05' : '#b45309'}
+                  roughness={0.7}
+                  metalness={0.1}
+                  clippingPlanes={clippingPlanes}
+                />
+              </RoundedBox>
+              {/* Staged Package 2 on main shelf */}
+              <RoundedBox
+                position={[sx * 0.18, -sy * 0.1, 0]}
+                args={[Math.min(0.42, sx * 0.3), 0.22, Math.min(0.4, sz * 0.65)]}
+                radius={0.02}
+                castShadow
+              >
+                <meshStandardMaterial
+                  color={matchingZoneProduct ? '#8DDB05' : '#d97706'}
+                  roughness={0.7}
+                  metalness={0.1}
+                  clippingPlanes={clippingPlanes}
+                />
+              </RoundedBox>
+            </>
+          )}
+
+          {/* Floating 3D Zone Tag */}
+          {(isSelected || isHovered || Boolean(matchingZoneProduct)) && (
+            <Html
+              position={[0, sy * 0.5 + 0.15, 0]}
+              center
+              distanceFactor={12}
+              style={{ pointerEvents: 'none' }}
+            >
+              <div
+                className={`px-2 py-0.5 rounded-md font-mono text-[9px] font-bold whitespace-nowrap shadow-md border ${
+                  matchingZoneProduct
+                    ? 'bg-[#8DDB05] text-slate-950 border-white ring-2 ring-[#8DDB05] scale-110 shadow-lg'
+                    : isSelected
+                    ? 'bg-purple-600 text-white border-white scale-105'
+                    : 'bg-slate-950/90 text-purple-400 border-purple-500/50'
+                }`}
+              >
+                {matchingZoneProduct ? (
+                  <span className="flex items-center gap-1">
+                    <span>📦 {matchingZoneProduct.sku}</span>
+                    <span className="opacity-80">({matchingZoneProduct.quantity}x)</span>
+                    <span className="border-l border-slate-900/40 pl-1 font-semibold">
+                      {(matchingZoneProduct.locationName || '').split('/').pop()}
+                    </span>
+                  </span>
+                ) : (
+                  <span>
+                    📦 {locationPrefix || 'WH/Packing Zone'} ({products?.length || 0} items)
+                  </span>
+                )}
+              </div>
+            </Html>
+          )}
+        </group>
+      )}
     </group>
   );
 }
@@ -2059,7 +2146,9 @@ function BlueprintInteractiveNode({
             rows={item.rows ?? 1}
             showBoxes={item.showBoxes ?? true}
             isNonInventory={item.isNonInventory}
-            locationPrefix={item.locationPrefix}
+            isZoneTracked={isZoneTrackedLocation(item)}
+            products={item.products}
+            locationPrefix={item.odooWarehouseCode || item.locationPrefix}
             shelfLocations={item.shelfLocations}
             selectedSlotKey={isSelected ? selectedSlotKey : null}
             onSelectSlot={(slotKey) => {
@@ -2097,17 +2186,17 @@ function BlueprintInteractiveNode({
             style={{ pointerEvents: 'none' }}
           >
             <div className="px-2.5 py-1 rounded-lg bg-slate-900/95 text-white text-[11px] font-semibold shadow-lg whitespace-nowrap border border-[#8DDB05]/40 flex items-center gap-2">
-              {item.customLocation ? (
+              {isZoneTrackedLocation(item) ? (
+                <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-bold">
+                  {item.odooWarehouseCode || 'WH/Packing Zone'} • {item.products?.length || 0} items ({item.totalQuantity || 0} units)
+                </span>
+              ) : item.customLocation ? (
                 <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/40 font-mono text-[10px] font-bold">
                   {item.customLocation}
                 </span>
               ) : item.isNonInventory ? (
                 <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-mono text-[10px] font-bold">
                   Basic Storage
-                </span>
-              ) : isShelfModel(item.kind) && item.odooWarehouseCode && /pack/i.test(item.odooWarehouseCode) ? (
-                <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-bold">
-                  Packing Zone • Rack {String(item.rowNumber || item.rackNumber || 1).padStart(2, '0')}
                 </span>
               ) : isShelfModel(item.kind) && item.zone && (item.rowNumber || item.rackNumber) ? (
                 <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-bold">

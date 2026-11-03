@@ -42,6 +42,7 @@ import {
   generateAllShelfLocations,
   deriveZoneAndRack,
   isShelfModel,
+  isZoneTrackedLocation,
 } from '@/lib/blueprint-geometry';
 import {
   formatFeetInches,
@@ -356,6 +357,8 @@ export function DetailDrawer({
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastSnapshotTime, setLastSnapshotTime] = useState<string | null>(null);
   const [isExpandedFeedOpen, setIsExpandedFeedOpen] = useState(false);
+  const [zoneFilter, setZoneFilter] = useState<'all' | 'output' | 'input' | 'zone'>('all');
+  const [zoneSearch, setZoneSearch] = useState('');
 
   // Background preloading effect: preserves current frame and loads new frame seamlessly
   React.useEffect(() => {
@@ -671,8 +674,35 @@ export function DetailDrawer({
     };
 
     const isShelfOrRack = isShelfModel(selectedBlueprintItem.kind);
-    const parentLoc = selectedBlueprintItem.odooWarehouseCode || 'WH/Stock';
-    const isPacking = /pack/i.test(parentLoc);
+    const isZoneTracked = isZoneTrackedLocation(selectedBlueprintItem);
+    const parentLoc =
+      selectedBlueprintItem.odooWarehouseCode ||
+      (isZoneTracked ? 'WH/Packing Zone' : 'WH/Stock');
+    const isPacking = isZoneTracked || /pack/i.test(parentLoc);
+    const zoneProducts = selectedBlueprintItem.products || [];
+    const totalZoneUnits =
+      selectedBlueprintItem.totalQuantity ??
+      zoneProducts.reduce((sum, p) => sum + (p.quantity || 0), 0);
+
+    const filteredZoneProducts = zoneProducts.filter((prod) => {
+      const loc = (prod.locationName || '').toLowerCase();
+      if (zoneFilter === 'output' && !loc.includes('output')) return false;
+      if (zoneFilter === 'input' && !loc.includes('input')) return false;
+      if (
+        zoneFilter === 'zone' &&
+        (loc.includes('input') || loc.includes('output'))
+      )
+        return false;
+
+      if (zoneSearch.trim()) {
+        const q = zoneSearch.toLowerCase().trim();
+        const skuMatch = prod.sku.toLowerCase().includes(q);
+        const nameMatch = prod.name.toLowerCase().includes(q);
+        const lotMatch = prod.lot ? prod.lot.toLowerCase().includes(q) : false;
+        if (!skuMatch && !nameMatch && !lotMatch) return false;
+      }
+      return true;
+    });
 
     const curBays =
       selectedBlueprintItem.bays ??
@@ -725,7 +755,15 @@ export function DetailDrawer({
       onUpdateBlueprintItem({
         ...selectedBlueprintItem,
         odooWarehouseCode: newParent,
-        ...(isPack ? { zone: 'P', locationPrefix: 'PACK-01' } : {}),
+        trackZoneInventory: isPack ? true : false,
+        zone: isPack ? undefined : (selectedBlueprintItem.zone || 'A'),
+        rowNumber: isPack ? undefined : (selectedBlueprintItem.rowNumber || '01'),
+        rackNumber: isPack ? undefined : (selectedBlueprintItem.rackNumber || '01'),
+        locationPrefix: isPack ? undefined : selectedBlueprintItem.locationPrefix,
+        shelfLocations: isPack
+          ? undefined
+          : selectedBlueprintItem.shelfLocations ||
+            generateAllShelfLocations('A', '01', 3, 3, 1),
       });
     };
 
@@ -993,25 +1031,28 @@ export function DetailDrawer({
               <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                 {[
                   'Office',
+                  'WH/Packing Zone',
                   'Packing Area',
                   'Receiving',
                   'Shipping',
-                  'Front Desk',
                   'Shop Floor',
                   'Alcove',
                 ].map((preset) => (
                   <button
                     key={preset}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      const isPack = /pack/i.test(preset);
                       onUpdateBlueprintItem({
                         ...selectedBlueprintItem,
                         customLocation: preset,
+                        odooWarehouseCode: isPack ? 'WH/Packing Zone' : selectedBlueprintItem.odooWarehouseCode,
+                        trackZoneInventory: isPack ? true : false,
                         zone: undefined,
                         rowNumber: undefined,
                         rackNumber: undefined,
-                      })
-                    }
+                      });
+                    }}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
                       selectedBlueprintItem.customLocation === preset
                         ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
@@ -1027,8 +1068,8 @@ export function DetailDrawer({
             </div>
           )}
 
-          {/* ODOO SHELF LOCATION ASSIGNMENT & API MAPPING (Available in both View & Edit Mode) */}
-          {isShelfOrRack && (
+          {/* ODOO SHELF / ZONE LOCATION ASSIGNMENT & API MAPPING (Available in both View & Edit Mode) */}
+          {(isShelfOrRack || isZoneTracked) && (
             <div
               className={`p-3.5 rounded-2xl border space-y-3 ${
                 isDark
@@ -1041,18 +1082,26 @@ export function DetailDrawer({
                   className={`text-xs font-bold flex items-center gap-1.5 ${
                     isNonInventory
                       ? 'text-amber-500'
+                      : isPacking
+                      ? 'text-purple-500 dark:text-purple-400'
                       : isDark
                       ? 'text-[#8DDB05]'
                       : 'text-[#3f6212]'
                   }`}
                 >
                   <MapPin className="w-3.5 h-3.5" />{' '}
-                  {isNonInventory ? 'Storage Shelf' : 'Odoo Shelf Locations'}
+                  {isNonInventory
+                    ? 'Storage Shelf'
+                    : isPacking
+                    ? 'Packing Zone Location'
+                    : 'Odoo Shelf Locations'}
                 </span>
                 <span
                   className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold ${
                     isNonInventory
                       ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40'
+                      : isPacking
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                       : isDark
                       ? 'bg-[#8DDB05]/20 text-[#8DDB05]'
                       : 'bg-[#8DDB05]/25 text-[#3f6212]'
@@ -1060,6 +1109,8 @@ export function DetailDrawer({
                 >
                   {isNonInventory
                     ? 'Non-Inventory'
+                    : isPacking
+                    ? `${zoneProducts.length} items (${totalZoneUnits} units)`
                     : `${mappedCount}/${totalSlots} slots mapped`}
                 </span>
               </div>
@@ -1076,29 +1127,34 @@ export function DetailDrawer({
                     {parentLoc}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {['WH/Stock', 'WH/Packing Zone'].map((loc) => (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { label: 'Stock (Shelves)', val: 'WH/Stock' },
+                    { label: 'Packing Zone (All)', val: 'WH/Packing Zone' },
+                    { label: 'Packing Output', val: 'WH/Packing Zone/Output' },
+                    { label: 'Packing Input', val: 'WH/Packing Zone/Input' },
+                  ].map((locOption) => (
                     <button
-                      key={loc}
+                      key={locOption.val}
                       type="button"
-                      onClick={() => handleUpdateParentLocation(loc)}
+                      onClick={() => handleUpdateParentLocation(locOption.val)}
                       className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer border ${
-                        parentLoc === loc
-                          ? 'bg-[#8DDB05] text-slate-950 border-transparent shadow-xs'
+                        parentLoc.toLowerCase() === locOption.val.toLowerCase()
+                          ? 'bg-[#8DDB05] text-slate-950 border-transparent shadow-xs font-extrabold'
                           : isDark
                           ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                           : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-xs'
                       }`}
                     >
-                      {loc.replace('WH/', '')}
+                      {locOption.label}
                     </button>
                   ))}
                   <input
                     type="text"
                     value={parentLoc}
                     onChange={(e) => handleUpdateParentLocation(e.target.value)}
-                    placeholder="e.g. WH/Packing Zone"
-                    className={`flex-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${inputClass}`}
+                    placeholder="e.g. WH/Stock or WH/Packing Zone"
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold ${inputClass}`}
                     title="Parent Odoo location (e.g. WH/Stock or WH/Packing Zone)"
                   />
                 </div>
@@ -1172,8 +1228,161 @@ export function DetailDrawer({
                       isDark ? 'text-slate-400' : 'text-slate-600'
                     }`}
                   >
-                    This shelf is configured as general storage for tools, supplies, or staging. It will not occupy an inventory stock location in Odoo.
+                    This model is configured as general storage for tools, supplies, or staging. It will not occupy an inventory stock location in Odoo.
                   </p>
+                </div>
+              ) : isPacking ? (
+                /* ZONE INVENTORY VIEW (WH/Packing Zone & Sub-locations) */
+                <div className="space-y-3">
+                  <div
+                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
+                      isDark
+                        ? 'border-purple-500/30 bg-purple-500/10'
+                        : 'border-purple-200 bg-purple-50 shadow-xs'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                        <Package className="w-3.5 h-3.5" /> Zone-Tracked Inventory
+                      </div>
+                      <div
+                        className={`text-[11px] leading-relaxed font-medium ${
+                          isDark ? 'text-slate-300' : 'text-slate-700'
+                        }`}
+                      >
+                        All products in <span className="font-mono font-bold">{parentLoc}</span> and its child locations (Input, Output) are displayed here without shelf partitions.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sub-location Filter Chips and Product Search */}
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {[
+                        { key: 'all', label: `All (${zoneProducts.length})` },
+                        {
+                          key: 'output',
+                          label: `Output (${
+                            zoneProducts.filter((p) =>
+                              /output/i.test(p.locationName || '')
+                            ).length
+                          })`,
+                        },
+                        {
+                          key: 'input',
+                          label: `Input (${
+                            zoneProducts.filter((p) =>
+                              /input/i.test(p.locationName || '')
+                            ).length
+                          })`,
+                        },
+                        {
+                          key: 'zone',
+                          label: `Zone (${
+                            zoneProducts.filter(
+                              (p) => !/input|output/i.test(p.locationName || '')
+                            ).length
+                          })`,
+                        },
+                      ].map((tab) => (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => setZoneFilter(tab.key as any)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer border ${
+                            zoneFilter === tab.key
+                              ? 'bg-[#8DDB05] text-slate-950 border-transparent shadow-xs font-extrabold'
+                              : isDark
+                              ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-xs'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {zoneProducts.length > 2 && (
+                      <input
+                        type="text"
+                        value={zoneSearch}
+                        onChange={(e) => setZoneSearch(e.target.value)}
+                        placeholder="Search SKU or product name in packing zone..."
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium border ${inputClass}`}
+                      />
+                    )}
+                  </div>
+
+                  {/* Product Cards List */}
+                  <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
+                    {filteredZoneProducts.length === 0 ? (
+                      <div
+                        className={`p-4 rounded-xl border text-center space-y-1.5 ${
+                          isDark
+                            ? 'border-slate-800 bg-slate-900/60'
+                            : 'border-slate-200 bg-slate-50'
+                        }`}
+                      >
+                        <Package className="w-5 h-5 mx-auto text-slate-400" />
+                        <div className="text-xs font-semibold text-slate-300">
+                          {zoneProducts.length === 0
+                            ? 'No products currently in this packing location'
+                            : 'No products match search'}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {zoneProducts.length === 0
+                            ? 'Synced products will appear automatically when quants exist in WH/Packing Zone.'
+                            : 'Try selecting All locations or clearing search.'}
+                        </div>
+                      </div>
+                    ) : (
+                      filteredZoneProducts.map((prod, idx) => (
+                        <div
+                          key={`zone-prod-${prod.id || idx}`}
+                          className={`p-2.5 rounded-xl border space-y-1 transition hover:border-[#8DDB05]/60 ${
+                            isDark
+                              ? 'bg-slate-900/80 border-slate-800'
+                              : 'bg-white border-slate-200 shadow-xs'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-xs font-extrabold text-[#8DDB05] truncate">
+                              {prod.sku}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                {(prod.locationName || '')
+                                  .replace('WH/Packing Zone/', '')
+                                  .replace('WH/Packing Zone', 'Zone')}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-extrabold bg-[#8DDB05]/20 text-[#8DDB05] border border-[#8DDB05]/40">
+                                {prod.quantity}x
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            className={`text-xs font-medium line-clamp-2 ${
+                              isDark ? 'text-slate-200' : 'text-slate-800'
+                            }`}
+                          >
+                            {prod.name}
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                            <span className="font-mono">
+                              {prod.lot ? `Lot: ${prod.lot}` : `Quant #${prod.id}`}
+                            </span>
+                            {Boolean(
+                              prod.reservedQuantity && prod.reservedQuantity > 0
+                            ) && (
+                              <span className="text-amber-400 font-medium">
+                                Reserved: {prod.reservedQuantity}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               ) : (
                 <>
