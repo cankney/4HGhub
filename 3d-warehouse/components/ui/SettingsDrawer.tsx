@@ -39,6 +39,7 @@ export interface OdooSettingsConfig {
   username: string;
   apiKey: string;
   stockLocationPrefix: string;
+  parentLocations?: string[];
 }
 
 export const DEFAULT_ODOO_CONFIG: OdooSettingsConfig = {
@@ -46,7 +47,8 @@ export const DEFAULT_ODOO_CONFIG: OdooSettingsConfig = {
   database: '4hg-live',
   username: 'admin@4hg.com',
   apiKey: '',
-  stockLocationPrefix: 'WH/Stock',
+  stockLocationPrefix: 'WH/Stock, WH/Packing Zone',
+  parentLocations: ['WH/Stock', 'WH/Packing Zone'],
 };
 
 export interface UnifiSettingsConfig {
@@ -90,9 +92,6 @@ interface SettingsDrawerProps {
   onExportJson?: () => void;
   lastCloudSyncTime?: string | null;
   isCollapsed?: boolean;
-  onPullCloud?: () => void;
-  onPushCloud?: () => void;
-  isSyncingCloud?: boolean;
 }
 
 export function SettingsDrawer({
@@ -120,9 +119,6 @@ export function SettingsDrawer({
   onExportJson,
   lastCloudSyncTime,
   isCollapsed = false,
-  onPullCloud,
-  onPushCloud,
-  isSyncingCloud = false,
 }: SettingsDrawerProps) {
   const isDark = theme === 'dark';
 
@@ -164,7 +160,7 @@ export function SettingsDrawer({
     setTestStatus('testing');
     setTestMessage(null);
     try {
-      const res = await fetch('/api/odoo/sync', {
+      const res = await fetch('/3d-warehouse/api/odoo/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, testOnly: true }),
@@ -187,7 +183,7 @@ export function SettingsDrawer({
     setUnifiTestStatus('testing');
     setUnifiTestMessage(null);
     try {
-      const res = await fetch('/api/unifi/sync', {
+      const res = await fetch('/3d-warehouse/api/unifi/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...unifiForm, testOnly: true }),
@@ -326,21 +322,63 @@ export function SettingsDrawer({
                   className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
               </div>
-              <div>
+              <div className="space-y-1">
                 <label
-                  className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}
+                  className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
                 >
-                  Root Stock Prefix
+                  Root Stock &amp; Parent Locations
                 </label>
                 <input
                   type="text"
                   value={form.stockLocationPrefix}
-                  placeholder="WH/Stock"
+                  placeholder="WH/Stock, WH/Packing Zone"
                   onChange={(e) =>
                     setForm({ ...form, stockLocationPrefix: e.target.value })
                   }
                   className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {['WH/Stock', 'WH/Packing Zone', 'WH/Pre-Production'].map((loc) => {
+                    const currentParts = (form.stockLocationPrefix || '')
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean);
+                    const isSelected = currentParts.includes(loc);
+                    return (
+                      <button
+                        key={loc}
+                        type="button"
+                        onClick={() => {
+                          let nextParts: string[];
+                          if (isSelected) {
+                            nextParts = currentParts.filter((p) => p !== loc);
+                            if (nextParts.length === 0) nextParts = [loc];
+                          } else {
+                            nextParts = [...currentParts, loc];
+                          }
+                          const combined = nextParts.join(', ');
+                          setForm({
+                            ...form,
+                            stockLocationPrefix: combined,
+                            parentLocations: nextParts,
+                          });
+                        }}
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold transition cursor-pointer border ${
+                          isSelected
+                            ? 'bg-[#8DDB05] text-slate-950 border-transparent'
+                            : isDark
+                            ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-xs'
+                        }`}
+                      >
+                        {isSelected ? `✓ ${loc}` : `+ ${loc}`}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight pt-0.5">
+                  Comma-separated parent locations (e.g. WH/Stock, WH/Packing Zone) to sync from Odoo.
+                </p>
               </div>
             </div>
 
@@ -898,40 +936,24 @@ export function SettingsDrawer({
             </button>
           </div>
 
-          {/* 4HG Cloud Sync Status & Actions */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
+          {/* 4HG Cloud Live Sync Status Banner */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <span className={`flex items-center gap-1.5 font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                <Cloud className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-bounce text-sky-400' : 'text-sky-400'}`} />
-                4HG Cloud Sync
+                <Cloud className="w-3.5 h-3.5 text-sky-400" />
+                4HG Cloud Multi-Device Sync
               </span>
-              <span className="text-[10.5px] font-mono text-slate-400">
-                {lastCloudSyncTime ? `Synced: ${lastCloudSyncTime}` : 'Shared across all users'}
+              <span className="text-[10.5px] font-mono text-[#8DDB05] flex items-center gap-1 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8DDB05] animate-pulse" />
+                Active
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              {onPullCloud && (
-                <button
-                  type="button"
-                  onClick={onPullCloud}
-                  disabled={isSyncingCloud}
-                  className="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-1"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isSyncingCloud ? 'animate-spin' : ''}`} />
-                  Pull from Cloud
-                </button>
-              )}
-              {onPushCloud && (
-                <button
-                  type="button"
-                  onClick={onPushCloud}
-                  disabled={isSyncingCloud}
-                  className="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-xs transition cursor-pointer flex items-center justify-center gap-1"
-                >
-                  <Cloud className="w-3 h-3" />
-                  Push to Cloud
-                </button>
-              )}
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              All 3D objects, layouts, FSD vision placements, and synced inventory are automatically saved and synchronized across all devices in real time.
+            </p>
+            <div className="text-[10.5px] font-mono text-slate-400 flex items-center justify-between pt-0.5">
+              <span>Cloud Status:</span>
+              <span className="text-slate-300">{lastCloudSyncTime ? `Saved at ${lastCloudSyncTime}` : 'Synchronized'}</span>
             </div>
           </div>
 

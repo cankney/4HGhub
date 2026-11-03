@@ -65,7 +65,6 @@ interface TopNavbarProps {
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   isSyncingCloud?: boolean;
-  onPullCloud?: () => void;
   lastCloudSyncTime?: string | null;
 }
 
@@ -100,7 +99,6 @@ export function TopNavbar({
   isFullscreen = false,
   onToggleFullscreen,
   isSyncingCloud,
-  onPullCloud,
   lastCloudSyncTime,
 }: TopNavbarProps) {
   const isDark = theme === 'dark';
@@ -275,36 +273,39 @@ export function TopNavbar({
           </button>
         )}
 
-        {/* Sync with 4HG Cloud (Synced across all devices) */}
-        {onPullCloud && (
-          <button
-            type="button"
-            onClick={onPullCloud}
-            disabled={isSyncingCloud}
-            className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-bold transition cursor-pointer border shadow-xs touch-target ${
-              isSyncingCloud
-                ? 'bg-sky-500/20 text-sky-400 border-sky-500/40 opacity-75 cursor-wait'
-                : isDark
-                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:border-sky-400'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-sky-400'
-            }`}
-            title={
-              lastCloudSyncTime
-                ? `Live warehouse state synced across all devices (${lastCloudSyncTime}). Click to pull latest.`
-                : 'Sync with 4HG Cloud across all devices'
-            }
-            aria-label="Sync Cloud"
-          >
+        {/* Live 4HG Cloud Multi-Device Status Indicator */}
+        <div
+          className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-semibold border shadow-xs select-none touch-target ${
+            isSyncingCloud
+              ? 'bg-sky-500/20 text-sky-400 border-sky-500/40 opacity-85'
+              : isDark
+              ? 'bg-slate-800 text-slate-200 border-slate-700'
+              : 'bg-white text-slate-700 border-slate-300'
+          }`}
+          title={
+            lastCloudSyncTime
+              ? `Multi-device live sync active. All edits are saved automatically for all users (Last synced: ${lastCloudSyncTime}).`
+              : 'Multi-device live sync active. All edits are saved automatically for all users.'
+          }
+        >
+          <div className="relative flex items-center justify-center">
             <Cloud
               className={`w-3.5 h-3.5 ${
                 isSyncingCloud ? 'animate-bounce text-sky-400' : 'text-sky-400'
               }`}
             />
-            <span className="hidden 2xl:inline">
-              {isSyncingCloud ? 'Syncing...' : lastCloudSyncTime ? `Synced ${lastCloudSyncTime}` : 'Cloud Sync'}
-            </span>
-          </button>
-        )}
+            {!isSyncingCloud && (
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#8DDB05] rounded-full" />
+            )}
+          </div>
+          <span className="hidden 2xl:inline font-mono text-[11px]">
+            {isSyncingCloud
+              ? 'Saving...'
+              : lastCloudSyncTime
+              ? `Cloud: ${lastCloudSyncTime}`
+              : 'Live Cloud'}
+          </span>
+        </div>
       </div>
 
       {/* Center View Mode Status & Overlay Toggles (View Mode) */}

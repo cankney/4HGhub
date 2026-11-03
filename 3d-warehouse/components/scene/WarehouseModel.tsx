@@ -11,7 +11,7 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { CutoutBox, DisplayMode, MeshOverride } from '@/lib/markers';
-import { BlueprintItem, ShelfLocationAssignment } from '@/lib/blueprint-geometry';
+import { BlueprintItem, isShelfModel, ShelfLocationAssignment } from '@/lib/blueprint-geometry';
 import { formatFeetInches } from '@/lib/units';
 
 interface WarehouseModelProps {
@@ -2097,17 +2097,33 @@ function BlueprintInteractiveNode({
             style={{ pointerEvents: 'none' }}
           >
             <div className="px-2.5 py-1 rounded-lg bg-slate-900/95 text-white text-[11px] font-semibold shadow-lg whitespace-nowrap border border-[#8DDB05]/40 flex items-center gap-2">
-              {item.isNonInventory ? (
+              {item.customLocation ? (
+                <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/40 font-mono text-[10px] font-bold">
+                  {item.customLocation}
+                </span>
+              ) : item.isNonInventory ? (
                 <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-mono text-[10px] font-bold">
-                  Basic Storage (Non-Inventory)
+                  Basic Storage
                 </span>
-              ) : item.zone && (item.rowNumber || item.rackNumber) ? (
+              ) : isShelfModel(item.kind) && item.odooWarehouseCode && /pack/i.test(item.odooWarehouseCode) ? (
                 <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-bold">
-                  Zone {item.zone} • Row {String(item.rowNumber || item.rackNumber).padStart(2, '0')}
+                  Packing Zone • Rack {String(item.rowNumber || item.rackNumber || 1).padStart(2, '0')}
                 </span>
-              ) : item.locationPrefix ? (
+              ) : isShelfModel(item.kind) && item.zone && (item.rowNumber || item.rackNumber) ? (
+                <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-bold">
+                  {item.odooWarehouseCode && item.odooWarehouseCode !== 'WH/Stock'
+                    ? `${item.odooWarehouseCode.replace('WH/', '')} • `
+                    : ''}
+                  Zone {item.zone} • Row{' '}
+                  {String(item.rowNumber || item.rackNumber).padStart(2, '0')}
+                </span>
+              ) : isShelfModel(item.kind) && item.locationPrefix ? (
                 <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-bold">
                   {item.locationPrefix}
+                </span>
+              ) : isShelfModel(item.kind) && item.odooWarehouseCode ? (
+                <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-bold">
+                  {item.odooWarehouseCode}
                 </span>
               ) : null}
               <span>

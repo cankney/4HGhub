@@ -22,6 +22,8 @@ import {
   X,
   ExternalLink,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
   Maximize2,
 } from 'lucide-react';
 import { UnifiSettingsConfig } from './SettingsDrawer';
@@ -39,6 +41,7 @@ import {
   buildOdooShortCode,
   generateAllShelfLocations,
   deriveZoneAndRack,
+  isShelfModel,
 } from '@/lib/blueprint-geometry';
 import {
   formatFeetInches,
@@ -48,13 +51,35 @@ import {
   feetDecimalToMeters,
 } from '@/lib/units';
 
+const ROTATION_HARD_STOPS = [-180, -135, -90, -45, 0, 45, 90, 135, 180] as const;
+
+function snapRotationDeg(rawDeg: number, threshold = 4): number {
+  const rounded = Math.round(rawDeg);
+  for (const stop of ROTATION_HARD_STOPS) {
+    if (Math.abs(rounded - stop) <= threshold) {
+      return stop;
+    }
+  }
+  return rounded;
+}
+
+function normalizeDeg(deg: number): number {
+  let d = Math.round(deg) % 360;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return d;
+}
+
 interface MeasurementInputProps {
   value: number;
   onCommit: (val: number) => void;
   min?: number;
   max?: number;
+  step?: number;
   className?: string;
   title?: string;
+  unit?: string;
+  showArrows?: boolean;
 }
 
 function MeasurementInput({
@@ -62,16 +87,19 @@ function MeasurementInput({
   onCommit,
   min,
   max,
-  className,
+  step = 1,
+  className = '',
   title,
+  unit,
+  showArrows = true,
 }: MeasurementInputProps) {
-  const [text, setText] = useState<string>(() => String(value));
+  const [text, setText] = useState<string>(() => String(value ?? 0));
   const isEditingRef = React.useRef(false);
   const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     if (!isEditingRef.current) {
-      setText(String(value));
+      setText(String(value ?? 0));
     }
   }, [value]);
 
@@ -83,6 +111,19 @@ function MeasurementInput({
     };
   }, []);
 
+  const commitValue = (rawNum: number) => {
+    let parsed = rawNum;
+    if (min !== undefined && parsed < min) parsed = min;
+    if (max !== undefined && parsed > max) parsed = max;
+    const decimals = step < 1 ? String(step).split('.')[1]?.length || 2 : 2;
+    const factor = Math.pow(10, decimals);
+    parsed = Math.round(parsed * factor) / factor;
+    setText(String(parsed));
+    if (parsed !== value) {
+      onCommit(parsed);
+    }
+  };
+
   const handleCommit = (rawStr: string) => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -90,67 +131,140 @@ function MeasurementInput({
     isEditingRef.current = false;
     const trimmed = rawStr.trim();
     if (!trimmed) {
-      setText(String(value));
+      setText(String(value ?? 0));
       return;
     }
     let parsed = parseFloat(trimmed);
     if (isNaN(parsed)) {
-      setText(String(value));
+      setText(String(value ?? 0));
       return;
     }
-    if (min !== undefined && parsed < min) parsed = min;
-    if (max !== undefined && parsed > max) parsed = max;
-    parsed = Math.round(parsed * 100) / 100;
-    setText(String(parsed));
-    if (parsed !== value) {
-      onCommit(parsed);
-    }
+    commitValue(parsed);
   };
 
+  const handleStep = (direction: 1 | -1) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    isEditingRef.current = false;
+    let current = parseFloat(text);
+    if (isNaN(current)) current = value || 0;
+    const next = current + direction * step;
+    commitValue(next);
+  };
+
+  const isFlex1 = className.includes('flex-1');
+  const widthMatch = className.match(/\b(w-\S+)\b/);
+  const widthClass = isFlex1 ? 'flex-1' : widthMatch ? widthMatch[1] : 'w-full';
+  const cleanClass = className.replace(/\bpr-\S+\b/g, '').trim();
+
+  const paddingRightClass = showArrows
+    ? unit
+      ? 'pr-11'
+      : 'pr-5'
+    : unit
+    ? 'pr-6'
+    : '';
+
   return (
-    <input
-      type="text"
-      inputMode="decimal"
-      value={text}
-      title={title}
-      className={className}
-      onFocus={() => {
-        isEditingRef.current = true;
-      }}
-      onChange={(e) => {
-        const nextVal = e.target.value;
-        setText(nextVal);
-        const trimmed = nextVal.trim();
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-        if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
-          let num = parseFloat(trimmed);
-          if (min !== undefined && num < min) return;
-          if (max !== undefined && num > max) return;
-          num = Math.round(num * 100) / 100;
-          debounceTimerRef.current = setTimeout(() => {
-            if (num !== value) {
-              onCommit(num);
-            }
-          }, 450);
-        }
-      }}
-      onBlur={(e) => handleCommit(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          handleCommit((e.target as HTMLInputElement).value);
-          (e.target as HTMLInputElement).blur();
-        } else if (e.key === 'Escape') {
+    <div className={`relative inline-flex items-center min-w-0 ${widthClass}`}>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        title={title}
+        className={`${cleanClass} ${paddingRightClass} w-full`}
+        onFocus={() => {
+          isEditingRef.current = true;
+        }}
+        onChange={(e) => {
+          const nextVal = e.target.value;
+          setText(nextVal);
+          const trimmed = nextVal.trim();
           if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current);
           }
-          isEditingRef.current = false;
-          setText(String(value));
-          (e.target as HTMLInputElement).blur();
-        }
-      }}
-    />
+          if (
+            /^-?\d*(\.\d*)?$/.test(trimmed) &&
+            trimmed !== '' &&
+            trimmed !== '-' &&
+            trimmed !== '.'
+          ) {
+            let num = parseFloat(trimmed);
+            if (min !== undefined && num < min) return;
+            if (max !== undefined && num > max) return;
+            const decimals =
+              step < 1 ? String(step).split('.')[1]?.length || 2 : 2;
+            const factor = Math.pow(10, decimals);
+            num = Math.round(num * factor) / factor;
+            debounceTimerRef.current = setTimeout(() => {
+              if (num !== value) {
+                onCommit(num);
+              }
+            }, 450);
+          }
+        }}
+        onBlur={(e) => handleCommit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleCommit((e.target as HTMLInputElement).value);
+            (e.target as HTMLInputElement).blur();
+          } else if (e.key === 'Escape') {
+            if (debounceTimerRef.current) {
+              clearTimeout(debounceTimerRef.current);
+            }
+            isEditingRef.current = false;
+            setText(String(value ?? 0));
+            (e.target as HTMLInputElement).blur();
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            handleStep(1);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            handleStep(-1);
+          }
+        }}
+      />
+      {unit && (
+        <span
+          className={`absolute ${
+            showArrows ? 'right-5' : 'right-2'
+          } text-[10px] font-mono font-bold pointer-events-none select-none text-slate-400`}
+        >
+          {unit}
+        </span>
+      )}
+      {showArrows && (
+        <div className="absolute right-0.5 top-0 bottom-0 flex flex-col justify-center items-center select-none z-10 pointer-events-auto">
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleStep(1);
+            }}
+            className="w-3.5 h-[48%] flex items-center justify-center text-slate-400 hover:text-[#8DDB05] hover:bg-slate-700/50 rounded-t cursor-pointer transition-colors"
+            title="Increment"
+          >
+            <ChevronUp className="w-2.5 h-2.5 stroke-[3]" />
+          </button>
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleStep(-1);
+            }}
+            className="w-3.5 h-[48%] flex items-center justify-center text-slate-400 hover:text-[#8DDB05] hover:bg-slate-700/50 rounded-b cursor-pointer transition-colors"
+            title="Decrement"
+          >
+            <ChevronDown className="w-2.5 h-2.5 stroke-[3]" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -556,10 +670,9 @@ export function DetailDrawer({
       });
     };
 
-    const isShelfOrRack =
-      selectedBlueprintItem.kind === 'rack' ||
-      selectedBlueprintItem.kind === 'workbench' ||
-      selectedBlueprintItem.kind === 'work_station_rack';
+    const isShelfOrRack = isShelfModel(selectedBlueprintItem.kind);
+    const parentLoc = selectedBlueprintItem.odooWarehouseCode || 'WH/Stock';
+    const isPacking = /pack/i.test(parentLoc);
 
     const curBays =
       selectedBlueprintItem.bays ??
@@ -573,7 +686,7 @@ export function DetailDrawer({
     const curZone = (
       selectedBlueprintItem.zone ||
       derivedZone ||
-      'A'
+      (isPacking ? 'P' : 'A')
     ).toUpperCase();
     const curRowNumber = selectedBlueprintItem.rowNumber
       ? String(selectedBlueprintItem.rowNumber).padStart(2, '0')
@@ -605,6 +718,15 @@ export function DetailDrawer({
       shortCode: '',
       odooLocationId: '',
       notes: '',
+    };
+
+    const handleUpdateParentLocation = (newParent: string) => {
+      const isPack = /pack/i.test(newParent);
+      onUpdateBlueprintItem({
+        ...selectedBlueprintItem,
+        odooWarehouseCode: newParent,
+        ...(isPack ? { zone: 'P', locationPrefix: 'PACK-01' } : {}),
+      });
     };
 
     const handleUpdateZone = (newZone: string) => {
@@ -660,17 +782,22 @@ export function DetailDrawer({
 
     const handleResetSlotToStandard = (slotKey: string) => {
       const coords = parseSlotKey(slotKey);
-      const baseRow = parseInt(curRowNumber, 10) || 1;
-      const slotRow = baseRow + (coords.row - 1);
-      const stdCode = buildOdooShortCode(
-        curZone,
-        slotRow,
-        coords.bay,
-        coords.level
-      );
+      let stdCode = '';
+      let fullCode = '';
+
+      if (isPacking) {
+        stdCode = `PACK-${String(coords.bay).padStart(2, '0')}-${String(coords.level).padStart(2, '0')}`;
+        fullCode = `${parentLoc}/Rack ${String(coords.bay).padStart(2, '0')}/Shelf ${String(coords.level).padStart(2, '0')}`;
+      } else {
+        const baseRow = parseInt(curRowNumber, 10) || 1;
+        const slotRow = baseRow + (coords.row - 1);
+        stdCode = buildOdooShortCode(curZone, slotRow, coords.bay, coords.level);
+        fullCode = `${parentLoc}/${stdCode}`;
+      }
+
       handleUpdateSlotAssignment(slotKey, {
         shortCode: stdCode,
-        locationCode: stdCode,
+        locationCode: fullCode,
       });
     };
 
@@ -681,15 +808,19 @@ export function DetailDrawer({
         curBays,
         curLevels,
         curRows,
-        shelfLocations
+        shelfLocations,
+        parentLoc
       );
       onUpdateBlueprintItem({
         ...selectedBlueprintItem,
-        zone: curZone,
+        zone: isPacking ? 'P' : curZone,
         rowNumber: curRowNumber,
         rackNumber: curRowNumber,
-        locationPrefix: `${curZone}-${curRowNumber}`,
-        name: `Zone ${curZone} - Row ${curRowNumber}`,
+        locationPrefix: isPacking ? 'PACK-01' : `${curZone}-${curRowNumber}`,
+        name:
+          isPacking && selectedBlueprintItem.name.includes('Zone')
+            ? `Packing Zone Rack ${curRowNumber}`
+            : selectedBlueprintItem.name,
         shelfLocations: nextLocations,
       });
     };
@@ -718,15 +849,27 @@ export function DetailDrawer({
               <Box className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
-              <span
-                className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md font-bold ${
-                  isDark
-                    ? 'bg-[#8DDB05]/20 text-[#8DDB05]'
-                    : 'bg-[#8DDB05]/25 text-[#3f6212]'
-                }`}
-              >
-                {selectedBlueprintItem.id} • {selectedBlueprintItem.kind}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span
+                  className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md font-bold ${
+                    isDark
+                      ? 'bg-[#8DDB05]/20 text-[#8DDB05]'
+                      : 'bg-[#8DDB05]/25 text-[#3f6212]'
+                  }`}
+                >
+                  {selectedBlueprintItem.id} • {selectedBlueprintItem.kind}
+                </span>
+                {selectedBlueprintItem.customLocation && (
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    {selectedBlueprintItem.customLocation}
+                  </span>
+                )}
+                {isShelfOrRack && selectedBlueprintItem.odooWarehouseCode && (
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                    {selectedBlueprintItem.odooWarehouseCode}
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
                 value={selectedBlueprintItem.name}
@@ -788,6 +931,102 @@ export function DetailDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* NON-SHELVING FACILITY LOCATION / ROOM ASSIGNMENT */}
+          {!isShelfOrRack && (
+            <div
+              className={`p-3.5 rounded-2xl border space-y-2.5 ${
+                isDark
+                  ? 'border-blue-500/30 bg-blue-500/5'
+                  : 'border-blue-500/40 bg-blue-50/70 shadow-xs'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span
+                  className={`text-xs font-bold flex items-center gap-1.5 ${
+                    isDark ? 'text-blue-400' : 'text-blue-700'
+                  }`}
+                >
+                  <MapPin className="w-3.5 h-3.5" /> Facility Area / Location
+                </span>
+                {selectedBlueprintItem.customLocation && (
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    {selectedBlueprintItem.customLocation}
+                  </span>
+                )}
+              </div>
+              <p className={`text-[10.5px] leading-relaxed ${labelClass}`}>
+                Assign a custom room or area (e.g. Office, Packing Area, Service Bay) outside of inventory shelving.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={selectedBlueprintItem.customLocation || ''}
+                  placeholder="e.g. Office, Front Desk, Breakroom..."
+                  onChange={(e) =>
+                    onUpdateBlueprintItem({
+                      ...selectedBlueprintItem,
+                      customLocation: e.target.value,
+                      zone: undefined,
+                      rowNumber: undefined,
+                      rackNumber: undefined,
+                    })
+                  }
+                  className={`flex-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border ${inputClass}`}
+                />
+                {selectedBlueprintItem.customLocation && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateBlueprintItem({
+                        ...selectedBlueprintItem,
+                        customLocation: undefined,
+                      })
+                    }
+                    className="p-1.5 text-slate-400 hover:text-red-400 cursor-pointer"
+                    title="Clear location"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              {/* Quick preset buttons */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                {[
+                  'Office',
+                  'Packing Area',
+                  'Receiving',
+                  'Shipping',
+                  'Front Desk',
+                  'Shop Floor',
+                  'Alcove',
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() =>
+                      onUpdateBlueprintItem({
+                        ...selectedBlueprintItem,
+                        customLocation: preset,
+                        zone: undefined,
+                        rowNumber: undefined,
+                        rackNumber: undefined,
+                      })
+                    }
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                      selectedBlueprintItem.customLocation === preset
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : isDark
+                        ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-xs'
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ODOO SHELF LOCATION ASSIGNMENT & API MAPPING (Available in both View & Edit Mode) */}
           {isShelfOrRack && (
             <div
@@ -823,6 +1062,46 @@ export function DetailDrawer({
                     ? 'Non-Inventory'
                     : `${mappedCount}/${totalSlots} slots mapped`}
                 </span>
+              </div>
+
+              {/* Parent Stock Location Selector */}
+              <div className="space-y-1.5 pt-0.5 border-b border-slate-700/30 pb-2.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
+                  >
+                    Parent Stock Location
+                  </label>
+                  <span className="font-mono text-[10px] font-bold text-[#8DDB05]">
+                    {parentLoc}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {['WH/Stock', 'WH/Packing Zone'].map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => handleUpdateParentLocation(loc)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer border ${
+                        parentLoc === loc
+                          ? 'bg-[#8DDB05] text-slate-950 border-transparent shadow-xs'
+                          : isDark
+                          ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-xs'
+                      }`}
+                    >
+                      {loc.replace('WH/', '')}
+                    </button>
+                  ))}
+                  <input
+                    type="text"
+                    value={parentLoc}
+                    onChange={(e) => handleUpdateParentLocation(e.target.value)}
+                    placeholder="e.g. WH/Packing Zone"
+                    className={`flex-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${inputClass}`}
+                    title="Parent Odoo location (e.g. WH/Stock or WH/Packing Zone)"
+                  />
+                </div>
               </div>
 
               {/* Non-Inventory Shelf Toggle */}
@@ -968,6 +1247,8 @@ export function DetailDrawer({
                         value={parseInt(curRowNumber, 10) || 1}
                         min={1}
                         max={99}
+                        step={1}
+                        showArrows={false}
                         onCommit={(val) => handleUpdateRowNumber(val)}
                         className={`flex-1 py-1 text-center rounded-lg text-xs font-bold font-mono ${inputClass}`}
                         title="Row Number"
@@ -1007,16 +1288,18 @@ export function DetailDrawer({
                         isDark ? 'text-slate-400' : 'text-slate-500'
                       }`}
                     >
-                      Format: Zone-Row-Rack-Shelf
+                      Format: {isPacking ? 'Packing Zone (Rack-Shelf)' : 'Zone-Row-Rack-Shelf'}
                     </div>
                     <div className="font-mono text-xs font-extrabold text-[#8DDB05] truncate">
-                      {buildOdooShortCode(curZone, curRowNumber, 1, 1)}
+                      {isPacking
+                        ? `PACK-${String(curRowNumber || 1).padStart(2, '0')}-01`
+                        : buildOdooShortCode(curZone, curRowNumber, 1, 1)}
                       <span
                         className={`text-[10px] font-normal ml-1.5 ${
                           isDark ? 'text-slate-400' : 'text-slate-500'
                         }`}
                       >
-                        (WH/Stock/{buildOdooShortCode(curZone, curRowNumber, 1, 1)})
+                        ({parentLoc}/{isPacking ? `Rack ${String(curRowNumber || 1).padStart(2, '0')}/Shelf 01` : buildOdooShortCode(curZone, curRowNumber, 1, 1)})
                       </span>
                     </div>
                   </div>
@@ -1284,22 +1567,29 @@ export function DetailDrawer({
                     <span className="text-slate-400">Odoo Full Name:</span>
                     <span
                       className="font-medium text-slate-500 dark:text-slate-400 truncate max-w-[190px]"
-                      title={`WH/Stock/Zone ${curZone}/Row ${String(
-                        (parseInt(curRowNumber, 10) || 1) +
-                          (activeSlotCoords.row - 1)
-                      ).padStart(2, '0')}/Rack ${String(
-                        activeSlotCoords.bay
-                      ).padStart(2, '0')}/Shelf ${String(
-                        activeSlotCoords.level
-                      ).padStart(2, '0')}`}
+                      title={
+                        isPacking
+                          ? `${parentLoc}/Rack ${String(activeSlotCoords.bay).padStart(2, '0')}/Shelf ${String(activeSlotCoords.level).padStart(2, '0')}`
+                          : `${parentLoc}/Zone ${curZone}/Row ${String(
+                              (parseInt(curRowNumber, 10) || 1) +
+                                (activeSlotCoords.row - 1)
+                            ).padStart(2, '0')}/Rack ${String(
+                              activeSlotCoords.bay
+                            ).padStart(2, '0')}/Shelf ${String(
+                              activeSlotCoords.level
+                            ).padStart(2, '0')}`
+                      }
                     >
-                      WH/Stock/Zone {curZone}/Row{' '}
-                      {String(
-                        (parseInt(curRowNumber, 10) || 1) +
-                          (activeSlotCoords.row - 1)
-                      ).padStart(2, '0')}
-                      /Rack {String(activeSlotCoords.bay).padStart(2, '0')}
-                      /Shelf {String(activeSlotCoords.level).padStart(2, '0')}
+                      {isPacking
+                        ? `${parentLoc}/Rack ${String(activeSlotCoords.bay).padStart(2, '0')}/Shelf ${String(activeSlotCoords.level).padStart(2, '0')}`
+                        : `${parentLoc}/Zone ${curZone}/Row ${String(
+                            (parseInt(curRowNumber, 10) || 1) +
+                              (activeSlotCoords.row - 1)
+                          ).padStart(2, '0')}/Rack ${String(
+                            activeSlotCoords.bay
+                          ).padStart(2, '0')}/Shelf ${String(
+                            activeSlotCoords.level
+                          ).padStart(2, '0')}`}
                     </span>
                   </div>
                 </div>
@@ -1656,21 +1946,14 @@ export function DetailDrawer({
                           {formatFeetInches(selectedBlueprintItem.size[idx])}
                         </span>
                       </label>
-                      <div className="relative">
-                        <MeasurementInput
-                          value={inchesVal}
-                          min={4}
-                          onCommit={(val) => updateBpSizeInches(idx, val)}
-                          className={`w-full pl-2.5 pr-6 py-1.5 rounded-xl text-xs font-mono font-bold ${inputClass}`}
-                        />
-                        <span
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold pointer-events-none ${
-                            isDark ? 'text-slate-500' : 'text-slate-400'
-                          }`}
-                        >
-                          in
-                        </span>
-                      </div>
+                      <MeasurementInput
+                        value={inchesVal}
+                        min={4}
+                        step={1}
+                        unit="in"
+                        onCommit={(val) => updateBpSizeInches(idx, val)}
+                        className={`w-full pl-2.5 py-1.5 rounded-xl text-xs font-mono font-bold ${inputClass}`}
+                      />
                     </div>
                   );
                 })}
@@ -1763,10 +2046,11 @@ export function DetailDrawer({
                         </button>
                         <MeasurementInput
                           value={ftVal}
+                          step={0.1}
                           onCommit={(val) =>
                             updateBpPosMeters(axis, feetDecimalToMeters(val))
                           }
-                          className={`w-16 px-1.5 py-1 rounded-lg text-center text-xs font-mono font-bold ${inputClass}`}
+                          className={`w-20 px-1.5 py-1 rounded-lg text-center text-xs font-mono font-bold ${inputClass}`}
                           title="Position in Feet"
                         />
                         <button
@@ -1788,68 +2072,102 @@ export function DetailDrawer({
                   );
                 })}
 
-                {/* Rotation Slider + 90 deg quick buttons */}
+                {/* Rotation Slider + Hard Stops */}
                 <div
                   className={`pt-2 border-t ${
                     isDark ? 'border-slate-700' : 'border-slate-200'
-                  }`}
+                  } space-y-2`}
                 >
-                  <div className="flex items-center justify-between text-xs mb-1.5">
+                  <div className="flex items-center justify-between text-xs mb-1">
                     <span className={labelClass}>Rotation Angle</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() =>
-                          onUpdateBlueprintItem({
-                            ...selectedBlueprintItem,
-                            rotationY:
-                              ((selectedBlueprintItem.rotationY || 0) -
-                                Math.PI / 2) %
-                              (Math.PI * 2),
-                          })
-                        }
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition ${btnSecClass}`}
-                      >
-                        -90°
-                      </button>
-                      <span
-                        className={`font-mono text-xs font-black w-10 text-center ${valueClass}`}
-                      >
-                        {Math.round(
+                    <div className="flex items-center gap-1">
+                      <MeasurementInput
+                        value={normalizeDeg(
                           ((selectedBlueprintItem.rotationY || 0) * 180) /
                             Math.PI
                         )}
-                        °
-                      </span>
-                      <button
-                        onClick={() =>
+                        min={-180}
+                        max={180}
+                        step={15}
+                        unit="°"
+                        onCommit={(deg) => {
+                          const rad = (deg * Math.PI) / 180;
                           onUpdateBlueprintItem({
                             ...selectedBlueprintItem,
-                            rotationY:
-                              ((selectedBlueprintItem.rotationY || 0) +
-                                Math.PI / 2) %
-                              (Math.PI * 2),
-                          })
-                        }
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition ${btnSecClass}`}
-                      >
-                        +90°
-                      </button>
+                            rotationY: rad,
+                          });
+                        }}
+                        className={`w-20 px-1.5 py-0.5 rounded-lg text-center text-xs font-mono font-bold ${inputClass}`}
+                        title="Rotation in Degrees"
+                      />
                     </div>
                   </div>
-                  <input
-                    type="range"
-                    min={-Math.PI}
-                    max={Math.PI}
-                    step={0.05}
-                    value={selectedBlueprintItem.rotationY || 0}
-                    onChange={(e) =>
-                      onUpdateBlueprintItem({
-                        ...selectedBlueprintItem,
-                        rotationY: parseFloat(e.target.value),
-                      })
-                    }
-                    className="w-full accent-[#8DDB05] cursor-pointer"
-                  />
+
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min={-180}
+                      max={180}
+                      step={1}
+                      list="bp-rotation-stops"
+                      value={normalizeDeg(
+                        ((selectedBlueprintItem.rotationY || 0) * 180) / Math.PI
+                      )}
+                      onChange={(e) => {
+                        const rawVal = parseInt(e.target.value, 10);
+                        const snapped = snapRotationDeg(rawVal, 4);
+                        const rad = (snapped * Math.PI) / 180;
+                        onUpdateBlueprintItem({
+                          ...selectedBlueprintItem,
+                          rotationY: rad,
+                        });
+                      }}
+                      className="w-full accent-[#8DDB05] cursor-pointer"
+                    />
+                    <datalist id="bp-rotation-stops">
+                      {ROTATION_HARD_STOPS.map((stop) => (
+                        <option key={stop} value={stop} label={`${stop}°`} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Quick Hard-Stop Preset Buttons */}
+                  <div className="flex items-center justify-between gap-1">
+                    {([-180, -90, -45, 0, 45, 90, 180] as const).map(
+                      (angle) => {
+                        const curDeg = normalizeDeg(
+                          ((selectedBlueprintItem.rotationY || 0) * 180) /
+                            Math.PI
+                        );
+                        const isActive =
+                          curDeg === angle ||
+                          (angle === -180 && curDeg === 180);
+                        return (
+                          <button
+                            key={angle}
+                            type="button"
+                            onClick={() => {
+                              const rad = (angle * Math.PI) / 180;
+                              onUpdateBlueprintItem({
+                                ...selectedBlueprintItem,
+                                rotationY: rad,
+                              });
+                            }}
+                            className={`flex-1 py-1 rounded-md text-[10px] font-mono font-bold transition cursor-pointer ${
+                              isActive
+                                ? 'bg-[#8DDB05] text-slate-950 font-black shadow-xs'
+                                : isDark
+                                ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 shadow-xs'
+                            }`}
+                            title={`Hard stop: ${angle}°`}
+                          >
+                            {angle}°
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2509,6 +2827,7 @@ export function DetailDrawer({
                   </label>
                   <MeasurementInput
                     value={metersToFeetDecimal(selectedMarker.position[idx])}
+                    step={0.25}
                     onCommit={(val) =>
                       updateCoord(idx as 0 | 1 | 2, feetDecimalToMeters(val))
                     }
@@ -2517,31 +2836,110 @@ export function DetailDrawer({
                 </div>
               ))}
             </div>
-            {/* Rotation Y slider */}
-            <div>
-              <div className="flex justify-between text-[10px] font-semibold mt-1">
-                <span className={labelClass}>Rotation (Yaw)</span>
-                <span className={`font-mono font-bold ${valueClass}`}>
-                  {Math.round(
+            {/* Rotation Y slider with Hard Stops & Whole Numbers */}
+            <div className="space-y-2 pt-2 border-t border-slate-700/40">
+              <div className="flex items-center justify-between text-xs">
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider ${labelClass}`}
+                >
+                  Rotation (Yaw)
+                </span>
+                <div className="flex items-center gap-1">
+                  <MeasurementInput
+                    value={normalizeDeg(
+                      ((selectedMarker.rotation?.[1] || 0) * 180) / Math.PI
+                    )}
+                    min={-180}
+                    max={180}
+                    step={15}
+                    unit="°"
+                    onCommit={(deg) => {
+                      const rad = (deg * Math.PI) / 180;
+                      onUpdateMarker({
+                        ...selectedMarker,
+                        rotation: [
+                          selectedMarker.rotation?.[0] || 0,
+                          rad,
+                          selectedMarker.rotation?.[2] || 0,
+                        ],
+                      });
+                    }}
+                    className={`w-20 px-1.5 py-0.5 rounded-lg text-center text-xs font-mono font-bold ${inputClass}`}
+                    title="Rotation in Degrees"
+                  />
+                </div>
+              </div>
+
+              {/* Slider with magnetic snap & datalist tick marks */}
+              <div className="relative">
+                <input
+                  type="range"
+                  min={-180}
+                  max={180}
+                  step={1}
+                  list="marker-rotation-stops"
+                  value={normalizeDeg(
                     ((selectedMarker.rotation?.[1] || 0) * 180) / Math.PI
                   )}
-                  °
-                </span>
+                  onChange={(e) => {
+                    const rawVal = parseInt(e.target.value, 10);
+                    const snapped = snapRotationDeg(rawVal, 4);
+                    const rad = (snapped * Math.PI) / 180;
+                    onUpdateMarker({
+                      ...selectedMarker,
+                      rotation: [
+                        selectedMarker.rotation?.[0] || 0,
+                        rad,
+                        selectedMarker.rotation?.[2] || 0,
+                      ],
+                    });
+                  }}
+                  className="w-full accent-[#8DDB05] cursor-pointer"
+                />
+                <datalist id="marker-rotation-stops">
+                  {ROTATION_HARD_STOPS.map((stop) => (
+                    <option key={stop} value={stop} label={`${stop}°`} />
+                  ))}
+                </datalist>
               </div>
-              <input
-                type="range"
-                min={-Math.PI}
-                max={Math.PI}
-                step={0.05}
-                value={selectedMarker.rotation?.[1] || 0}
-                onChange={(e) =>
-                  onUpdateMarker({
-                    ...selectedMarker,
-                    rotation: [0, parseFloat(e.target.value), 0],
-                  })
-                }
-                className="w-full accent-[#8DDB05] cursor-pointer"
-              />
+
+              {/* Quick Hard-Stop Preset Buttons */}
+              <div className="flex items-center justify-between gap-1">
+                {([-180, -90, -45, 0, 45, 90, 180] as const).map((angle) => {
+                  const curDeg = normalizeDeg(
+                    ((selectedMarker.rotation?.[1] || 0) * 180) / Math.PI
+                  );
+                  const isActive =
+                    curDeg === angle || (angle === -180 && curDeg === 180);
+                  return (
+                    <button
+                      key={angle}
+                      type="button"
+                      onClick={() => {
+                        const rad = (angle * Math.PI) / 180;
+                        onUpdateMarker({
+                          ...selectedMarker,
+                          rotation: [
+                            selectedMarker.rotation?.[0] || 0,
+                            rad,
+                            selectedMarker.rotation?.[2] || 0,
+                          ],
+                        });
+                      }}
+                      className={`flex-1 py-1 rounded-md text-[10px] font-mono font-bold transition cursor-pointer ${
+                        isActive
+                          ? 'bg-[#8DDB05] text-slate-950 font-black shadow-xs'
+                          : isDark
+                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 shadow-xs'
+                      }`}
+                      title={`Hard stop: ${angle}°`}
+                    >
+                      {angle}°
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -3164,6 +3562,7 @@ export function DetailDrawer({
                             </label>
                             <MeasurementInput
                               value={m.positionOffset[aIdx]}
+                              step={0.1}
                               onCommit={(val) => {
                                 const next: [number, number, number] = [
                                   ...m.positionOffset,
@@ -3241,6 +3640,7 @@ export function DetailDrawer({
                         <MeasurementInput
                           key={ax}
                           value={box.position[idx]}
+                          step={0.1}
                           onCommit={(val) => {
                             const nextPos: [number, number, number] = [
                               ...box.position,
@@ -3248,7 +3648,7 @@ export function DetailDrawer({
                             nextPos[idx] = val;
                             onUpdateCutoutBox({ ...box, position: nextPos });
                           }}
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${inputClass}`}
+                          className={`w-full px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${inputClass}`}
                           title={`Position ${ax}`}
                         />
                       ))}

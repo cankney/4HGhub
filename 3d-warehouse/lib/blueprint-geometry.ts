@@ -58,10 +58,15 @@ export interface BlueprintItem {
   rowNumber?: number | string; // Warehouse Row index: 1 -> "01", 2 -> "02"
   rackNumber?: number | string; // Rack index (alias to rowNumber)
   locationPrefix?: string; // e.g. "A-01" or "WH/Stock/A-01"
-  odooWarehouseCode?: string; // e.g. "WH/Stock"
+  odooWarehouseCode?: string; // e.g. "WH/Stock" or "WH/Packing Zone"
+  customLocation?: string; // e.g. "Office", "Packing Area", "Receiving", "Shipping"
   isNonInventory?: boolean; // When true, shelf is general storage with no Odoo stock location
   shelfLocations?: Record<string, ShelfLocationAssignment>; // Keyed by "R{row}-B{bay}-L{level}"
   visible: boolean;
+}
+
+export function isShelfModel(kind?: string): boolean {
+  return kind === 'rack' || kind === 'workbench' || kind === 'work_station_rack';
 }
 
 /**
@@ -103,6 +108,14 @@ export function deriveZoneAndRack(item: Partial<BlueprintItem>): {
   rowNumber: string;
   rackNumber: string;
 } {
+  // Desks, computers, printers, chairs, doors, forklifts do not use Zone/Row inventory shelving coordinates
+  if (!isShelfModel(item.kind)) {
+    return { zone: '', rowNumber: '', rackNumber: '' };
+  }
+  if (item.customLocation) {
+    return { zone: '', rowNumber: '', rackNumber: '' };
+  }
+
   const num = item.rowNumber || item.rackNumber;
   if (item.zone && num) {
     const formatted = String(num).padStart(2, '0');
@@ -137,13 +150,16 @@ export function deriveZoneAndRack(item: Partial<BlueprintItem>): {
   if (/SW.*HORIZONTAL|SW.*FRONT/i.test(text)) return { zone: 'B', rowNumber: '03', rackNumber: '03' };
   if (/WEST/i.test(text)) return { zone: 'C', rowNumber: '01', rackNumber: '01' };
 
+  if (item.kind && !isShelfModel(item.kind)) {
+    return { zone: '', rowNumber: '', rackNumber: '' };
+  }
+
   return { zone: 'A', rowNumber: '01', rackNumber: '01' };
 }
 
 /**
- * Auto-generates all slot locations for a rack based on the standard Zone-Row-Rack-Shelf format.
- * When a rack is split into rows (e.g. rows=2), the first row is baseRow (e.g. 01)
- * and the next row is baseRow + 1 (e.g. 02) -> "A-02-01-01".
+ * Auto-generates all slot locations for a rack based on the standard Zone-Row-Rack-Shelf format
+ * or custom parent locations like "WH/Packing Zone".
  */
 export function generateAllShelfLocations(
   zone: string,
@@ -151,30 +167,36 @@ export function generateAllShelfLocations(
   bays: number,
   levels: number,
   rows: number = 1,
-  existingLocations?: Record<string, ShelfLocationAssignment>
+  existingLocations?: Record<string, ShelfLocationAssignment>,
+  parentLocation?: string
 ): Record<string, ShelfLocationAssignment> {
   const next: Record<string, ShelfLocationAssignment> = { ...existingLocations };
   const z = (zone || 'A').trim().toUpperCase();
   const startRowInt = parseInt(String(baseRow), 10) || 1;
+  const isPacking = parentLocation && /pack/i.test(parentLocation);
 
   for (let rIdx = 1; rIdx <= rows; rIdx++) {
     const currentRow = startRowInt + (rIdx - 1);
     for (let bIdx = 1; bIdx <= bays; bIdx++) {
       for (let lIdx = 1; lIdx <= levels; lIdx++) {
         const slotKey = `R${rIdx}-B${bIdx}-L${lIdx}`;
-        const shortCode = buildOdooShortCode(
-          z,
-          currentRow,
-          bIdx,
-          lIdx
-        );
+        let shortCode = '';
+        let locationCode = '';
+
+        if (isPacking) {
+          shortCode = `PACK-${String(bIdx).padStart(2, '0')}-${String(lIdx).padStart(2, '0')}`;
+          locationCode = `${parentLocation}/Rack ${String(bIdx).padStart(2, '0')}/Shelf ${String(lIdx).padStart(2, '0')}`;
+        } else {
+          shortCode = buildOdooShortCode(z, currentRow, bIdx, lIdx);
+          locationCode = parentLocation ? `${parentLocation}/${shortCode}` : shortCode;
+        }
 
         next[slotKey] = {
           row: rIdx,
           bay: bIdx,
           level: lIdx,
-          shortCode: shortCode,
-          locationCode: shortCode,
+          shortCode: next[slotKey]?.shortCode || shortCode,
+          locationCode: next[slotKey]?.locationCode || locationCode,
           odooLocationId: next[slotKey]?.odooLocationId || '',
           notes: next[slotKey]?.notes || '',
         };
@@ -427,6 +449,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'DESK-OFFICE-01',
     name: 'Office Main Conference / Work Table',
     kind: 'desk',
+    customLocation: 'Office',
     // Scan bounds: X=[-4.56, -3.36], Z=[4.93, 7.46]
     position: [-3.96, -1.15, 6.19],
     size: [1.1, 0.8, 2.45],
@@ -436,6 +459,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'DESK-OFFICE-02',
     name: 'Office North Wall Desk',
     kind: 'desk',
+    customLocation: 'Office',
     // Scan bounds: X=[-5.77, -4.52], Z=[4.14, 6.27]
     position: [-5.14, -1.15, 5.2],
     size: [0.95, 0.8, 1.95],
@@ -445,6 +469,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'DESK-OFFICE-03',
     name: 'Office East Wall Workstation',
     kind: 'desk',
+    customLocation: 'Office',
     // Scan bounds: X=[-4.75, -1.95], Z=[1.13, 1.93]
     position: [-3.35, -1.15, 1.53],
     size: [2.6, 0.8, 0.8],
@@ -454,6 +479,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'DESK-NOOK-TABLE',
     name: 'Tan Utility Alcove Workbench',
     kind: 'desk',
+    customLocation: 'Alcove',
     // Scan bounds: X=[-5.79, -4.33], Z=[-3.02, -0.79]
     position: [-5.15, -1.1, -1.9],
     size: [0.85, 0.9, 1.85],
@@ -466,6 +492,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'PC-OFFICE-01',
     name: 'Dual-Monitor Workstation PC #1',
     kind: 'computer',
+    customLocation: 'Office',
     position: [-3.96, -0.58, 6.2],
     size: [0.45, 0.42, 0.75],
     rotationY: Math.PI / 2,
@@ -475,6 +502,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'PC-OFFICE-02',
     name: 'North Desk iMac / Monitor',
     kind: 'computer',
+    customLocation: 'Office',
     position: [-5.14, -0.58, 5.2],
     size: [0.4, 0.42, 0.65],
     rotationY: 0,
@@ -484,6 +512,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'PC-OFFICE-03',
     name: 'East Desk Terminal & Scanner',
     kind: 'computer',
+    customLocation: 'Office',
     position: [-3.35, -0.58, 1.53],
     size: [0.65, 0.42, 0.4],
     rotationY: 0,
@@ -493,6 +522,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'PRINTER-NOOK-01',
     name: 'Zebra Thermal Label Printer (Alcove)',
     kind: 'printer',
+    customLocation: 'Alcove',
     position: [-5.15, -0.48, -1.9],
     size: [0.45, 0.35, 0.45],
     rotationY: 0,
@@ -502,6 +532,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'CHAIR-OFFICE-01',
     name: 'Ergonomic Task Chair #1',
     kind: 'chair',
+    customLocation: 'Office',
     position: [-3.2, -1.1, 6.2],
     size: [0.6, 0.9, 0.6],
     rotationY: -Math.PI / 2,
@@ -511,6 +542,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'CHAIR-OFFICE-02',
     name: 'Ergonomic Task Chair #2',
     kind: 'chair',
+    customLocation: 'Office',
     position: [-4.35, -1.1, 5.2],
     size: [0.6, 0.9, 0.6],
     rotationY: Math.PI,
@@ -520,6 +552,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'CHAIR-OFFICE-03',
     name: 'Ergonomic Task Chair #3',
     kind: 'chair',
+    customLocation: 'Office',
     position: [-3.35, -1.1, 2.25],
     size: [0.6, 0.9, 0.6],
     rotationY: 0,
@@ -532,6 +565,7 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     id: 'FORKLIFT-01',
     name: 'Warehouse Counterbalance Forklift',
     kind: 'forklift',
+    customLocation: 'Shop Floor',
     // Exact scan bounds: X=[2.37, 3.49] (1.12m / 44"), Z=[-5.14, -2.58] (2.55m / 8'4"), Height=2.18m (7'2")
     position: [2.93, -0.46, -3.86],
     size: [1.12, 2.18, 2.55],

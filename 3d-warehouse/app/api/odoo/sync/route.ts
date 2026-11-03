@@ -254,8 +254,20 @@ export async function POST(req: NextRequest) {
         const rk = rackMatch[1].padStart(2, '0');
         const sh = shelfMatch[1].padStart(2, '0');
         aliases.add(`${z}-${r}-${rk}-${sh}`);
+      } else if (rackMatch && shelfMatch) {
+        // Non-zoned locations e.g. "WH/Packing Zone/Rack 01/Shelf 01"
+        const rk = rackMatch[1].padStart(2, '0');
+        const sh = shelfMatch[1].padStart(2, '0');
+        aliases.add(`PACK-${rk}-${sh}`);
+        aliases.add(`P-${rk}-${sh}`);
+        aliases.add(`Rack ${rk}/Shelf ${sh}`);
+        aliases.add(`Shelf ${sh}`);
+        aliases.add(`Shelf ${parseInt(sh, 10)}`);
       }
 
+      if (cName.startsWith('WH/')) {
+        aliases.add(cName.slice(3));
+      }
       if (cName) aliases.add(cName);
       if (loc.name) aliases.add(loc.name);
 

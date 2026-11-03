@@ -22,6 +22,7 @@ import {
   buildOdooShortCode,
   deriveZoneAndRack,
   generateAllShelfLocations,
+  isShelfModel,
   parseSlotKey,
 } from '@/lib/blueprint-geometry';
 import { TopNavbar, SearchResultItem } from '@/components/ui/TopNavbar';
@@ -186,6 +187,7 @@ export default function WarehouseDigitalTwinPage() {
     displayMode,
     theme,
     roofCutoffY,
+    lastSyncTime,
   });
   latestStateRef.current = {
     markers,
@@ -202,6 +204,7 @@ export default function WarehouseDigitalTwinPage() {
     displayMode,
     theme,
     roofCutoffY,
+    lastSyncTime,
   };
 
   // Helper to apply hydrated twin state safely
@@ -299,6 +302,13 @@ export default function WarehouseDigitalTwinPage() {
         applied = true;
       }
 
+      if (parsed.lastSyncTime) {
+        setLastSyncTime(parsed.lastSyncTime);
+        try {
+          localStorage.setItem('waretrack_last_sync_time', parsed.lastSyncTime);
+        } catch {}
+      }
+
       if (Array.isArray(parsed.markers) && parsed.markers.length > 0) {
         const defaultCamMap = new Map(
           DEFAULT_MARKERS.filter((m) => m.type === 'camera').map((m) => [m.id, m])
@@ -312,7 +322,10 @@ export default function WarehouseDigitalTwinPage() {
               metadata: {
                 ...(fallbackCam?.metadata || {}),
                 ...m.metadata,
-                visionMapping: m.metadata?.visionMapping || fallbackMapping,
+                visionMapping: {
+                  ...(fallbackMapping || {}),
+                  ...(m.metadata?.visionMapping || {}),
+                },
                 unifiId: m.metadata?.unifiId || fallbackCam?.metadata?.unifiId,
                 unifiModel: m.metadata?.unifiModel || fallbackCam?.metadata?.unifiModel,
                 unifiConsoleId:
@@ -334,44 +347,73 @@ export default function WarehouseDigitalTwinPage() {
 
       if (Array.isArray(parsed.blueprintItems) && parsed.blueprintItems.length > 0) {
         const upgraded = parsed.blueprintItems.map((item: BlueprintItem) => {
-          const derived = deriveZoneAndRack(item);
-          const z = item.zone || derived.zone;
-          const r = item.rowNumber || item.rackNumber || derived.rowNumber;
+          const isShelf = isShelfModel(item.kind);
+          const derived = isShelf ? deriveZoneAndRack(item) : { zone: '', rowNumber: '', rackNumber: '' };
+          const z = isShelf ? (item.zone || derived.zone) : undefined;
+          const r = isShelf ? (item.rowNumber || item.rackNumber || derived.rowNumber) : undefined;
+
+          // Derives sensible facility area name for non-shelving models if not already explicitly assigned
+          let customLocation = item.customLocation;
+          if (!isShelf && !customLocation) {
+            if (/office|desk|chair|monitor|computer|pc|terminal/i.test(item.name || '')) {
+              customLocation = 'Office';
+            } else if (/nook|alcove|printer/i.test(item.name || '')) {
+              customLocation = 'Alcove';
+            } else if (/forklift/i.test(item.name || '')) {
+              customLocation = 'Shop Floor';
+            }
+          }
 
           let cleanedLocations = item.shelfLocations;
-          if (cleanedLocations) {
-            const nextLocs: Record<string, any> = {};
-            let hasChanges = false;
-            for (const [key, slot] of Object.entries(cleanedLocations)) {
-              if (slot.shortCode && /-R(\d+)-/.test(slot.shortCode)) {
-                hasChanges = true;
-                const match = slot.shortCode.match(/^([A-Z])-(\d+)-R(\d+)-(\d+)-(\d+)$/);
-                if (match) {
-                  const zone = match[1];
-                  const baseRow = parseInt(match[2], 10);
-                  const rowOffset = parseInt(match[3], 10) - 1;
-                  const finalRow = baseRow + rowOffset;
-                  const bay = match[4];
-                  const shelf = match[5];
-                  const fixedCode = `${zone}-${String(finalRow).padStart(2, '0')}-${bay}-${shelf}`;
-                  nextLocs[key] = {
-                    ...slot,
-                    shortCode: fixedCode,
-                    locationCode: fixedCode,
-                  };
-                  continue;
+          if (isShelf) {
+            if (cleanedLocations) {
+              const nextLocs: Record<string, any> = {};
+              let hasChanges = false;
+              for (const [key, slot] of Object.entries(cleanedLocations)) {
+                if (slot.shortCode && /-R(\d+)-/.test(slot.shortCode)) {
+                  hasChanges = true;
+                  const match = slot.shortCode.match(/^([A-Z])-(\d+)-R(\d+)-(\d+)-(\d+)$/);
+                  if (match) {
+                    const zone = match[1];
+                    const baseRow = parseInt(match[2], 10);
+                    const rowOffset = parseInt(match[3], 10) - 1;
+                    const finalRow = baseRow + rowOffset;
+                    const bay = match[4];
+                    const shelf = match[5];
+                    const fixedCode = `${zone}-${String(finalRow).padStart(2, '0')}-${bay}-${shelf}`;
+                    nextLocs[key] = {
+                      ...slot,
+                      shortCode: fixedCode,
+                      locationCode: fixedCode,
+                    };
+                    continue;
+                  }
                 }
+                nextLocs[key] = slot;
               }
-              nextLocs[key] = slot;
+              if (hasChanges) cleanedLocations = nextLocs;
+            } else if (!item.isNonInventory) {
+              const baseRowInt = parseInt(String(r), 10) || 1;
+              cleanedLocations = generateAllShelfLocations(
+                z || 'A',
+                baseRowInt,
+                item.bays ?? (item.kind === 'rack' ? 3 : 2),
+                item.levels ?? 3,
+                item.rows ?? 1,
+                undefined,
+                item.odooWarehouseCode
+              );
             }
-            if (hasChanges) cleanedLocations = nextLocs;
+          } else {
+            cleanedLocations = undefined;
           }
 
           return {
             ...item,
-            zone: z,
-            rowNumber: r,
-            rackNumber: r,
+            zone: isShelf ? z : undefined,
+            rowNumber: isShelf ? r : undefined,
+            rackNumber: isShelf ? r : undefined,
+            customLocation,
             shelfLocations: cleanedLocations,
           };
         });
@@ -389,63 +431,95 @@ export default function WarehouseDigitalTwinPage() {
     []
   );
 
-  // Push customizations to 4HG Cloud (reads from stable latestStateRef)
-  const handlePushToCloud = React.useCallback(
-    async (stateToPush?: any) => {
-      setIsSyncingCloud(true);
-      setCloudSyncMsg(null);
+  const autoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Consolidated multi-device cloud persistence engine
+  const saveStateToCloud = React.useCallback(
+    async (
+      partialOverride?: Record<string, any>,
+      options?: { immediate?: boolean }
+    ) => {
+      const payload = {
+        ...latestStateRef.current,
+        ...(partialOverride || {}),
+      };
+
+      // 1. Instantly persist to localStorage so tab reload always has the latest state
       try {
-        const payload = stateToPush || latestStateRef.current;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (err) {
+        console.warn('localStorage save warning:', err);
+      }
 
-        const res = await fetch('/3d-warehouse/api/cloud-sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            state: payload,
-            deviceId:
-              typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-          }),
-        });
+      // 2. Transmit to Firestore Cloud
+      const doPush = async () => {
+        setIsSyncingCloud(true);
+        try {
+          const res = await fetch('/3d-warehouse/api/cloud-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              state: payload,
+              deviceId:
+                typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+            }),
+          });
 
-        const json = await res.json();
-        if (json.success) {
-          if (json.updatedAt) {
-            lastCloudUpdatedAtRef.current = json.updatedAt;
+          const json = await res.json();
+          if (json.success) {
+            if (json.updatedAt) {
+              lastCloudUpdatedAtRef.current = json.updatedAt;
+            }
+            const timeStr = json.updatedAt
+              ? new Date(json.updatedAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : new Date().toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
+            setLastCloudSyncTime(timeStr);
+            try {
+              localStorage.setItem('waretrack_last_cloud_sync_time', timeStr);
+            } catch {}
+            setCloudSyncMsg({
+              type: 'success',
+              text: `Synced to 4HG Cloud (${timeStr}). Available on all devices!`,
+            });
+          } else {
+            console.warn('Cloud save error from API:', json.error);
           }
-          const timeStr = json.updatedAt
-            ? new Date(json.updatedAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            : new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              });
-          setLastCloudSyncTime(timeStr);
-          try {
-            localStorage.setItem('waretrack_last_cloud_sync_time', timeStr);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-          } catch {}
-          setCloudSyncMsg({
-            type: 'success',
-            text: `Synced to 4HG Cloud (${timeStr}). Available on all devices!`,
-          });
-        } else {
-          setCloudSyncMsg({
-            type: 'error',
-            text: json.error || 'Failed to sync to cloud.',
-          });
+        } catch (err: any) {
+          console.warn('Network error saving to 4HG Cloud:', err.message);
+        } finally {
+          setIsSyncingCloud(false);
         }
-      } catch (err: any) {
-        setCloudSyncMsg({
-          type: 'error',
-          text: err.message || 'Network error syncing to cloud.',
-        });
-      } finally {
-        setIsSyncingCloud(false);
+      };
+
+      if (options?.immediate) {
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+          autoSaveTimerRef.current = null;
+        }
+        await doPush();
+      } else {
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+        }
+        autoSaveTimerRef.current = setTimeout(() => {
+          autoSaveTimerRef.current = null;
+          doPush();
+        }, 500);
       }
     },
     []
+  );
+
+  // Backward compatible alias
+  const handlePushToCloud = React.useCallback(
+    (stateToPush?: any) => saveStateToCloud(stateToPush, { immediate: true }),
+    [saveStateToCloud]
   );
 
   // Pull customizations from 4HG Cloud
@@ -672,12 +746,12 @@ export default function WarehouseDigitalTwinPage() {
 
   // Periodic background check to keep all users in sync with admin changes
   useEffect(() => {
-    // Check every 12 seconds
+    // Check every 10 seconds
     const interval = setInterval(() => {
       if (!isUserDirtyRef.current) {
         handlePullFromCloud(true);
       }
-    }, 12000);
+    }, 10000);
 
     const onFocus = () => {
       if (!isUserDirtyRef.current) {
@@ -737,7 +811,7 @@ export default function WarehouseDigitalTwinPage() {
     roofCutoffY,
   ]);
 
-  // Debounced auto-sync to cloud strictly on user modifications (1.5s debounce)
+  // Debounced auto-sync to cloud strictly on user modifications (500ms debounce)
   useEffect(() => {
     if (!hasHydratedRef.current || isHydratingRef.current) return;
 
@@ -751,9 +825,9 @@ export default function WarehouseDigitalTwinPage() {
     const timer = setTimeout(() => {
       if (isUserDirtyRef.current) {
         isUserDirtyRef.current = false;
-        handlePushToCloud();
+        saveStateToCloud();
       }
-    }, 1500);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [
@@ -771,7 +845,7 @@ export default function WarehouseDigitalTwinPage() {
     displayMode,
     theme,
     roofCutoffY,
-    handlePushToCloud,
+    saveStateToCloud,
   ]);
 
   const filteredMarkers = useMemo(() => {
@@ -795,16 +869,18 @@ export default function WarehouseDigitalTwinPage() {
 
     const results: SearchResultItem[] = [];
 
-    // 1. Search products and locations across all blueprint items (racks/shelves)
+    // 1. Search products and locations across all blueprint items (racks/shelves/models)
     for (const item of blueprintItems) {
-      if (item.isNonInventory) continue;
-
+      const customLocMatches =
+        item.customLocation && item.customLocation.toLowerCase().includes(q);
       const rackMatches =
         item.name.toLowerCase().includes(q) ||
+        Boolean(customLocMatches) ||
         (item.zone && `zone ${item.zone}`.toLowerCase().includes(q)) ||
-        (item.locationPrefix && item.locationPrefix.toLowerCase().includes(q));
+        (item.locationPrefix && item.locationPrefix.toLowerCase().includes(q)) ||
+        (item.odooWarehouseCode && item.odooWarehouseCode.toLowerCase().includes(q));
 
-      if (item.shelfLocations) {
+      if (item.shelfLocations && !item.isNonInventory) {
         for (const [slotKey, slot] of Object.entries(item.shelfLocations)) {
           const shortCode = slot.shortCode || slot.locationCode || '';
           const cleanShortCode = shortCode.toUpperCase();
@@ -852,8 +928,16 @@ export default function WarehouseDigitalTwinPage() {
         results.push({
           type: 'rack',
           title: item.name,
-          subtitle: `${item.kind.toUpperCase()} • ${item.bays ?? 3} bays × ${item.levels ?? 3} tiers`,
-          badge: item.zone ? `Zone ${item.zone}` : 'Rack',
+          subtitle: isShelfModel(item.kind)
+            ? `${item.kind.toUpperCase()} • ${item.bays ?? 3} bays × ${item.levels ?? 3} tiers`
+            : `${item.kind.toUpperCase()}${item.customLocation ? ` • ${item.customLocation}` : ''}`,
+          badge: item.customLocation
+            ? item.customLocation
+            : item.odooWarehouseCode && /pack/i.test(item.odooWarehouseCode)
+            ? 'Packing Zone'
+            : item.zone
+            ? `Zone ${item.zone}`
+            : 'Facility',
           rackId: item.id,
           position: item.position,
         });
@@ -924,31 +1008,52 @@ export default function WarehouseDigitalTwinPage() {
     setBlueprintItems(next.blueprintItems);
   };
 
-  const handleUpdateMarker = (updated: FacilityMarker) => {
+  const handleUpdateMarker = (updated: FacilityMarker, immediate = false) => {
     pushHistory();
     isUserDirtyRef.current = true;
-    setMarkers((prev) =>
-      prev.map((m) => (m.id === updated.id ? updated : m))
-    );
+    setMarkers((prev) => {
+      const next = prev.map((m) => (m.id === updated.id ? updated : m));
+      saveStateToCloud({ markers: next }, { immediate });
+      return next;
+    });
   };
 
   const handleDeleteMarker = (id: string) => {
     pushHistory();
     isUserDirtyRef.current = true;
-    setMarkers((prev) => prev.filter((m) => m.id !== id));
+    setMarkers((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      saveStateToCloud({ markers: next }, { immediate: true });
+      return next;
+    });
     if (selectedMarkerId === id) setSelectedMarkerId(null);
   };
 
   const handleAddMarker = (newMarker: FacilityMarker) => {
     pushHistory();
     isUserDirtyRef.current = true;
-    setMarkers((prev) => [...prev, newMarker]);
+    setMarkers((prev) => {
+      const next = [...prev, newMarker];
+      saveStateToCloud({ markers: next }, { immediate: true });
+      return next;
+    });
   };
 
   const handleUpdateMeshOverride = (override: MeshOverride) => {
     isUserDirtyRef.current = true;
-    setMeshOverrides((prev) =>
-      prev.map((m) => (m.meshIndex === override.meshIndex ? override : m))
+    setMeshOverrides((prev) => {
+      const next = prev.map((m) => (m.meshIndex === override.meshIndex ? override : m));
+      saveStateToCloud({ meshOverrides: next }, { immediate: true });
+      return next;
+    });
+  };
+
+  const handleResetMeshOverrides = () => {
+    isUserDirtyRef.current = true;
+    setMeshOverrides(DEFAULT_MESH_OVERRIDES);
+    saveStateToCloud(
+      { meshOverrides: DEFAULT_MESH_OVERRIDES },
+      { immediate: true }
     );
   };
 
@@ -999,7 +1104,11 @@ export default function WarehouseDigitalTwinPage() {
               status: 'online',
             },
     };
-    setMarkers((prev) => [...prev, created]);
+    setMarkers((prev) => {
+      const next = [...prev, created];
+      saveStateToCloud({ markers: next }, { immediate: true });
+      return next;
+    });
     setSelectedMarkerId(created.id);
   };
 
@@ -1110,259 +1219,319 @@ export default function WarehouseDigitalTwinPage() {
     });
   };
 
-  const handleSyncOdoo = async () => {
-    setIsSyncingOdoo(true);
-    setSyncStatusMsg(null);
+  const handleSyncOdoo = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      const isSilent = Boolean(options?.silent);
+      setIsSyncingOdoo(true);
+      if (!isSilent) setSyncStatusMsg(null);
 
-    try {
-      const res = await fetch('/api/odoo/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(odooConfig),
-      });
+      try {
+        const res = await fetch('/3d-warehouse/api/odoo/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(odooConfig),
+        });
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || `HTTP ${res.status} from sync endpoint`);
-      }
-
-      const inventory: Array<{
-        id: number;
-        productId: number;
-        sku: string;
-        name: string;
-        quantity: number;
-        reservedQuantity: number;
-        lot?: string;
-        locationId: number;
-        locationName: string;
-        shortCode: string;
-        barcode?: string;
-        aliases?: string[];
-      }> = data.inventory || [];
-
-      // Map all possible lookup keys (shortCode e.g. "A-01-01-01", barcode, locationName, and aliases)
-      const inventoryByCode = new Map<string, OdooProductQuant[]>();
-      const locationIdByCode = new Map<string, number>();
-
-      const registerQuant = (
-        code: string | undefined,
-        quant: OdooProductQuant,
-        locId?: number
-      ) => {
-        if (!code) return;
-        const normalized = code.toUpperCase().trim();
-        if (!normalized) return;
-
-        if (!inventoryByCode.has(normalized)) {
-          inventoryByCode.set(normalized, []);
-        }
-        const list = inventoryByCode.get(normalized)!;
-        if (!list.some((existing) => existing.id === quant.id)) {
-          list.push(quant);
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || `HTTP ${res.status} from sync endpoint`);
         }
 
-        if (locId) {
-          locationIdByCode.set(normalized, locId);
-        }
-      };
+        const inventory: Array<{
+          id: number;
+          productId: number;
+          sku: string;
+          name: string;
+          quantity: number;
+          reservedQuantity: number;
+          lot?: string;
+          locationId: number;
+          locationName: string;
+          shortCode: string;
+          barcode?: string;
+          aliases?: string[];
+        }> = data.inventory || [];
 
-      for (const item of inventory) {
-        const quant: OdooProductQuant = {
-          id: item.id,
-          productId: item.productId,
-          sku: item.sku,
-          name: item.name,
-          quantity: item.quantity,
-          reservedQuantity: item.reservedQuantity,
-          lot: item.lot,
-          locationId: item.locationId,
-          locationName: item.locationName,
-          shortCode: item.shortCode,
-          barcode: item.barcode,
-          aliases: item.aliases,
+        // Map all possible lookup keys (shortCode e.g. "A-01-01-01", barcode, locationName, and aliases)
+        const inventoryByCode = new Map<string, OdooProductQuant[]>();
+        const locationIdByCode = new Map<string, number>();
+
+        const registerQuant = (
+          code: string | undefined,
+          quant: OdooProductQuant,
+          locId?: number
+        ) => {
+          if (!code) return;
+          const normalized = code.toUpperCase().trim();
+          if (!normalized) return;
+
+          if (!inventoryByCode.has(normalized)) {
+            inventoryByCode.set(normalized, []);
+          }
+          const list = inventoryByCode.get(normalized)!;
+          if (!list.some((existing) => existing.id === quant.id)) {
+            list.push(quant);
+          }
+
+          if (locId) {
+            locationIdByCode.set(normalized, locId);
+          }
         };
 
-        registerQuant(item.shortCode, quant, item.locationId);
-        registerQuant(item.barcode, quant, item.locationId);
-        registerQuant(item.locationName, quant, item.locationId);
-        if (item.locationId) {
-          registerQuant(String(item.locationId), quant, item.locationId);
-        }
-        if (Array.isArray(item.aliases)) {
-          for (const a of item.aliases) {
-            registerQuant(a, quant, item.locationId);
+        for (const item of inventory) {
+          const quant: OdooProductQuant = {
+            id: item.id,
+            productId: item.productId,
+            sku: item.sku,
+            name: item.name,
+            quantity: item.quantity,
+            reservedQuantity: item.reservedQuantity,
+            lot: item.lot,
+            locationId: item.locationId,
+            locationName: item.locationName,
+            shortCode: item.shortCode,
+            barcode: item.barcode,
+            aliases: item.aliases,
+          };
+
+          registerQuant(item.shortCode, quant, item.locationId);
+          registerQuant(item.barcode, quant, item.locationId);
+          registerQuant(item.locationName, quant, item.locationId);
+          if (item.locationId) {
+            registerQuant(String(item.locationId), quant, item.locationId);
+          }
+          if (Array.isArray(item.aliases)) {
+            for (const a of item.aliases) {
+              registerQuant(a, quant, item.locationId);
+            }
           }
         }
-      }
 
-      pushHistory();
-      let matchedSlotCount = 0;
-      let matchedProductCount = 0;
+        pushHistory();
+        let matchedSlotCount = 0;
+        let matchedProductCount = 0;
 
-      setBlueprintItems((prev) =>
-        prev.map((bp) => {
-          if (bp.isNonInventory) return bp;
-          const isShelfOrRack =
-            bp.kind === 'rack' ||
-            bp.kind === 'workbench' ||
-            bp.kind === 'work_station_rack';
-          if (!isShelfOrRack) return bp;
+        let updatedBlueprintItems: BlueprintItem[] = [];
 
-          const derived = deriveZoneAndRack(bp);
-          const zone = (bp.zone || derived.zone || 'A').toUpperCase();
-          const baseRowInt =
-            parseInt(
-              String(bp.rowNumber || bp.rackNumber || derived.rowNumber),
-              10
-            ) || 1;
+        setBlueprintItems((prev) => {
+          const next = prev.map((bp) => {
+            if (bp.isNonInventory) return bp;
+            const isShelfOrRack = isShelfModel(bp.kind);
+            if (!isShelfOrRack) return bp;
 
-          const bays = bp.bays ?? (bp.kind === 'rack' ? 3 : 2);
-          const levels = bp.levels ?? 3;
-          const rows = bp.rows ?? 1;
+            const parentLoc = bp.odooWarehouseCode || 'WH/Stock';
+            const isPacking = /pack/i.test(parentLoc);
 
-          // Ensure shelfLocations exists with all slot keys
-          const currentLocations =
-            bp.shelfLocations && Object.keys(bp.shelfLocations).length > 0
-              ? { ...bp.shelfLocations }
-              : generateAllShelfLocations(
-                  zone,
-                  baseRowInt,
-                  bays,
-                  levels,
-                  rows
-                );
+            const derived = deriveZoneAndRack(bp);
+            const zone = (bp.zone || derived.zone || (isPacking ? 'P' : 'A')).toUpperCase();
+            const baseRowInt =
+              parseInt(
+                String(bp.rowNumber || bp.rackNumber || derived.rowNumber),
+                10
+              ) || 1;
 
-          const updatedLocations = { ...currentLocations };
-          let changed = false;
+            const bays = bp.bays ?? (bp.kind === 'rack' ? 3 : 2);
+            const levels = bp.levels ?? 3;
+            const rows = bp.rows ?? 1;
 
-          for (let r = 1; r <= rows; r++) {
-            const slotRow = baseRowInt + (r - 1);
-            for (let b = 1; b <= bays; b++) {
-              for (let l = 1; l <= levels; l++) {
-                const slotKey = `R${r}-B${b}-L${l}`;
-                const slot = updatedLocations[slotKey] || {
-                  row: r,
-                  bay: b,
-                  level: l,
-                  locationCode: '',
-                  shortCode: '',
-                };
-
-                const stdCode = buildOdooShortCode(zone, slotRow, b, l); // e.g. "A-01-01-01"
-                const stdHierarchical = `WH/Stock/Zone ${zone}/Row ${String(
-                  slotRow
-                ).padStart(2, '0')}/Rack ${String(b).padStart(
-                  2,
-                  '0'
-                )}/Shelf ${String(l).padStart(2, '0')}`;
-                const stdHierarchicalShort = `Zone ${zone}/Row ${String(
-                  slotRow
-                ).padStart(2, '0')}/Rack ${String(b).padStart(
-                  2,
-                  '0'
-                )}/Shelf ${String(l).padStart(2, '0')}`;
-
-                // All candidate search keys for this slot
-                const candidates = [
-                  slot.shortCode,
-                  slot.locationCode,
-                  slot.odooLocationId,
-                  stdCode,
-                  stdHierarchical,
-                  stdHierarchicalShort,
-                ]
-                  .filter(Boolean)
-                  .map((k) => String(k).toUpperCase().trim());
-
-                let matchedProds: OdooProductQuant[] | undefined;
-                let matchedLocId: number | undefined;
-
-                for (const cand of candidates) {
-                  if (inventoryByCode.has(cand)) {
-                    matchedProds = inventoryByCode.get(cand);
-                    matchedLocId = locationIdByCode.get(cand);
-                    break;
-                  }
-                }
-
-                // Also check fuzzy partial match if exact didn't hit
-                if (!matchedProds) {
-                  for (const [invCode, prods] of inventoryByCode.entries()) {
-                    for (const cand of candidates) {
-                      if (invCode.includes(cand) || cand.includes(invCode)) {
-                        matchedProds = prods;
-                        matchedLocId = locationIdByCode.get(invCode);
-                        break;
-                      }
-                    }
-                    if (matchedProds) break;
-                  }
-                }
-
-                if (matchedProds && matchedProds.length > 0) {
-                  const totalQty = matchedProds.reduce(
-                    (sum, p) => sum + (p.quantity || 0),
-                    0
+            // Ensure shelfLocations exists with all slot keys
+            const currentLocations =
+              bp.shelfLocations && Object.keys(bp.shelfLocations).length > 0
+                ? { ...bp.shelfLocations }
+                : generateAllShelfLocations(
+                    zone,
+                    baseRowInt,
+                    bays,
+                    levels,
+                    rows,
+                    undefined,
+                    parentLoc
                   );
-                  updatedLocations[slotKey] = {
-                    ...slot,
+
+            const updatedLocations = { ...currentLocations };
+            let changed = false;
+
+            for (let r = 1; r <= rows; r++) {
+              const slotRow = baseRowInt + (r - 1);
+              for (let b = 1; b <= bays; b++) {
+                for (let l = 1; l <= levels; l++) {
+                  const slotKey = `R${r}-B${b}-L${l}`;
+                  const slot = updatedLocations[slotKey] || {
                     row: r,
                     bay: b,
                     level: l,
-                    shortCode: slot.shortCode || stdCode,
-                    locationCode: slot.locationCode || stdCode,
-                    products: matchedProds,
-                    totalQuantity: totalQty,
-                    odooLocationId: matchedLocId
-                      ? String(matchedLocId)
-                      : slot.odooLocationId,
-                    notes: `Synced from Odoo (${matchedProds.length} products, ${totalQty} units)`,
+                    locationCode: '',
+                    shortCode: '',
                   };
-                  matchedSlotCount++;
-                  matchedProductCount += matchedProds.length;
-                  changed = true;
-                } else if (!slot.shortCode) {
-                  updatedLocations[slotKey] = {
-                    ...slot,
-                    row: r,
-                    bay: b,
-                    level: l,
-                    shortCode: stdCode,
-                    locationCode: stdCode,
-                  };
-                  changed = true;
+
+                  let stdCode = '';
+                  let stdHierarchical = '';
+                  let stdHierarchicalShort = '';
+
+                  if (isPacking) {
+                    stdCode = `PACK-${String(b).padStart(2, '0')}-${String(l).padStart(2, '0')}`;
+                    stdHierarchical = `${parentLoc}/Rack ${String(b).padStart(2, '0')}/Shelf ${String(l).padStart(2, '0')}`;
+                    stdHierarchicalShort = `Rack ${String(b).padStart(2, '0')}/Shelf ${String(l).padStart(2, '0')}`;
+                  } else {
+                    stdCode = buildOdooShortCode(zone, slotRow, b, l); // e.g. "A-01-01-01"
+                    stdHierarchical = `${parentLoc}/Zone ${zone}/Row ${String(
+                      slotRow
+                    ).padStart(2, '0')}/Rack ${String(b).padStart(
+                      2,
+                      '0'
+                    )}/Shelf ${String(l).padStart(2, '0')}`;
+                    stdHierarchicalShort = `Zone ${zone}/Row ${String(
+                      slotRow
+                    ).padStart(2, '0')}/Rack ${String(b).padStart(
+                      2,
+                      '0'
+                    )}/Shelf ${String(l).padStart(2, '0')}`;
+                  }
+
+                  // All candidate search keys for this slot
+                  const candidates = [
+                    slot.shortCode,
+                    slot.locationCode,
+                    slot.odooLocationId,
+                    stdCode,
+                    stdHierarchical,
+                    stdHierarchicalShort,
+                    ...(isPacking
+                      ? [
+                          `Rack ${String(b).padStart(2, '0')}/Shelf ${String(l).padStart(2, '0')}`,
+                          `Rack ${b}/Shelf ${l}`,
+                          `Shelf ${String(l).padStart(2, '0')}`,
+                          `Shelf ${l}`,
+                          `P-${String(b).padStart(2, '0')}-${String(l).padStart(2, '0')}`,
+                          `${parentLoc}/Shelf ${String(l).padStart(2, '0')}`,
+                        ]
+                      : []),
+                  ]
+                    .filter(Boolean)
+                    .map((k) => String(k).toUpperCase().trim());
+
+                  let matchedProds: OdooProductQuant[] | undefined;
+                  let matchedLocId: number | undefined;
+
+                  for (const cand of candidates) {
+                    if (inventoryByCode.has(cand)) {
+                      matchedProds = inventoryByCode.get(cand);
+                      matchedLocId = locationIdByCode.get(cand);
+                      break;
+                    }
+                  }
+
+                  // Also check fuzzy partial match if exact didn't hit
+                  if (!matchedProds) {
+                    for (const [invCode, prods] of inventoryByCode.entries()) {
+                      for (const cand of candidates) {
+                        if (invCode.includes(cand) || cand.includes(invCode)) {
+                          matchedProds = prods;
+                          matchedLocId = locationIdByCode.get(invCode);
+                          break;
+                        }
+                      }
+                      if (matchedProds) break;
+                    }
+                  }
+
+                  if (matchedProds && matchedProds.length > 0) {
+                    const totalQty = matchedProds.reduce(
+                      (sum, p) => sum + (p.quantity || 0),
+                      0
+                    );
+                    updatedLocations[slotKey] = {
+                      ...slot,
+                      row: r,
+                      bay: b,
+                      level: l,
+                      shortCode: slot.shortCode || stdCode,
+                      locationCode: slot.locationCode || stdCode,
+                      products: matchedProds,
+                      totalQuantity: totalQty,
+                      odooLocationId: matchedLocId
+                        ? String(matchedLocId)
+                        : slot.odooLocationId,
+                      notes: `Synced from Odoo (${matchedProds.length} products, ${totalQty} units)`,
+                    };
+                    matchedSlotCount++;
+                    matchedProductCount += matchedProds.length;
+                    changed = true;
+                  } else if (!slot.shortCode) {
+                    updatedLocations[slotKey] = {
+                      ...slot,
+                      row: r,
+                      bay: b,
+                      level: l,
+                      shortCode: stdCode,
+                      locationCode: stdCode,
+                    };
+                    changed = true;
+                  }
                 }
               }
             }
-          }
 
-          return changed ? { ...bp, shelfLocations: updatedLocations } : bp;
-        })
-      );
+            return changed ? { ...bp, shelfLocations: updatedLocations } : bp;
+          });
+          updatedBlueprintItems = next;
+          return next;
+        });
 
-      const timeStr = new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      setLastSyncTime(timeStr);
-      try {
-        localStorage.setItem('waretrack_last_sync_time', timeStr);
-      } catch {}
+        const timeStr = new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        setLastSyncTime(timeStr);
+        try {
+          localStorage.setItem('waretrack_last_sync_time', timeStr);
+        } catch {}
 
-      setSyncStatusMsg({
-        type: 'success',
-        text: `Sync complete! Synced ${inventory.length} quants from Odoo. Matched ${matchedSlotCount} shelf slots (${matchedProductCount} products).`,
-      });
-    } catch (err: any) {
-      setSyncStatusMsg({
-        type: 'error',
-        text: err.message || 'Failed to sync inventory from Odoo.',
-      });
-    } finally {
-      setIsSyncingOdoo(false);
-    }
-  };
+        // Immediately auto-save newly synced inventory to 4HG Cloud & LocalStorage!
+        saveStateToCloud(
+          {
+            blueprintItems: updatedBlueprintItems,
+            lastSyncTime: timeStr,
+          },
+          { immediate: true }
+        );
+
+        const successText = `Sync complete! Synced ${inventory.length} quants from Odoo. Matched ${matchedSlotCount} shelf slots (${matchedProductCount} products).`;
+        if (!isSilent) {
+          setSyncStatusMsg({
+            type: 'success',
+            text: successText,
+          });
+        }
+      } catch (err: any) {
+        console.warn('[Odoo Sync] Error:', err.message);
+        if (!isSilent) {
+          setSyncStatusMsg({
+            type: 'error',
+            text: err.message || 'Failed to sync inventory from Odoo.',
+          });
+        }
+      } finally {
+        setIsSyncingOdoo(false);
+      }
+    },
+    [odooConfig, pushHistory, saveStateToCloud]
+  );
+
+  // Auto-sync Odoo inventory upon application launch
+  const hasAutoSyncedOdooRef = React.useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current || hasAutoSyncedOdooRef.current) return;
+    hasAutoSyncedOdooRef.current = true;
+
+    // Small delay to let initial canvas & cloud hydration settle
+    const timer = setTimeout(() => {
+      handleSyncOdoo({ silent: true });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [handleSyncOdoo]);
 
   const handleSaveUnifiConfig = (cfg: UnifiSettingsConfig) => {
     setUnifiConfig(cfg);
@@ -1372,11 +1541,12 @@ export default function WarehouseDigitalTwinPage() {
       // Ignore
     }
     isUserDirtyRef.current = true;
-    // Auto-sync UniFi credentials to cloud immediately so all devices receive them
-    handlePushToCloud({
-      ...latestStateRef.current,
-      unifiConfig: cfg,
-    });
+    saveStateToCloud(
+      {
+        unifiConfig: cfg,
+      },
+      { immediate: true }
+    );
   };
 
   const handleUpdateFsdConfig = (cfg: FsdVisionSettingsConfig) => {
@@ -1387,10 +1557,12 @@ export default function WarehouseDigitalTwinPage() {
       // Ignore
     }
     isUserDirtyRef.current = true;
-    handlePushToCloud({
-      ...latestStateRef.current,
-      fsdConfig: cfg,
-    });
+    saveStateToCloud(
+      {
+        fsdConfig: cfg,
+      },
+      { immediate: true }
+    );
   };
 
   const handleSyncUnifiCameras = async () => {
@@ -1398,7 +1570,7 @@ export default function WarehouseDigitalTwinPage() {
     setUnifiSyncStatusMsg(null);
 
     try {
-      const res = await fetch('/api/unifi/sync', {
+      const res = await fetch('/3d-warehouse/api/unifi/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(unifiConfig),
@@ -1508,7 +1680,9 @@ export default function WarehouseDigitalTwinPage() {
           }
         });
 
-        return [...otherMarkers, ...updatedCams];
+        const nextAll = [...otherMarkers, ...updatedCams];
+        saveStateToCloud({ markers: nextAll }, { immediate: true });
+        return nextAll;
       });
 
       const timeStr = new Date().toLocaleTimeString([], {
@@ -1576,6 +1750,115 @@ export default function WarehouseDigitalTwinPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen]);
+
+  const handleUpdateBlueprintItem = React.useCallback(
+    (updated: BlueprintItem, immediate = true) => {
+      pushHistory();
+      isUserDirtyRef.current = true;
+      setBlueprintItems((prev) => {
+        const next = prev.map((b) => (b.id === updated.id ? updated : b));
+        saveStateToCloud({ blueprintItems: next }, { immediate });
+        return next;
+      });
+    },
+    [pushHistory, saveStateToCloud]
+  );
+
+  const handleAddBlueprintItem = React.useCallback(
+    (item: BlueprintItem) => {
+      pushHistory();
+      isUserDirtyRef.current = true;
+      setBlueprintItems((prev) => {
+        const next = [...prev, item];
+        saveStateToCloud({ blueprintItems: next }, { immediate: true });
+        return next;
+      });
+    },
+    [pushHistory, saveStateToCloud]
+  );
+
+  const handleDeleteBlueprintItem = React.useCallback(
+    (id: string) => {
+      pushHistory();
+      isUserDirtyRef.current = true;
+      setBlueprintItems((prev) => {
+        const next = prev.filter((b) => b.id !== id);
+        saveStateToCloud({ blueprintItems: next }, { immediate: true });
+        return next;
+      });
+      setSelectedBlueprintId((prev) => (prev === id ? null : prev));
+    },
+    [pushHistory, saveStateToCloud]
+  );
+
+  const handleResetBlueprintItems = React.useCallback(() => {
+    pushHistory();
+    isUserDirtyRef.current = true;
+    setBlueprintItems(DEFAULT_BLUEPRINT_ITEMS);
+    saveStateToCloud(
+      { blueprintItems: DEFAULT_BLUEPRINT_ITEMS },
+      { immediate: true }
+    );
+  }, [pushHistory, saveStateToCloud]);
+
+  const handleToggleCutoutBox = React.useCallback(
+    (id: string) => {
+      isUserDirtyRef.current = true;
+      setCutoutBoxes((prev) => {
+        const next = prev.map((b) =>
+          b.id === id ? { ...b, active: !b.active } : b
+        );
+        saveStateToCloud({ cutoutBoxes: next }, { immediate: true });
+        return next;
+      });
+    },
+    [saveStateToCloud]
+  );
+
+  const handleAddCutoutBox = React.useCallback(() => {
+    isUserDirtyRef.current = true;
+    setCutoutBoxes((prev) => {
+      const nextId = `CUT-0${prev.length + 1}`;
+      const next: CutoutBox[] = [
+        ...prev,
+        {
+          id: nextId,
+          name: `Clean Mask Block #${prev.length + 1}`,
+          position: (calibratedPoint || [0, -1.35, 0]) as [number, number, number],
+          size: [2.4, 0.4, 2.4] as [number, number, number],
+          mode: 'replacement_floor' as const,
+          color: '#e2e8f0',
+          active: true,
+        },
+      ];
+      saveStateToCloud({ cutoutBoxes: next }, { immediate: true });
+      return next;
+    });
+  }, [calibratedPoint, saveStateToCloud]);
+
+  const handleDeleteCutoutBox = React.useCallback(
+    (id: string) => {
+      isUserDirtyRef.current = true;
+      setCutoutBoxes((prev) => {
+        const next = prev.filter((b) => b.id !== id);
+        saveStateToCloud({ cutoutBoxes: next }, { immediate: true });
+        return next;
+      });
+    },
+    [saveStateToCloud]
+  );
+
+  const handleUpdateCutoutBox = React.useCallback(
+    (updated: CutoutBox) => {
+      isUserDirtyRef.current = true;
+      setCutoutBoxes((prev) => {
+        const next = prev.map((b) => (b.id === updated.id ? updated : b));
+        saveStateToCloud({ cutoutBoxes: next }, { immediate: true });
+        return next;
+      });
+    },
+    [saveStateToCloud]
+  );
 
   const activeDisplayMode: DisplayMode =
     appMode === 'view' ? 'clean_shell' : displayMode;
@@ -1670,7 +1953,6 @@ export default function WarehouseDigitalTwinPage() {
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
         isSyncingCloud={isSyncingCloud}
-        onPullCloud={() => handlePullFromCloud(false)}
         lastCloudSyncTime={lastCloudSyncTime}
       />
 
@@ -1755,13 +2037,7 @@ export default function WarehouseDigitalTwinPage() {
           setSelectedSlotKey('R1-B1-L1');
         }}
         onSelectSlot={(slotKey) => setSelectedSlotKey(slotKey)}
-        onUpdateBlueprintItem={(updated) => {
-          pushHistory();
-          isUserDirtyRef.current = true;
-          setBlueprintItems((prev) =>
-            prev.map((b) => (b.id === updated.id ? updated : b))
-          );
-        }}
+        onUpdateBlueprintItem={handleUpdateBlueprintItem}
         onCalibrateClick={(pt, meshIdx) => {
           setCalibratedPoint(pt);
           setCalibratedMeshIndex(meshIdx !== undefined ? meshIdx : null);
@@ -1795,67 +2071,17 @@ export default function WarehouseDigitalTwinPage() {
           setSelectedMarkerId(null);
           setSelectedSlotKey('R1-B1-L1');
         }}
-        onAddBlueprintItem={(item) => {
-          pushHistory();
-          isUserDirtyRef.current = true;
-          setBlueprintItems((prev) => [...prev, item]);
-        }}
-        onUpdateBlueprintItem={(updated) => {
-          pushHistory();
-          isUserDirtyRef.current = true;
-          setBlueprintItems((prev) =>
-            prev.map((b) => (b.id === updated.id ? updated : b))
-          );
-        }}
-        onDeleteBlueprintItem={(id) => {
-          pushHistory();
-          isUserDirtyRef.current = true;
-          setBlueprintItems((prev) => prev.filter((b) => b.id !== id));
-          if (selectedBlueprintId === id) setSelectedBlueprintId(null);
-        }}
-        onResetBlueprintItems={() => {
-          pushHistory();
-          isUserDirtyRef.current = true;
-          setBlueprintItems(DEFAULT_BLUEPRINT_ITEMS);
-        }}
+        onAddBlueprintItem={handleAddBlueprintItem}
+        onUpdateBlueprintItem={handleUpdateBlueprintItem}
+        onDeleteBlueprintItem={handleDeleteBlueprintItem}
+        onResetBlueprintItems={handleResetBlueprintItems}
         onSelectMesh={setSelectedMeshIndex}
         onUpdateMeshOverride={handleUpdateMeshOverride}
-        onResetMeshOverrides={() => {
-          isUserDirtyRef.current = true;
-          setMeshOverrides(DEFAULT_MESH_OVERRIDES);
-        }}
-        onToggleCutoutBox={(id) => {
-          isUserDirtyRef.current = true;
-          setCutoutBoxes((prev) =>
-            prev.map((b) => (b.id === id ? { ...b, active: !b.active } : b))
-          );
-        }}
-        onAddCutoutBox={() => {
-          isUserDirtyRef.current = true;
-          const nextId = `CUT-0${cutoutBoxes.length + 1}`;
-          setCutoutBoxes((prev) => [
-            ...prev,
-            {
-              id: nextId,
-              name: `Clean Mask Block #${cutoutBoxes.length + 1}`,
-              position: calibratedPoint || [0, -1.35, 0],
-              size: [2.4, 0.4, 2.4],
-              mode: 'replacement_floor',
-              color: '#e2e8f0',
-              active: true,
-            },
-          ]);
-        }}
-        onDeleteCutoutBox={(id) => {
-          isUserDirtyRef.current = true;
-          setCutoutBoxes((prev) => prev.filter((b) => b.id !== id));
-        }}
-        onUpdateCutoutBox={(updated) => {
-          isUserDirtyRef.current = true;
-          setCutoutBoxes((prev) =>
-            prev.map((b) => (b.id === updated.id ? updated : b))
-          );
-        }}
+        onResetMeshOverrides={handleResetMeshOverrides}
+        onToggleCutoutBox={handleToggleCutoutBox}
+        onAddCutoutBox={handleAddCutoutBox}
+        onDeleteCutoutBox={handleDeleteCutoutBox}
+        onUpdateCutoutBox={handleUpdateCutoutBox}
         canUndo={pastHistory.length > 0}
         canRedo={futureHistory.length > 0}
         onUndo={() => {
@@ -1906,9 +2132,6 @@ export default function WarehouseDigitalTwinPage() {
         unifiSyncStatusMsg={unifiSyncStatusMsg}
         onExportJson={handleExportJson}
         lastCloudSyncTime={lastCloudSyncTime}
-        onPullCloud={() => handlePullFromCloud(false)}
-        onPushCloud={() => handlePushToCloud()}
-        isSyncingCloud={isSyncingCloud}
       />
 
       <CalibrationOverlay
