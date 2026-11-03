@@ -50,6 +50,7 @@ import {
   onFullscreenChange,
 } from '@/lib/fullscreen';
 import { SidebarToggleTab } from '@/components/ui/SidebarToggleTab';
+import { sanitizeTwinStateForPersistence } from '@/lib/storage-sanitizer';
 
 const WarehouseCanvas = dynamic(
   () =>
@@ -490,10 +491,11 @@ export default function WarehouseDigitalTwinPage() {
         ...latestStateRef.current,
         ...(partialOverride || {}),
       };
+      const cleanPayload = sanitizeTwinStateForPersistence(payload);
 
       // 1. Instantly persist to localStorage so tab reload always has the latest state
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanPayload));
       } catch (err) {
         console.warn('localStorage save warning:', err);
       }
@@ -506,13 +508,20 @@ export default function WarehouseDigitalTwinPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              state: payload,
+              state: cleanPayload,
               deviceId:
                 typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
             }),
           });
 
-          const json = await res.json();
+          const rawText = await res.text();
+          let json: any = {};
+          try {
+            json = JSON.parse(rawText);
+          } catch {
+            json = { success: false, error: rawText.slice(0, 100) };
+          }
+
           if (json.success) {
             if (json.updatedAt) {
               lastCloudUpdatedAtRef.current = json.updatedAt;
@@ -693,7 +702,7 @@ export default function WarehouseDigitalTwinPage() {
     setIsSavingBaseline(true);
     setBaselineSaveMsg(null);
     try {
-      const currentState = latestStateRef.current;
+      const currentState = sanitizeTwinStateForPersistence(latestStateRef.current);
       const res = await fetch('/3d-warehouse/api/admin/baseline-defaults', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -703,7 +712,14 @@ export default function WarehouseDigitalTwinPage() {
         }),
       });
 
-      const json = await res.json();
+      const rawText = await res.text();
+      let json: any = {};
+      try {
+        json = JSON.parse(rawText);
+      } catch {
+        json = { success: false, error: rawText.slice(0, 100) };
+      }
+
       if (json.success) {
         setBaselineSaveMsg({
           type: 'success',
@@ -863,25 +879,23 @@ export default function WarehouseDigitalTwinPage() {
   useEffect(() => {
     if (!hasHydratedRef.current) return;
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          markers,
-          meshOverrides,
-          blueprintItems,
-          cutoutBoxes,
-          cardinalFacing,
-          odooConfig,
-          unifiConfig,
-          fsdConfig,
-          showSpatialVision3D,
-          showCameraFeeds3D,
-          showShelfTags,
-          displayMode,
-          theme,
-          roofCutoffY,
-        })
-      );
+      const cleanData = sanitizeTwinStateForPersistence({
+        markers,
+        meshOverrides,
+        blueprintItems,
+        cutoutBoxes,
+        cardinalFacing,
+        odooConfig,
+        unifiConfig,
+        fsdConfig,
+        showSpatialVision3D,
+        showCameraFeeds3D,
+        showShelfTags,
+        displayMode,
+        theme,
+        roofCutoffY,
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanData));
     } catch {
       // Ignore storage errors
     }

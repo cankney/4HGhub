@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
-import { Edges, Html } from '@react-three/drei';
+import { Edges, Html, TransformControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { FacilityMarker } from '@/lib/markers';
 import { UnifiSettingsConfig } from '@/components/ui/SettingsDrawer';
@@ -34,6 +34,8 @@ interface FacilityMarkersProps {
   onSelectMarker: (marker: FacilityMarker) => void;
   showCameraFeeds3D?: boolean;
   unifiConfig?: UnifiSettingsConfig;
+  appMode?: 'view' | 'edit';
+  onUpdateMarker?: (updated: FacilityMarker) => void;
 }
 
 function Camera3DPopupCard({
@@ -977,231 +979,239 @@ function ServerRackCabinetMesh3D() {
   );
 }
 
-export function FacilityMarkers({
-  markers,
-  selectedMarkerId,
-  onSelectMarker,
+interface FacilityMarkerItemProps {
+  marker: FacilityMarker;
+  isSelected: boolean;
+  appMode: 'view' | 'edit';
+  showCameraFeeds3D?: boolean;
+  unifiConfig?: UnifiSettingsConfig;
+  onSelectMarker: (marker: FacilityMarker) => void;
+  onUpdateMarker?: (updated: FacilityMarker) => void;
+  idx: number;
+}
+
+function FacilityMarkerItem({
+  marker,
+  isSelected,
+  appMode,
   showCameraFeeds3D,
   unifiConfig,
-}: FacilityMarkersProps) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  onSelectMarker,
+  onUpdateMarker,
+  idx,
+}: FacilityMarkerItemProps) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const [isHovered, setIsHovered] = useState(false);
 
-  const handleMarkerClick = (e: ThreeEvent<MouseEvent>, marker: FacilityMarker) => {
-    e.stopPropagation();
-    onSelectMarker(marker);
+  const variant = marker.modelVariant || 'pin';
+  const show3DFeed = appMode === 'view' && marker.type === 'camera' && Boolean(showCameraFeeds3D);
+
+  const colorMap: Record<string, string> = {
+    camera: '#06b6d4',
+    network_ap: '#10b981',
+    network_switch: '#3b82f6',
+    network_gateway: '#8b5cf6',
+    network_ups: '#f59e0b',
+    network_cloudkey: '#06b6d4',
+    network_superlink: '#ec4899',
+    network_nas: '#64748b',
+    inventory_bin: '#f59e0b',
   };
+  const accentColor = colorMap[marker.type] || '#10b981';
+
+  const badgeHeight =
+    variant === 'rack'
+      ? 2.15
+      : variant === 'forklift'
+      ? 1.55
+      : variant === 'pallet_stack'
+      ? 1.25
+      : marker.type === 'network_ups'
+      ? 0.55
+      : marker.type === 'network_ap'
+      ? 0.45
+      : 0.7;
+
+  const isNetworkDevice = marker.type.startsWith('network_');
 
   return (
-    <group>
-      {markers.map((marker, idx) => {
-        const isSelected = selectedMarkerId === marker.id;
-        const isHovered = hoveredId === marker.id;
-        const variant = marker.modelVariant || 'pin';
-        const show3DFeed = marker.type === 'camera' && Boolean(showCameraFeeds3D);
+    <>
+      <group
+        ref={groupRef}
+        position={marker.position}
+        rotation={marker.rotation || [0, 0, 0]}
+        scale={marker.scale || [1, 1, 1]}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectMarker(marker);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setIsHovered(true);
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          setIsHovered(false);
+          document.body.style.cursor = 'auto';
+        }}
+      >
+        {/* Render 3D Geometry according to MarkerType & ModelVariant */}
+        {marker.type === 'camera' && (
+          <UniFiG6BulletCamera3D
+            isSelected={isSelected}
+            isHovered={isHovered}
+          />
+        )}
 
-        // Pin color palette per specification + WareTrack royal blue pin accent
-        const colorMap: Record<string, string> = {
-          camera: '#06b6d4', // Cyan glowing pin
-          network_ap: '#10b981', // Emerald green glowing pin
-          network_switch: '#3b82f6', // Electric blue
-          network_gateway: '#8b5cf6', // Violet
-          network_ups: '#f59e0b', // Amber
-          network_cloudkey: '#06b6d4', // Cyan
-          network_superlink: '#ec4899', // Pink
-          network_nas: '#64748b', // Slate
-          inventory_bin: '#f59e0b', // Amber/Orange beacon
-        };
-        const accentColor = colorMap[marker.type] || '#10b981';
-
-        // Height offset for HTML floating badge
-        const badgeHeight =
-          variant === 'rack'
-            ? 2.15
-            : variant === 'forklift'
-            ? 1.55
-            : variant === 'pallet_stack'
-            ? 1.25
-            : marker.type === 'network_ups'
-            ? 0.55
-            : marker.type === 'network_ap'
-            ? 0.45
-            : 0.7;
-
-        const isNetworkDevice = marker.type.startsWith('network_');
-
-        return (
-          <group
-            key={marker.id}
-            position={marker.position}
-            rotation={marker.rotation || [0, 0, 0]}
-            scale={marker.scale || [1, 1, 1]}
-            onClick={(e) => handleMarkerClick(e, marker)}
-            onPointerOver={(e) => {
-              e.stopPropagation();
-              setHoveredId(marker.id);
-              document.body.style.cursor = 'pointer';
-            }}
-            onPointerOut={() => {
-              setHoveredId(null);
-              document.body.style.cursor = 'auto';
-            }}
-          >
-            {/* Render 3D Geometry according to MarkerType & ModelVariant */}
-            {marker.type === 'camera' && (
-              <UniFiG6BulletCamera3D
-                isSelected={isSelected}
-                isHovered={isHovered}
+        {marker.type === 'network_ap' && (
+          <group>
+            <mesh castShadow>
+              <cylinderGeometry args={[0.24, 0.24, 0.09, 28]} />
+              <meshStandardMaterial
+                color="#10b981"
+                emissive="#059669"
+                emissiveIntensity={isSelected || isHovered ? 1.5 : 0.85}
+                roughness={0.25}
               />
-            )}
+            </mesh>
+            <PulseRing color="#10b981" />
+          </group>
+        )}
 
-            {marker.type === 'network_ap' && (
+        {marker.type === 'network_switch' && (
+          <UniFiSwitch16Mesh3D
+            isSelected={isSelected}
+            isHovered={isHovered}
+          />
+        )}
+
+        {marker.type === 'network_gateway' && (
+          <UniFiGatewayMaxMesh3D
+            isSelected={isSelected}
+            isHovered={isHovered}
+          />
+        )}
+
+        {marker.type === 'network_ups' && (
+          <UniFiUpsTowerMesh3D
+            isSelected={isSelected}
+            isHovered={isHovered}
+          />
+        )}
+
+        {marker.type === 'network_cloudkey' && (
+          <UniFiCloudKeyMesh3D
+            isSelected={isSelected}
+            isHovered={isHovered}
+          />
+        )}
+
+        {marker.type === 'network_superlink' && (
+          <UniFiSuperLinkMesh3D
+            isSelected={isSelected}
+            isHovered={isHovered}
+          />
+        )}
+
+        {marker.type === 'network_nas' && (
+          <SynologyNasMesh3D
+            isSelected={isSelected}
+            isHovered={isHovered}
+          />
+        )}
+
+        {marker.type === 'inventory_bin' && (
+          <group>
+            {variant === 'pallet_stack' ? (
+              <PalletStackMesh isSelected={isSelected} />
+            ) : variant === 'rack' ? (
+              <StorageRackMesh isSelected={isSelected} />
+            ) : variant === 'forklift' ? (
+              <ForkliftMesh isSelected={isSelected} />
+            ) : (
               <group>
-                {/* Glowing Emerald AP Disc */}
-                <mesh castShadow>
-                  <cylinderGeometry args={[0.24, 0.24, 0.09, 28]} />
+                <mesh position={[0, 0.35, 0]} castShadow>
+                  <boxGeometry args={[0.85, 0.7, 0.85]} />
                   <meshStandardMaterial
-                    color="#10b981"
-                    emissive="#059669"
-                    emissiveIntensity={isSelected || isHovered ? 1.5 : 0.85}
-                    roughness={0.25}
+                    color="#f59e0b"
+                    emissive="#d97706"
+                    emissiveIntensity={isSelected ? 0.6 : 0.25}
+                    transparent
+                    opacity={0.75}
+                    roughness={0.3}
                   />
+                  <Edges threshold={15} color="#fbbf24" />
                 </mesh>
-                {/* Animated Radiating Pulse Rings */}
-                <PulseRing color="#10b981" />
               </group>
             )}
+          </group>
+        )}
 
-            {marker.type === 'network_switch' && (
-              <UniFiSwitch16Mesh3D
+        {/* Always-crisp floating pin / hover label */}
+        <Html
+          position={[0, badgeHeight, 0]}
+          center
+          distanceFactor={15}
+          zIndexRange={[20, 0]}
+          style={{
+            pointerEvents: appMode === 'edit' && isSelected ? 'none' : 'auto',
+          }}
+        >
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectMarker(marker);
+            }}
+            className={`group relative flex flex-col items-center select-none cursor-pointer transition-transform duration-200 ${
+              isSelected || isHovered ? 'scale-110 z-30' : 'scale-100'
+            }`}
+          >
+            {/* View Mode Only: 3D Live Camera Feed */}
+            {appMode === 'view' && show3DFeed && (
+              <Camera3DPopupCard
+                marker={marker}
+                unifiConfig={unifiConfig}
+                isSelected={isSelected}
+                isHovered={isHovered}
+                staggerMs={idx * 750}
+              />
+            )}
+
+            {/* View Mode Only: 3D Live Network Equipment Telemetry Popup Card */}
+            {appMode === 'view' && isNetworkDevice && isSelected && (
+              <NetworkDevice3DPopupCard
+                marker={marker}
                 isSelected={isSelected}
                 isHovered={isHovered}
               />
             )}
 
-            {marker.type === 'network_gateway' && (
-              <UniFiGatewayMaxMesh3D
-                isSelected={isSelected}
-                isHovered={isHovered}
-              />
-            )}
-
-            {marker.type === 'network_ups' && (
-              <UniFiUpsTowerMesh3D
-                isSelected={isSelected}
-                isHovered={isHovered}
-              />
-            )}
-
-            {marker.type === 'network_cloudkey' && (
-              <UniFiCloudKeyMesh3D
-                isSelected={isSelected}
-                isHovered={isHovered}
-              />
-            )}
-
-            {marker.type === 'network_superlink' && (
-              <UniFiSuperLinkMesh3D
-                isSelected={isSelected}
-                isHovered={isHovered}
-              />
-            )}
-
-            {marker.type === 'network_nas' && (
-              <SynologyNasMesh3D
-                isSelected={isSelected}
-                isHovered={isHovered}
-              />
-            )}
-
-            {marker.type === 'inventory_bin' && (
-              <group>
-                {variant === 'pallet_stack' ? (
-                  <PalletStackMesh isSelected={isSelected} />
-                ) : variant === 'rack' ? (
-                  <StorageRackMesh isSelected={isSelected} />
-                ) : variant === 'forklift' ? (
-                  <ForkliftMesh isSelected={isSelected} />
-                ) : (
-                  /* Amber/Orange Bounding Box + Floating Beacon */
-                  <group>
-                    <mesh position={[0, 0.35, 0]} castShadow>
-                      <boxGeometry args={[0.85, 0.7, 0.85]} />
-                      <meshStandardMaterial
-                        color="#f59e0b"
-                        emissive="#d97706"
-                        emissiveIntensity={isSelected ? 0.6 : 0.25}
-                        transparent
-                        opacity={0.75}
-                        roughness={0.3}
-                      />
-                      <Edges threshold={15} color="#fbbf24" />
-                    </mesh>
-                  </group>
-                )}
-              </group>
-            )}
-
-            {/* Always-crisp floating pin / hover label (WareTrack teardrop & pill aesthetic) */}
-            <Html
-              key={`marker-html-${marker.id}`}
-              position={[0, badgeHeight, 0]}
-              center
-              distanceFactor={15}
-              zIndexRange={[20, 0]}
-            >
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectMarker(marker);
-                }}
-                className={`group relative flex flex-col items-center select-none cursor-pointer transition-transform duration-200 ${
-                  isSelected || isHovered ? 'scale-110 z-30' : 'scale-100'
-                }`}
-              >
-                {/* 3D Live Camera Feed Popup above the camera pin (View Mode toggle) */}
-                {show3DFeed && (
-                  <Camera3DPopupCard
-                    marker={marker}
-                    unifiConfig={unifiConfig}
-                    isSelected={isSelected}
-                    isHovered={isHovered}
-                    staggerMs={idx * 750}
-                  />
-                )}
-
-                {/* 3D Live Network Equipment Telemetry Popup Card (shown on click / selection) */}
-                {isNetworkDevice && isSelected && (
-                  <NetworkDevice3DPopupCard
-                    marker={marker}
-                    isSelected={isSelected}
-                    isHovered={isHovered}
-                  />
-                )}
-
-                {/* Hover or Selected Detail Pill (hidden when 3D Camera Feed or Network Popup Card is active) */}
-                {!show3DFeed && !(isNetworkDevice && isSelected) && (isHovered || isSelected) && (
-                  <div className="mb-1.5 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white shadow-xl border border-white/15 backdrop-blur-md whitespace-nowrap flex items-center gap-2">
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: accentColor }}
-                    />
-                    <div className="text-left">
-                      <div className="text-xs font-semibold leading-tight">
-                        {marker.name}
-                      </div>
-                      <div className="text-[10px] text-slate-300 font-mono">
-                        {marker.type === 'inventory_bin' &&
-                        marker.metadata.qty !== undefined
-                          ? `${marker.metadata.qty.toLocaleString()} units • ${
-                              marker.metadata.sku || marker.id
-                            }`
-                          : marker.metadata.ip || marker.id}
-                      </div>
-                    </div>
+            {/* View Mode Only: Hover or Selected Detail Pill */}
+            {appMode === 'view' && !show3DFeed && !(isNetworkDevice && isSelected) && (isHovered || isSelected) && (
+              <div className="mb-1.5 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white shadow-xl border border-white/15 backdrop-blur-md whitespace-nowrap flex items-center gap-2">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: accentColor }}
+                />
+                <div className="text-left">
+                  <div className="text-xs font-semibold leading-tight">
+                    {marker.name}
                   </div>
-                )}
+                  <div className="text-[10px] text-slate-300 font-mono">
+                    {marker.type === 'inventory_bin' &&
+                    marker.metadata.qty !== undefined
+                      ? `${marker.metadata.qty.toLocaleString()} units • ${
+                          marker.metadata.sku || marker.id
+                        }`
+                      : marker.metadata.ip || marker.id}
+                  </div>
+                </div>
+              </div>
+            )}
 
-                {/* WareTrack-style Pin Badge */}
+            {/* Pin Badge: in View mode always show. In Edit mode, show pin badge when NOT selected so user can click to select, but hide when selected so 3D model & TransformControls gizmo are unobstructed */}
+            {!(appMode === 'edit' && isSelected) && (
+              <>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 transition-all ${
                     isSelected
@@ -1247,7 +1257,6 @@ export function FacilityMarkers({
                     <Package className="w-4 h-4" />
                   )}
                 </div>
-                {/* Pin stem triangle */}
                 <div
                   className={`w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] -mt-0.5 ${
                     isSelected
@@ -1271,11 +1280,60 @@ export function FacilityMarkers({
                       : 'border-t-[#8DDB05]'
                   }`}
                 />
-              </div>
-            </Html>
-          </group>
-        );
-      })}
+              </>
+            )}
+          </div>
+        </Html>
+      </group>
+
+      {/* 3D Translation Gizmo: ONLY in Edit Mode when selected */}
+      {appMode === 'edit' && isSelected && Boolean(onUpdateMarker) && (
+        <TransformControls
+          object={groupRef}
+          mode="translate"
+          onMouseUp={() => {
+            if (groupRef.current && onUpdateMarker) {
+              const p = groupRef.current.position;
+              onUpdateMarker({
+                ...marker,
+                position: [
+                  Number(p.x.toFixed(3)),
+                  Number(p.y.toFixed(3)),
+                  Number(p.z.toFixed(3)),
+                ],
+              });
+            }
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+export function FacilityMarkers({
+  markers,
+  selectedMarkerId,
+  onSelectMarker,
+  showCameraFeeds3D,
+  unifiConfig,
+  appMode = 'view',
+  onUpdateMarker,
+}: FacilityMarkersProps) {
+  return (
+    <group>
+      {markers.map((marker, idx) => (
+        <FacilityMarkerItem
+          key={marker.id}
+          marker={marker}
+          isSelected={selectedMarkerId === marker.id}
+          appMode={appMode}
+          showCameraFeeds3D={showCameraFeeds3D}
+          unifiConfig={unifiConfig}
+          onSelectMarker={onSelectMarker}
+          onUpdateMarker={onUpdateMarker}
+          idx={idx}
+        />
+      ))}
     </group>
   );
 }

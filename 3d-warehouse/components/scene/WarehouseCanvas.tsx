@@ -116,10 +116,12 @@ function CameraRig({
   selectedMarker,
   cameraCommand,
   panMode,
+  appMode,
 }: {
   selectedMarker: FacilityMarker | null;
   cameraCommand: WarehouseCanvasProps['cameraCommand'];
   panMode: boolean;
+  appMode: 'view' | 'edit';
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { camera } = useThree();
@@ -184,15 +186,18 @@ function CameraRig({
     };
   }, [camera]);
 
-  // Smooth focus when a marker is selected
+  // Smooth focus when a marker is selected (VIEW mode only, and only on new marker selection)
+  const prevMarkerIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (selectedMarker) {
+    // In edit mode, selecting a marker MUST NOT reset or move camera view!
+    if (appMode === 'view' && selectedMarker && selectedMarker.id !== prevMarkerIdRef.current) {
       const [x, y, z] = selectedMarker.position;
       desiredTarget.current = new THREE.Vector3(x, y, z);
       desiredPosition.current = new THREE.Vector3(x + 4.8, y + 3.6, z + 5.2);
       isAnimating.current = true;
     }
-  }, [selectedMarker]);
+    prevMarkerIdRef.current = selectedMarker?.id ?? null;
+  }, [selectedMarker, appMode]);
 
   // Handle explicit viewport toolbar commands (+, -, reset, top_down)
   useEffect(() => {
@@ -469,6 +474,7 @@ export function WarehouseCanvas({
           selectedMarker={selectedMarker}
           cameraCommand={cameraCommand}
           panMode={panMode}
+          appMode={appMode}
         />
 
         {/* Infinite Ground Grid matching WareTrack clean aesthetic */}
@@ -521,6 +527,8 @@ export function WarehouseCanvas({
             onSelectMarker={onSelectMarker}
             showCameraFeeds3D={showCameraFeeds3D}
             unifiConfig={unifiConfig}
+            appMode={appMode}
+            onUpdateMarker={onUpdateMarker}
           />
 
           <CameraSpatialVision

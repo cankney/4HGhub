@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'node:fs';
 import path from 'node:path';
+import { sanitizeTwinStateForPersistence } from '@/lib/storage-sanitizer';
 
 const FIRESTORE_API_KEY =
   process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
@@ -64,9 +65,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const clean = sanitizeTwinStateForPersistence(state);
+
+    // Safeguard: Ensure blueprint items and markers are present
+    const localFallbackPath = path.join(process.cwd(), 'lib', 'baseline-warehouse-defaults.json');
+    let fallbackData: any = {};
+    if (fs.existsSync(localFallbackPath)) {
+      try {
+        fallbackData = JSON.parse(fs.readFileSync(localFallbackPath, 'utf-8'));
+      } catch {}
+    }
+
+    if (!Array.isArray(clean.blueprintItems) || clean.blueprintItems.length === 0) {
+      clean.blueprintItems = fallbackData.blueprintItems || [];
+    }
+    if (!Array.isArray(clean.markers) || clean.markers.length === 0) {
+      clean.markers = fallbackData.markers || [];
+    }
+
     const now = new Date().toISOString();
     const payloadWithMeta = {
-      ...state,
+      ...clean,
       savedAt: now,
     };
     const payloadStr = JSON.stringify(payloadWithMeta, null, 2);

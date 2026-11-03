@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sanitizeTwinStateForPersistence } from '@/lib/storage-sanitizer';
+import baselineDefaults from '@/lib/baseline-warehouse-defaults.json';
 
 const FIRESTORE_API_KEY =
   process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
@@ -37,6 +39,14 @@ export async function GET() {
     }
 
     const parsed = JSON.parse(payloadStr);
+
+    // Safeguard: if blueprintItems or markers are missing or empty in active state, merge baseline defaults
+    if (!Array.isArray(parsed.blueprintItems) || parsed.blueprintItems.length === 0) {
+      parsed.blueprintItems = (baselineDefaults as any)?.blueprintItems || [];
+    }
+    if (!Array.isArray(parsed.markers) || parsed.markers.length === 0) {
+      parsed.markers = (baselineDefaults as any)?.markers || [];
+    }
 
     // Merge server-level Vercel environment variables if configured
     const envOdoo = {
@@ -98,8 +108,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cleanState = sanitizeTwinStateForPersistence(state);
+
+    // Safeguard: never wipe existing blueprint items if a client pushed an empty blueprintItems array
+    if (!Array.isArray(cleanState.blueprintItems) || cleanState.blueprintItems.length === 0) {
+      cleanState.blueprintItems = (baselineDefaults as any)?.blueprintItems || [];
+    }
+
     const now = new Date().toISOString();
-    const payloadStr = JSON.stringify(state);
+    const payloadStr = JSON.stringify(cleanState);
 
     const firestoreBody = {
       fields: {
