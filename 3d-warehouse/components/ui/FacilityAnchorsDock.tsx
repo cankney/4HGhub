@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { FacilityMarker, MarkerType } from '@/lib/markers';
 
@@ -37,18 +37,18 @@ export function FacilityAnchorsDock({
   className,
 }: FacilityAnchorsDockProps) {
   const isDark = theme === 'dark';
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem('waretrack_anchors_collapsed');
       if (saved !== null) {
-        return saved === 'true';
+        setCollapsed(saved === 'true');
+      } else if (window.innerWidth < 1024) {
+        setCollapsed(true);
       }
-      return window.innerWidth < 1024;
-    } catch {
-      return false;
-    }
-  });
+    } catch {}
+  }, []);
 
   const handleToggle = () => {
     setCollapsed((prev) => {

@@ -1147,143 +1147,141 @@ function FacilityMarkerItem({
           </group>
         )}
 
-        {/* Always-crisp floating pin / hover label */}
-        <Html
-          position={[0, badgeHeight, 0]}
-          center
-          distanceFactor={15}
-          zIndexRange={[20, 0]}
-          style={{
-            pointerEvents: appMode === 'edit' && isSelected ? 'none' : 'auto',
-          }}
-        >
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectMarker(marker);
+        {/* In Edit mode when selected: NO HTML overlay at all, so TransformControls gizmo & 3D model are 100% clean with zero DOM interference */}
+        {!(appMode === 'edit' && isSelected) && (
+          <Html
+            position={[0, badgeHeight, 0]}
+            center
+            distanceFactor={15}
+            zIndexRange={[20, 0]}
+            style={{
+              pointerEvents: 'auto',
             }}
-            className={`group relative flex flex-col items-center select-none cursor-pointer transition-transform duration-200 ${
-              isSelected || isHovered ? 'scale-110 z-30' : 'scale-100'
-            }`}
           >
-            {/* View Mode Only: 3D Live Camera Feed */}
-            {appMode === 'view' && show3DFeed && (
-              <Camera3DPopupCard
-                marker={marker}
-                unifiConfig={unifiConfig}
-                isSelected={isSelected}
-                isHovered={isHovered}
-                staggerMs={idx * 750}
-              />
-            )}
-
-            {/* View Mode Only: 3D Live Network Equipment Telemetry Popup Card */}
-            {appMode === 'view' && isNetworkDevice && isSelected && (
-              <NetworkDevice3DPopupCard
-                marker={marker}
-                isSelected={isSelected}
-                isHovered={isHovered}
-              />
-            )}
-
-            {/* View Mode Only: Hover or Selected Detail Pill */}
-            {appMode === 'view' && !show3DFeed && !(isNetworkDevice && isSelected) && (isHovered || isSelected) && (
-              <div className="mb-1.5 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white shadow-xl border border-white/15 backdrop-blur-md whitespace-nowrap flex items-center gap-2">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: accentColor }}
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectMarker(marker);
+              }}
+              className={`group relative flex flex-col items-center select-none cursor-pointer transition-transform duration-200 ${
+                isSelected || isHovered ? 'scale-110 z-30' : 'scale-100'
+              }`}
+            >
+              {/* View Mode Only: 3D Live Camera Feed */}
+              {appMode === 'view' && show3DFeed && (
+                <Camera3DPopupCard
+                  marker={marker}
+                  unifiConfig={unifiConfig}
+                  isSelected={isSelected}
+                  isHovered={isHovered}
+                  staggerMs={idx * 750}
                 />
-                <div className="text-left">
-                  <div className="text-xs font-semibold leading-tight">
-                    {marker.name}
-                  </div>
-                  <div className="text-[10px] text-slate-300 font-mono">
-                    {marker.type === 'inventory_bin' &&
-                    marker.metadata.qty !== undefined
-                      ? `${marker.metadata.qty.toLocaleString()} units • ${
-                          marker.metadata.sku || marker.id
-                        }`
-                      : marker.metadata.ip || marker.id}
+              )}
+
+              {/* View Mode Only: 3D Live Network Equipment Telemetry Popup Card */}
+              {appMode === 'view' && isNetworkDevice && isSelected && (
+                <NetworkDevice3DPopupCard
+                  marker={marker}
+                  isSelected={isSelected}
+                  isHovered={isHovered}
+                />
+              )}
+
+              {/* View Mode Only: Hover or Selected Detail Pill */}
+              {appMode === 'view' && !show3DFeed && !(isNetworkDevice && isSelected) && (isHovered || isSelected) && (
+                <div className="mb-1.5 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white shadow-xl border border-white/15 backdrop-blur-md whitespace-nowrap flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: accentColor }}
+                  />
+                  <div className="text-left">
+                    <div className="text-xs font-semibold leading-tight">
+                      {marker.name}
+                    </div>
+                    <div className="text-[10px] text-slate-300 font-mono">
+                      {marker.type === 'inventory_bin' &&
+                      marker.metadata.qty !== undefined
+                        ? `${marker.metadata.qty.toLocaleString()} units • ${
+                            marker.metadata.sku || marker.id
+                          }`
+                        : marker.metadata.ip || marker.id}
+                    </div>
                   </div>
                 </div>
+              )}
+
+              {/* Pin Badge */}
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 transition-all ${
+                  isSelected
+                    ? 'bg-[#8DDB05] border-white text-slate-950 ring-4 ring-[#8DDB05]/40'
+                    : marker.type === 'camera'
+                    ? 'bg-cyan-500 border-white text-white'
+                    : marker.type === 'network_ap'
+                    ? 'bg-emerald-500 border-white text-white'
+                    : marker.type === 'network_switch'
+                    ? 'bg-blue-500 border-white text-white'
+                    : marker.type === 'network_gateway'
+                    ? 'bg-purple-500 border-white text-white'
+                    : marker.type === 'network_ups'
+                    ? 'bg-amber-500 border-white text-slate-950'
+                    : marker.type === 'network_cloudkey'
+                    ? 'bg-cyan-600 border-white text-white'
+                    : marker.type === 'network_superlink'
+                    ? 'bg-pink-500 border-white text-white'
+                    : marker.type === 'network_nas'
+                    ? 'bg-slate-700 border-white text-white'
+                    : 'bg-[#8DDB05] border-white text-slate-950'
+                }`}
+              >
+                {marker.type === 'camera' ? (
+                  <Camera className="w-4 h-4" />
+                ) : marker.type === 'network_ap' ? (
+                  <Wifi className="w-4 h-4" />
+                ) : marker.type === 'network_switch' ? (
+                  <Network className="w-4 h-4" />
+                ) : marker.type === 'network_gateway' ? (
+                  <Router className="w-4 h-4" />
+                ) : marker.type === 'network_ups' ? (
+                  <BatteryCharging className="w-4 h-4" />
+                ) : marker.type === 'network_cloudkey' ? (
+                  <Cpu className="w-4 h-4" />
+                ) : marker.type === 'network_superlink' ? (
+                  <Radio className="w-4 h-4" />
+                ) : marker.type === 'network_nas' ? (
+                  <HardDrive className="w-4 h-4" />
+                ) : variant === 'forklift' ? (
+                  <Truck className="w-4 h-4" />
+                ) : (
+                  <Package className="w-4 h-4" />
+                )}
               </div>
-            )}
-
-            {/* Pin Badge: in View mode always show. In Edit mode, show pin badge when NOT selected so user can click to select, but hide when selected so 3D model & TransformControls gizmo are unobstructed */}
-            {!(appMode === 'edit' && isSelected) && (
-              <>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 transition-all ${
-                    isSelected
-                      ? 'bg-[#8DDB05] border-white text-slate-950 ring-4 ring-[#8DDB05]/40'
-                      : marker.type === 'camera'
-                      ? 'bg-cyan-500 border-white text-white'
-                      : marker.type === 'network_ap'
-                      ? 'bg-emerald-500 border-white text-white'
-                      : marker.type === 'network_switch'
-                      ? 'bg-blue-500 border-white text-white'
-                      : marker.type === 'network_gateway'
-                      ? 'bg-purple-500 border-white text-white'
-                      : marker.type === 'network_ups'
-                      ? 'bg-amber-500 border-white text-slate-950'
-                      : marker.type === 'network_cloudkey'
-                      ? 'bg-cyan-600 border-white text-white'
-                      : marker.type === 'network_superlink'
-                      ? 'bg-pink-500 border-white text-white'
-                      : marker.type === 'network_nas'
-                      ? 'bg-slate-700 border-white text-white'
-                      : 'bg-[#8DDB05] border-white text-slate-950'
-                  }`}
-                >
-                  {marker.type === 'camera' ? (
-                    <Camera className="w-4 h-4" />
-                  ) : marker.type === 'network_ap' ? (
-                    <Wifi className="w-4 h-4" />
-                  ) : marker.type === 'network_switch' ? (
-                    <Network className="w-4 h-4" />
-                  ) : marker.type === 'network_gateway' ? (
-                    <Router className="w-4 h-4" />
-                  ) : marker.type === 'network_ups' ? (
-                    <BatteryCharging className="w-4 h-4" />
-                  ) : marker.type === 'network_cloudkey' ? (
-                    <Cpu className="w-4 h-4" />
-                  ) : marker.type === 'network_superlink' ? (
-                    <Radio className="w-4 h-4" />
-                  ) : marker.type === 'network_nas' ? (
-                    <HardDrive className="w-4 h-4" />
-                  ) : variant === 'forklift' ? (
-                    <Truck className="w-4 h-4" />
-                  ) : (
-                    <Package className="w-4 h-4" />
-                  )}
-                </div>
-                <div
-                  className={`w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] -mt-0.5 ${
-                    isSelected
-                      ? 'border-t-[#8DDB05]'
-                      : marker.type === 'camera'
-                      ? 'border-t-cyan-500'
-                      : marker.type === 'network_ap'
-                      ? 'border-t-emerald-500'
-                      : marker.type === 'network_switch'
-                      ? 'border-t-blue-500'
-                      : marker.type === 'network_gateway'
-                      ? 'border-t-purple-500'
-                      : marker.type === 'network_ups'
-                      ? 'border-t-amber-500'
-                      : marker.type === 'network_cloudkey'
-                      ? 'border-t-cyan-600'
-                      : marker.type === 'network_superlink'
-                      ? 'border-t-pink-500'
-                      : marker.type === 'network_nas'
-                      ? 'border-t-slate-700'
-                      : 'border-t-[#8DDB05]'
-                  }`}
-                />
-              </>
-            )}
-          </div>
-        </Html>
+              <div
+                className={`w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] -mt-0.5 ${
+                  isSelected
+                    ? 'border-t-[#8DDB05]'
+                    : marker.type === 'camera'
+                    ? 'border-t-cyan-500'
+                    : marker.type === 'network_ap'
+                    ? 'border-t-emerald-500'
+                    : marker.type === 'network_switch'
+                    ? 'border-t-blue-500'
+                    : marker.type === 'network_gateway'
+                    ? 'border-t-purple-500'
+                    : marker.type === 'network_ups'
+                    ? 'border-t-amber-500'
+                    : marker.type === 'network_cloudkey'
+                    ? 'border-t-cyan-600'
+                    : marker.type === 'network_superlink'
+                    ? 'border-t-pink-500'
+                    : marker.type === 'network_nas'
+                    ? 'border-t-slate-700'
+                    : 'border-t-[#8DDB05]'
+                }`}
+              />
+            </div>
+          </Html>
+        )}
       </group>
 
       {/* 3D Translation Gizmo: ONLY in Edit Mode when selected */}

@@ -606,6 +606,17 @@ export default function WarehouseDigitalTwinPage() {
             return;
           }
 
+          // If silent (background polling or auto-load on start), NEVER overwrite user's local layout
+          // if a local layout already exists in localStorage!
+          const hasLocalLayout = typeof window !== 'undefined' && Boolean(localStorage.getItem(STORAGE_KEY));
+          if (silent && hasLocalLayout) {
+            if (json.data.odooConfig) setOdooConfig(json.data.odooConfig);
+            if (json.data.unifiConfig) setUnifiConfig(json.data.unifiConfig);
+            if (json.data.fsdConfig) setFsdConfig(json.data.fsdConfig);
+            if (json.updatedAt) lastCloudUpdatedAtRef.current = json.updatedAt;
+            return;
+          }
+
           skipNextSyncRef.current = true;
           isHydratingRef.current = true;
           applyHydratedState(json.data);
