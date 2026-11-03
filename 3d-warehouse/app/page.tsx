@@ -20,6 +20,7 @@ import {
   DEFAULT_BLUEPRINT_ITEMS,
   OdooProductQuant,
   buildOdooShortCode,
+  computeSlotWorldPosition,
   deriveZoneAndRack,
   generateAllShelfLocations,
   isShelfModel,
@@ -70,6 +71,7 @@ export default function WarehouseDigitalTwinPage() {
   const [theme, setTheme] = useState<'daylight' | 'dark'>('daylight');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('clean_shell');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSearchResult, setSelectedSearchResult] = useState<SearchResultItem | null>(null);
   const [activeFilter, setActiveFilter] = useState<MarkerType | 'all'>('all');
   const [roofCutoffY, setRoofCutoffY] = useState<number>(1.45);
 
@@ -311,10 +313,16 @@ export default function WarehouseDigitalTwinPage() {
       }
 
       if (Array.isArray(parsed.markers) && parsed.markers.length > 0) {
+        const defaultMarkerMap = new Map(DEFAULT_MARKERS.map((m) => [m.id, m]));
         const defaultCamMap = new Map(
           DEFAULT_MARKERS.filter((m) => m.type === 'camera').map((m) => [m.id, m])
         );
+        const existingIds = new Set<string>();
+
         const hydratedMarkers = parsed.markers.map((m: FacilityMarker) => {
+          existingIds.add(m.id);
+          const fallback = defaultMarkerMap.get(m.id);
+
           if (m.type === 'camera') {
             const fallbackCam = defaultCamMap.get(m.id);
             const fallbackMapping = fallbackCam ? getDefaultCameraVisionMapping(fallbackCam) : undefined;
@@ -335,8 +343,29 @@ export default function WarehouseDigitalTwinPage() {
               },
             };
           }
+
+          if (m.type.startsWith('network_') || (fallback && fallback.type.startsWith('network_'))) {
+            return {
+              ...m,
+              type: fallback ? fallback.type : m.type,
+              metadata: {
+                ...(fallback?.metadata || {}),
+                ...m.metadata,
+                networkStats: m.metadata?.networkStats || fallback?.metadata?.networkStats,
+              },
+            };
+          }
+
           return m;
         });
+
+        // Ensure all default markers (all inventory bins and network equipment) not yet in saved state are added
+        DEFAULT_MARKERS.forEach((defM) => {
+          if (!existingIds.has(defM.id)) {
+            hydratedMarkers.push(defM);
+          }
+        });
+
         setMarkers(hydratedMarkers);
         applied = true;
       }
@@ -907,6 +936,7 @@ export default function WarehouseDigitalTwinPage() {
               badge: `${prod.quantity} in stock`,
               rackId: item.id,
               position: item.position,
+              product: prod,
             });
           }
         }
@@ -929,6 +959,7 @@ export default function WarehouseDigitalTwinPage() {
               const lotMatches = prod.lot ? prod.lot.toLowerCase().includes(q) : false;
 
               if (skuMatches || nameMatches || lotMatches || slotMatches) {
+                const slotWorldPos = computeSlotWorldPosition(item, slotKey);
                 results.push({
                   type: 'product',
                   title: `${prod.sku} • ${prod.name}`,
@@ -937,11 +968,13 @@ export default function WarehouseDigitalTwinPage() {
                   rackId: item.id,
                   slotKey,
                   shortCode: cleanShortCode,
-                  position: item.position,
+                  position: slotWorldPos,
+                  product: prod,
                 });
               }
             }
           } else if (slotMatches) {
+            const slotWorldPos = computeSlotWorldPosition(item, slotKey);
             results.push({
               type: 'location',
               title: cleanShortCode || slotKey,
@@ -950,7 +983,7 @@ export default function WarehouseDigitalTwinPage() {
               rackId: item.id,
               slotKey,
               shortCode: cleanShortCode,
-              position: item.position,
+              position: slotWorldPos,
             });
           }
         }
@@ -988,7 +1021,24 @@ export default function WarehouseDigitalTwinPage() {
           type: 'marker',
           title: marker.name,
           subtitle: `${marker.type.toUpperCase()} • ${marker.metadata.sku || marker.metadata.ip || marker.metadata.bay || ''}`,
-          badge: marker.type === 'camera' ? 'Camera' : marker.type === 'network_ap' ? 'AP' : 'Bin',
+          badge:
+            marker.type === 'camera'
+              ? 'Camera'
+              : marker.type === 'network_ap'
+              ? 'AP'
+              : marker.type === 'network_switch'
+              ? 'Switch'
+              : marker.type === 'network_gateway'
+              ? 'Gateway'
+              : marker.type === 'network_ups'
+              ? 'UPS'
+              : marker.type === 'network_cloudkey'
+              ? 'CloudKey'
+              : marker.type === 'network_superlink'
+              ? 'SuperLink'
+              : marker.type === 'network_nas'
+              ? 'NAS'
+              : 'Bin',
           rackId: '',
           position: marker.position,
         });
@@ -1095,7 +1145,23 @@ export default function WarehouseDigitalTwinPage() {
   ) => {
     isUserDirtyRef.current = true;
     const prefix =
-      type === 'camera' ? 'CAM' : type === 'network_ap' ? 'AP' : 'BIN';
+      type === 'camera'
+        ? 'CAM'
+        : type === 'network_ap'
+        ? 'AP'
+        : type === 'network_switch'
+        ? 'SW'
+        : type === 'network_gateway'
+        ? 'GW'
+        : type === 'network_ups'
+        ? 'UPS'
+        : type === 'network_cloudkey'
+        ? 'UCK'
+        : type === 'network_superlink'
+        ? 'LNK'
+        : type === 'network_nas'
+        ? 'NAS'
+        : 'BIN';
     const num = markers.length + 101;
     const created: FacilityMarker = {
       id: `${prefix}-${num}`,
@@ -1105,6 +1171,8 @@ export default function WarehouseDigitalTwinPage() {
           ? `Calibrated Camera #${markers.length + 1}`
           : type === 'network_ap'
           ? `Calibrated AP #${markers.length + 1}`
+          : type.startsWith('network_')
+          ? `Calibrated ${type.replace('network_', '').toUpperCase()} #${markers.length + 1}`
           : `Calibrated Pallet #${markers.length + 1}`,
       position: point,
       rotation: [0, 0, 0],
@@ -1225,6 +1293,8 @@ export default function WarehouseDigitalTwinPage() {
   };
 
   const handleSelectSearchResult = (result: SearchResultItem) => {
+    setSelectedSearchResult(result);
+
     if (result.type === 'marker') {
       const foundMarker = markers.find(
         (m) => m.name === result.title || m.position === result.position
@@ -1232,21 +1302,31 @@ export default function WarehouseDigitalTwinPage() {
       if (foundMarker) {
         setSelectedMarkerId(foundMarker.id);
         setSelectedBlueprintId(null);
+        setSelectedSlotKey(null);
       }
-    } else if (result.rackId) {
+    } else if (result.type === 'rack') {
       setSelectedBlueprintId(result.rackId);
+      setSelectedMarkerId(null);
+      if (result.slotKey) {
+        setSelectedSlotKey(result.slotKey);
+      }
+    } else {
+      // Product or slot location: DO NOT select the entire rack!
+      // This prevents the whole shelf from turning bright green and prevents
+      // other locations on the shelf from showing green boxes/tags.
+      setSelectedBlueprintId(null);
       setSelectedMarkerId(null);
       if (result.slotKey) {
         setSelectedSlotKey(result.slotKey);
       }
     }
 
-    // Smooth camera focus onto target
+    // Smooth camera focus onto exact target
     const [tx, ty, tz] = result.position;
     setCameraCommand({
       type: 'focus',
       target: [tx, ty, tz],
-      position: [tx + 3.2, ty + 2.8, tz + 3.6],
+      position: [tx + 2.8, ty + 2.0, tz + 3.0],
       timestamp: Date.now(),
     });
   };
@@ -1664,6 +1744,51 @@ export default function WarehouseDigitalTwinPage() {
     );
   };
 
+  // Real-time telemetry live polling for selected network device
+  useEffect(() => {
+    if (!selectedMarkerId) return;
+    const current = markers.find((m) => m.id === selectedMarkerId);
+    if (!current || !current.type.startsWith('network_')) return;
+
+    const devType = current.type;
+    const devId = current.id;
+
+    const pollTelemetry = async () => {
+      try {
+        const res = await fetch(
+          `/3d-warehouse/api/unifi/network?type=${encodeURIComponent(devType)}&id=${encodeURIComponent(devId)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.telemetry) {
+          setMarkers((prev) =>
+            prev.map((m) => {
+              if (m.id === devId) {
+                return {
+                  ...m,
+                  metadata: {
+                    ...m.metadata,
+                    networkStats: {
+                      ...(m.metadata.networkStats || {}),
+                      ...data.telemetry,
+                    },
+                  },
+                };
+              }
+              return m;
+            })
+          );
+        }
+      } catch {
+        // Ignore polling errors
+      }
+    };
+
+    pollTelemetry();
+    const interval = setInterval(pollTelemetry, 3500);
+    return () => clearInterval(interval);
+  }, [selectedMarkerId]);
+
   const handleSyncUnifiCameras = async () => {
     setIsSyncingUnifi(true);
     setUnifiSyncStatusMsg(null);
@@ -1968,9 +2093,14 @@ export default function WarehouseDigitalTwinPage() {
         appMode={appMode}
         onAppModeChange={handleAppModeChange}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          if (selectedSearchResult) setSelectedSearchResult(null);
+        }}
         searchResults={searchResults}
         onSelectSearchResult={handleSelectSearchResult}
+        selectedSearchResult={selectedSearchResult}
+        onClearSearchResult={() => setSelectedSearchResult(null)}
         isSyncingOdoo={isSyncingOdoo}
         onSyncOdoo={handleSyncOdoo}
         lastSyncTime={lastSyncTime}
@@ -2106,6 +2236,8 @@ export default function WarehouseDigitalTwinPage() {
         calibratedPoint={calibratedPoint}
         cameraCommand={cameraCommand}
         searchQuery={searchQuery}
+        selectedSearchResult={selectedSearchResult}
+        onClearSearchResult={() => setSelectedSearchResult(null)}
         showCameraFeeds3D={showCameraFeeds3D}
         showSpatialVision3D={showSpatialVision3D || isFsdSettingsOpen}
         fsdConfig={fsdConfig}
@@ -2122,18 +2254,21 @@ export default function WarehouseDigitalTwinPage() {
         onSelectMarker={(marker) => {
           setSelectedMarkerId(marker.id);
           setSelectedBlueprintId(null);
+          setSelectedSearchResult(null);
         }}
         onSelectMesh={(meshIndex) => {
           if (meshIndex >= 0) {
             setSelectedMeshIndex(meshIndex);
             setSelectedMarkerId(null);
             setSelectedBlueprintId(null);
+            setSelectedSearchResult(null);
           }
         }}
         onSelectBlueprintItem={(id) => {
           setSelectedBlueprintId(id);
           setSelectedMarkerId(null);
           setSelectedSlotKey('R1-B1-L1');
+          setSelectedSearchResult(null);
         }}
         onSelectSlot={(slotKey) => setSelectedSlotKey(slotKey)}
         onUpdateBlueprintItem={handleUpdateBlueprintItem}

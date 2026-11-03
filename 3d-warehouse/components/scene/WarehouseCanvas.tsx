@@ -22,6 +22,7 @@ import {
 import { BlueprintItem } from '@/lib/blueprint-geometry';
 import { CardinalFacing, getCardinalMapping } from '@/lib/compass';
 import { UnifiSettingsConfig } from '@/components/ui/SettingsDrawer';
+import type { SearchResultItem } from '@/components/ui/TopNavbar';
 import { WarehouseModel } from './WarehouseModel';
 import { FacilityMarkers } from './FacilityMarkers';
 import { CameraSpatialVision } from './CameraSpatialVision';
@@ -44,6 +45,8 @@ interface WarehouseCanvasProps {
   panMode: boolean;
   calibratedPoint: [number, number, number] | null;
   searchQuery?: string;
+  selectedSearchResult?: SearchResultItem | null;
+  onClearSearchResult?: () => void;
   showCameraFeeds3D?: boolean;
   showSpatialVision3D?: boolean;
   fsdConfig?: FsdVisionSettingsConfig;
@@ -398,6 +401,8 @@ export function WarehouseCanvas({
   panMode,
   calibratedPoint,
   searchQuery,
+  selectedSearchResult,
+  onClearSearchResult,
   showCameraFeeds3D,
   showSpatialVision3D,
   fsdConfig,
@@ -495,6 +500,8 @@ export function WarehouseCanvas({
             editModelMode={editModelMode}
             calibrationMode={calibrationMode}
             searchQuery={searchQuery}
+            selectedSearchResult={selectedSearchResult}
+            onClearSearchResult={onClearSearchResult}
             onSelectMesh={onSelectMesh}
             onSelectBlueprintItem={onSelectBlueprintItem}
             onSelectSlot={onSelectSlot}

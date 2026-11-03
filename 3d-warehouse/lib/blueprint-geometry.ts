@@ -221,6 +221,50 @@ export function generateAllShelfLocations(
 }
 
 /**
+ * Computes the exact 3D world coordinate [x, y, z] of a specific shelf slot (e.g. 'R1-B2-L3')
+ * accounting for rack dimensions, bay/level/row spacing, position, and Y-rotation.
+ */
+export function computeSlotWorldPosition(
+  item: BlueprintItem,
+  slotKey: string
+): [number, number, number] {
+  const match = slotKey.match(/R(\d+)-B(\d+)-L(\d+)/i);
+  if (!match) return item.position;
+
+  const rIdx = parseInt(match[1], 10);
+  const bIdx = parseInt(match[2], 10);
+  const lIdx = parseInt(match[3], 10);
+
+  const [sx, sy, sz] = item.size;
+  const numBays = Math.max(1, Math.min(10, item.bays ?? 3));
+  const numRows = Math.max(1, Math.min(4, item.rows ?? 1));
+  const numLevels = Math.max(1, Math.min(8, item.levels ?? 3));
+  const alongX = sx >= sz;
+  const shelfThick = 0.055;
+
+  const frac = (lIdx - 1 + 0.1) / numLevels;
+  const yPos = -sy / 2 + frac * sy;
+  const boxH = Math.min(0.48, (sy / numLevels) * 0.6);
+  const boxY = yPos + shelfThick / 2 + boxH / 2 + 0.005;
+
+  const bayCenterFrac = -0.5 + (bIdx - 1 + 0.5) / numBays;
+  const rowCenterFrac = -0.5 + (rIdx - 1 + 0.5) / numRows;
+
+  const lx = alongX ? bayCenterFrac * sx : rowCenterFrac * sx;
+  const lz = alongX ? rowCenterFrac * sz : bayCenterFrac * sz;
+
+  const rotY = item.rotationY || 0;
+  const cos = Math.cos(rotY);
+  const sin = Math.sin(rotY);
+
+  const wx = item.position[0] + (lx * cos + lz * sin);
+  const wy = item.position[1] + boxY;
+  const wz = item.position[2] + (-lx * sin + lz * cos);
+
+  return [Number(wx.toFixed(3)), Number(wy.toFixed(3)), Number(wz.toFixed(3))];
+}
+
+/**
  * Millimeter-verified shelving, rack, and desk footprints measured directly from
  * the 379,000-vertex point cloud of `4HG Shop.glb` and matched 1:1 with the UniFi 3D layout.
  *

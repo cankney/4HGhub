@@ -765,8 +765,8 @@ export function SettingsDrawer({
                   />
                   <span>
                     {isSyncingUnifi
-                      ? 'Mapping Cameras from UniFi...'
-                      : 'Map Camera Feeds from UniFi'}
+                      ? 'Syncing Network & Cameras from UniFi...'
+                      : 'Sync Network & Cameras from UniFi'}
                   </span>
                 </button>
                 {lastUnifiSyncTime && (

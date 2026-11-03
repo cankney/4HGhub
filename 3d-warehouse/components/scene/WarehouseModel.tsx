@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { CutoutBox, DisplayMode, MeshOverride } from '@/lib/markers';
 import { BlueprintItem, isShelfModel, isZoneTrackedLocation, ShelfLocationAssignment } from '@/lib/blueprint-geometry';
 import { formatFeetInches } from '@/lib/units';
+import type { SearchResultItem } from '@/components/ui/TopNavbar';
 
 interface WarehouseModelProps {
   appMode: 'view' | 'edit';
@@ -28,6 +29,8 @@ interface WarehouseModelProps {
   editModelMode: boolean;
   calibrationMode: boolean;
   searchQuery?: string;
+  selectedSearchResult?: SearchResultItem | null;
+  onClearSearchResult?: () => void;
   onSelectMesh: (meshIndex: number) => void;
   onSelectBlueprintItem: (id: string) => void;
   onSelectSlot: (slotKey: string | null) => void;
@@ -543,6 +546,10 @@ function ArchitecturalRack3D({
   isHovered,
   theme,
   searchQuery,
+  selectedSearchResult,
+  onClearSearchResult,
+  itemId,
+  itemName,
   clippingPlanes,
 }: {
   size: [number, number, number];
@@ -561,13 +568,28 @@ function ArchitecturalRack3D({
   isHovered: boolean;
   theme: 'daylight' | 'dark';
   searchQuery?: string;
+  selectedSearchResult?: SearchResultItem | null;
+  onClearSearchResult?: () => void;
+  itemId?: string;
+  itemName?: string;
   clippingPlanes: THREE.Plane[];
 }) {
   const [sx, sy, sz] = size;
   const postThick = 0.065;
   const shelfThick = 0.055;
 
+  const hasActiveSearchSelection = Boolean(selectedSearchResult);
+  const isThisZoneSearchSelected = Boolean(
+    selectedSearchResult && selectedSearchResult.rackId === itemId
+  );
+
   const matchingZoneProduct = useMemo(() => {
+    if (isThisZoneSearchSelected && selectedSearchResult?.product) {
+      return selectedSearchResult.product;
+    }
+    if (hasActiveSearchSelection) {
+      return null;
+    }
     if (!products || !searchQuery || searchQuery.trim().length < 1) return null;
     const q = searchQuery.trim().toLowerCase();
     return products.find(
@@ -576,10 +598,13 @@ function ArchitecturalRack3D({
         p.name.toLowerCase().includes(q) ||
         (p.lot && p.lot.toLowerCase().includes(q))
     );
-  }, [products, searchQuery]);
+  }, [products, searchQuery, hasActiveSearchSelection, isThisZoneSearchSelected, selectedSearchResult]);
 
-  // Unified Grey Color matching the vertical supports for the entire rack & shelves
-  const unifiedRackColor = isSelected
+  // Only highlight rack frame in neon green if the entire rack was explicitly selected,
+  // NEVER when a specific inventory product or slot search result is active!
+  const isRackFrameHighlighted = isSelected && (!hasActiveSearchSelection || selectedSearchResult?.type === 'rack');
+
+  const unifiedRackColor = isRackFrameHighlighted
     ? '#8DDB05'
     : isHovered
     ? '#a3e635'
@@ -678,15 +703,30 @@ function ArchitecturalRack3D({
                     Array.from({ length: numBays }).map((__, bIdx) => {
                       const slotKey = `R${rIdx + 1}-B${bIdx + 1}-L${lIdx + 1}`;
                       const assignedLoc = shelfLocations?.[slotKey];
+                      const isThisSlotSearchSelected = Boolean(
+                        selectedSearchResult &&
+                        selectedSearchResult.rackId === itemId &&
+                        selectedSearchResult.slotKey === slotKey
+                      );
+
                       const isSlotSelected =
-                        isSelected && selectedSlotKey === slotKey;
+                        isSelected && selectedSlotKey === slotKey && !hasActiveSearchSelection;
                       const hasMappedLoc = Boolean(
                         assignedLoc?.locationCode || assignedLoc?.odooLocationId
                       );
 
                       const cleanQuery = searchQuery?.trim().toLowerCase();
                       const matchingProduct =
-                        cleanQuery && cleanQuery.length >= 2 && assignedLoc?.products
+                        isThisSlotSearchSelected
+                          ? selectedSearchResult?.product ||
+                            assignedLoc?.products?.find(
+                              (p) =>
+                                cleanQuery &&
+                                (p.sku.toLowerCase().includes(cleanQuery) ||
+                                  p.name.toLowerCase().includes(cleanQuery))
+                            ) ||
+                            assignedLoc?.products?.[0]
+                          : !hasActiveSearchSelection && cleanQuery && cleanQuery.length >= 2 && assignedLoc?.products
                           ? assignedLoc.products.find(
                               (p) =>
                                 p.sku.toLowerCase().includes(cleanQuery) ||
@@ -694,13 +734,17 @@ function ArchitecturalRack3D({
                                 (p.lot && p.lot.toLowerCase().includes(cleanQuery))
                             )
                           : undefined;
+
                       const isLocationMatch = Boolean(
+                        !hasActiveSearchSelection &&
                         cleanQuery &&
-                          cleanQuery.length >= 2 &&
-                          (assignedLoc?.shortCode?.toLowerCase().includes(cleanQuery) ||
-                            assignedLoc?.locationCode?.toLowerCase().includes(cleanQuery))
+                        cleanQuery.length >= 2 &&
+                        (assignedLoc?.shortCode?.toLowerCase().includes(cleanQuery) ||
+                          assignedLoc?.locationCode?.toLowerCase().includes(cleanQuery))
                       );
-                      const isSearchHit = Boolean(matchingProduct || isLocationMatch);
+
+                      const isSearchHit = isThisSlotSearchSelected || (!hasActiveSearchSelection && Boolean(matchingProduct || isLocationMatch));
+                      const isSlotHighlighted = isThisSlotSearchSelected || isSlotSelected || (!hasActiveSearchSelection && isSearchHit);
 
                       const bayCenterFrac = -0.5 + (bIdx + 0.5) / numBays;
                       const boxH = Math.min(0.48, (sy / numLevels) * 0.6);
@@ -718,15 +762,20 @@ function ArchitecturalRack3D({
                         ? rowCenterFrac * sz
                         : bayCenterFrac * sz;
 
-                      const slotBoxColor = isSlotSelected || isSearchHit
+                      const slotBoxColor = isSlotHighlighted
                         ? '#8DDB05'
-                        : hasMappedLoc && isSelected
+                        : hasMappedLoc && isSelected && !hasActiveSearchSelection
                         ? '#65a30d'
                         : boxColorPrimary;
 
+                      const shouldRenderBox =
+                        showBoxes ||
+                        isSlotHighlighted ||
+                        (isSelected && hasMappedLoc && !hasActiveSearchSelection);
+
                       return (
                         <group key={`slot-${lIdx}-${rIdx}-${bIdx}`}>
-                          {(showBoxes || isSlotSelected || isSearchHit || (isSelected && hasMappedLoc)) && (
+                          {shouldRenderBox && (
                             <RoundedBox
                               position={[bx, boxY, bz]}
                               args={[bayW, boxH, bayD]}
@@ -743,19 +792,106 @@ function ArchitecturalRack3D({
                             >
                               <meshStandardMaterial
                                 color={slotBoxColor}
-                                emissive={isSlotSelected || isSearchHit ? '#8DDB05' : '#000000'}
-                                emissiveIntensity={isSlotSelected ? 0.35 : isSearchHit ? 0.45 : 0}
-                                roughness={0.5}
-                                metalness={0.18}
-                                transparent={!showBoxes && !isSlotSelected && !isSearchHit}
-                                opacity={!showBoxes && !isSlotSelected && !isSearchHit ? 0.55 : 1}
+                                emissive={isSlotHighlighted ? '#8DDB05' : '#000000'}
+                                emissiveIntensity={isThisSlotSearchSelected ? 0.8 : isSlotSelected ? 0.35 : isSearchHit ? 0.45 : 0}
+                                roughness={0.4}
+                                metalness={0.2}
+                                transparent={!showBoxes && !isSlotHighlighted}
+                                opacity={!showBoxes && !isSlotHighlighted ? 0.55 : 1}
                                 clippingPlanes={clippingPlanes}
                               />
+                              {isThisSlotSearchSelected && (
+                                <Edges
+                                  threshold={15}
+                                  color="#ffffff"
+                                />
+                              )}
                             </RoundedBox>
                           )}
 
-                          {/* Show 3D Odoo Location Tag when this slot is selected, has mapped loc, or matches search */}
-                          {!isNonInventory && (isSearchHit || (isSelected && (isSlotSelected || hasMappedLoc))) && (
+                          {/* Expanded 3D Product Card when selected from search - cleanly anchored above slot */}
+                          {isThisSlotSearchSelected ? (
+                            <Html
+                              position={[bx, boxY + boxH * 0.5 + 0.05, bz]}
+                              center
+                              distanceFactor={13}
+                              zIndexRange={[100, 0]}
+                              style={{ pointerEvents: 'auto' }}
+                            >
+                              <div className="flex flex-col items-center -translate-y-1/2 pointer-events-auto select-none">
+                                <div className="relative rounded-2xl bg-slate-950/95 border-2 border-[#8DDB05] text-white p-3 shadow-2xl backdrop-blur-xl w-64 select-text font-sans">
+                                  {/* Top Header: Badge, SKU, Close Button */}
+                                  <div className="flex items-center justify-between gap-1.5 border-b border-slate-800 pb-2 mb-2">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="text-sm">📦</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-extrabold uppercase tracking-wide truncate">
+                                        {matchingProduct?.sku || selectedSearchResult?.title.split('•')[0]?.trim()}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onClearSearchResult) onClearSearchResult();
+                                      }}
+                                      className="w-5 h-5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-[11px] transition cursor-pointer"
+                                      title="Dismiss"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+
+                                  {/* Product Name */}
+                                  <div className="text-xs font-bold text-slate-100 line-clamp-2 leading-snug mb-2">
+                                    {matchingProduct?.name || selectedSearchResult?.title}
+                                  </div>
+
+                                  {/* Detailed Info Grid */}
+                                  <div className="grid grid-cols-2 gap-1.5 text-[10px] bg-slate-900/80 rounded-xl p-2 border border-slate-800/80 mb-2 font-mono">
+                                    <div>
+                                      <div className="text-[8.5px] uppercase tracking-wider text-slate-400 font-semibold">On Hand</div>
+                                      <div className="text-sm font-extrabold text-[#8DDB05]">
+                                        {matchingProduct?.quantity ?? 0} <span className="text-[9.5px] font-normal text-slate-400">units</span>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-[8.5px] uppercase tracking-wider text-slate-400 font-semibold">Shelf Slot</div>
+                                      <div className="text-xs font-bold text-white truncate">
+                                        {assignedLoc?.shortCode || selectedSearchResult?.shortCode || slotKey}
+                                      </div>
+                                    </div>
+                                    {matchingProduct?.lot && (
+                                      <div className="col-span-2 pt-1 border-t border-slate-800/60 flex items-center justify-between">
+                                        <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-semibold">Lot / Serial</span>
+                                        <span className="text-[9.5px] font-bold text-amber-400 truncate max-w-[140px]">{matchingProduct.lot}</span>
+                                      </div>
+                                    )}
+                                    {Boolean(matchingProduct?.reservedQuantity) && (
+                                      <div className="col-span-2 pt-1 border-t border-slate-800/60 flex items-center justify-between">
+                                        <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-semibold">Reserved</span>
+                                        <span className="text-[9.5px] font-bold text-amber-300">{matchingProduct?.reservedQuantity} units</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Location & Rack Breadcrumb */}
+                                  <div className="flex items-center justify-between text-[9.5px] text-slate-400">
+                                    <span className="truncate flex items-center gap-1">
+                                      <span>📍</span>
+                                      <span>{itemName || 'Shelf'} • Bay {bIdx + 1}, Tier {lIdx + 1}</span>
+                                    </span>
+                                    {assignedLoc?.odooLocationId && (
+                                      <span className="font-mono text-[9px] text-slate-500">#{assignedLoc.odooLocationId}</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Downward Pointer Triangle & Anchor Dot touching top of slot box */}
+                                <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-[#8DDB05] -mt-[1px]" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#8DDB05] shadow-[0_0_10px_#8DDB05] -mt-1 ring-2 ring-slate-950 animate-pulse" />
+                              </div>
+                            </Html>
+                          ) : !hasActiveSearchSelection && !isNonInventory && (isSearchHit || (isSelected && (isSlotSelected || hasMappedLoc))) ? (
                             <Html
                               position={[bx, boxY + boxH * 0.35, bz]}
                               center
@@ -790,7 +926,7 @@ function ArchitecturalRack3D({
                                 )}
                               </div>
                             </Html>
-                          )}
+                          ) : null}
                         </group>
                       );
                     })}
@@ -838,7 +974,75 @@ function ArchitecturalRack3D({
           )}
 
           {/* Floating 3D Zone Tag */}
-          {(isSelected || isHovered || Boolean(matchingZoneProduct)) && (
+          {isThisZoneSearchSelected ? (
+            <Html
+              position={[0, sy * 0.5 + 0.1, 0]}
+              center
+              distanceFactor={13}
+              zIndexRange={[100, 0]}
+              style={{ pointerEvents: 'auto' }}
+            >
+              <div className="flex flex-col items-center -translate-y-1/2 pointer-events-auto select-none">
+                <div className="relative rounded-2xl bg-slate-950/95 border-2 border-[#8DDB05] text-white p-3 shadow-2xl backdrop-blur-xl w-64 select-text font-sans">
+                  <div className="flex items-center justify-between gap-1.5 border-b border-slate-800 pb-2 mb-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-sm">📦</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#8DDB05] text-slate-950 font-mono text-[10px] font-extrabold uppercase tracking-wide truncate">
+                        {matchingZoneProduct?.sku || selectedSearchResult?.title.split('•')[0]?.trim()}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onClearSearchResult) onClearSearchResult();
+                      }}
+                      className="w-5 h-5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-[11px] transition cursor-pointer"
+                      title="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="text-xs font-bold text-slate-100 line-clamp-2 leading-snug mb-2">
+                    {matchingZoneProduct?.name || selectedSearchResult?.title}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1.5 text-[10px] bg-slate-900/80 rounded-xl p-2 border border-slate-800/80 mb-2 font-mono">
+                    <div>
+                      <div className="text-[8.5px] uppercase tracking-wider text-slate-400 font-semibold">On Hand</div>
+                      <div className="text-sm font-extrabold text-[#8DDB05]">
+                        {matchingZoneProduct?.quantity ?? 0} <span className="text-[9.5px] font-normal text-slate-400">units</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[8.5px] uppercase tracking-wider text-slate-400 font-semibold">Zone</div>
+                      <div className="text-xs font-bold text-white truncate">
+                        {(matchingZoneProduct?.locationName || locationPrefix || 'WH/Packing Zone').split('/').pop()}
+                      </div>
+                    </div>
+                    {matchingZoneProduct?.lot && (
+                      <div className="col-span-2 pt-1 border-t border-slate-800/60 flex items-center justify-between">
+                        <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-semibold">Lot / Serial</span>
+                        <span className="text-[9.5px] font-bold text-amber-400 truncate max-w-[140px]">{matchingZoneProduct.lot}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[9.5px] text-slate-400">
+                    <span className="truncate flex items-center gap-1">
+                      <span>📍</span>
+                      <span>{itemName || 'Staging Zone'}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Downward Pointer Triangle & Anchor Dot */}
+                <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-[#8DDB05] -mt-[1px]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#8DDB05] shadow-[0_0_10px_#8DDB05] -mt-1 ring-2 ring-slate-950 animate-pulse" />
+              </div>
+            </Html>
+          ) : !hasActiveSearchSelection && (isSelected || isHovered || Boolean(matchingZoneProduct)) ? (
             <Html
               position={[0, sy * 0.5 + 0.15, 0]}
               center
@@ -869,7 +1073,7 @@ function ArchitecturalRack3D({
                 )}
               </div>
             </Html>
-          )}
+          ) : null}
         </group>
       )}
     </group>
@@ -2005,6 +2209,8 @@ function BlueprintInteractiveNode({
   onUpdate,
   onCalibrateClick,
   searchQuery,
+  selectedSearchResult,
+  onClearSearchResult,
 }: {
   appMode: 'view' | 'edit';
   item: BlueprintItem;
@@ -2016,6 +2222,8 @@ function BlueprintInteractiveNode({
   clippingPlanes: THREE.Plane[];
   calibrationMode: boolean;
   searchQuery?: string;
+  selectedSearchResult?: SearchResultItem | null;
+  onClearSearchResult?: () => void;
   onSelect: () => void;
   onHover: (hovered: boolean) => void;
   onUpdate: (updated: BlueprintItem) => void;
@@ -2159,6 +2367,10 @@ function BlueprintInteractiveNode({
             isHovered={isHovered}
             theme={theme}
             searchQuery={searchQuery}
+            selectedSearchResult={selectedSearchResult}
+            onClearSearchResult={onClearSearchResult}
+            itemId={item.id}
+            itemName={item.name}
             clippingPlanes={clippingPlanes}
           />
         ) : item.kind === 'desk' ? (
@@ -2178,7 +2390,7 @@ function BlueprintInteractiveNode({
           />
         )}
 
-        {(isHovered || isSelected) && (
+        {(isHovered || (isSelected && (!selectedSearchResult || selectedSearchResult.type === 'rack'))) && (
           <Html
             position={[0, sy * 0.5 + 0.25, 0]}
             center
@@ -2264,6 +2476,8 @@ export function WarehouseModel({
   editModelMode,
   calibrationMode,
   searchQuery,
+  selectedSearchResult,
+  onClearSearchResult,
   onSelectMesh,
   onSelectBlueprintItem,
   onSelectSlot,
@@ -2387,6 +2601,8 @@ export function WarehouseModel({
                 clippingPlanes={clippingPlanes}
                 calibrationMode={calibrationMode}
                 searchQuery={searchQuery}
+                selectedSearchResult={selectedSearchResult}
+                onClearSearchResult={onClearSearchResult}
                 onSelect={() => onSelectBlueprintItem(item.id)}
                 onHover={(hov) =>
                   setHoveredBpId(hov ? item.id : hoveredBpId === item.id ? null : hoveredBpId)

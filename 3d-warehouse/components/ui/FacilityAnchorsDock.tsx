@@ -12,10 +12,21 @@ interface FacilityAnchorsDockProps {
   className?: string;
 }
 
-const GROUPS: { type: MarkerType; label: string; dotColor: string }[] = [
-  { type: 'camera', label: 'Cameras', dotColor: 'bg-cyan-400' },
-  { type: 'network_ap', label: 'Access Points', dotColor: 'bg-emerald-400' },
-  { type: 'inventory_bin', label: 'Storage Bins', dotColor: 'bg-amber-400' },
+const GROUPS: {
+  id: string;
+  match: (t: MarkerType) => boolean;
+  label: string;
+  dotColor: string;
+}[] = [
+  { id: 'camera', match: (t) => t === 'camera', label: 'Cameras', dotColor: 'bg-cyan-400' },
+  { id: 'network_ap', match: (t) => t === 'network_ap', label: 'Access Points', dotColor: 'bg-emerald-400' },
+  {
+    id: 'network_infra',
+    match: (t) => t.startsWith('network_') && t !== 'network_ap',
+    label: 'Network Core & IT',
+    dotColor: 'bg-blue-400',
+  },
+  { id: 'inventory_bin', match: (t) => t === 'inventory_bin', label: 'Storage Bins', dotColor: 'bg-amber-400' },
 ];
 
 export function FacilityAnchorsDock({
@@ -98,11 +109,11 @@ export function FacilityAnchorsDock({
             </div>
           ) : (
             GROUPS.map((group) => {
-              const groupMarkers = markers.filter((m) => m.type === group.type);
+              const groupMarkers = markers.filter((m) => group.match(m.type));
               if (groupMarkers.length === 0) return null;
 
               return (
-                <div key={group.type} className="space-y-1.5">
+                <div key={group.id} className="space-y-1.5">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     <span className="flex items-center gap-1.5">
                       <span className={`w-1.5 h-1.5 rounded-full ${group.dotColor}`} />

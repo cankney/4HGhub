@@ -6,7 +6,27 @@ import { Edges, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { FacilityMarker } from '@/lib/markers';
 import { UnifiSettingsConfig } from '@/components/ui/SettingsDrawer';
-import { Camera, Wifi, Package, Truck, RefreshCw } from 'lucide-react';
+import {
+  Camera,
+  Wifi,
+  Package,
+  Truck,
+  RefreshCw,
+  Router,
+  Network,
+  BatteryCharging,
+  Cpu,
+  Radio,
+  HardDrive,
+  Activity,
+  ArrowDownUp,
+  ExternalLink,
+  ShieldCheck,
+  Smartphone,
+  Tablet,
+  Laptop,
+  Scan,
+} from 'lucide-react';
 
 interface FacilityMarkersProps {
   markers: FacilityMarker[];
@@ -180,6 +200,171 @@ function Camera3DPopupCard({
               {lastUpdated}
             </span>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NetworkDevice3DPopupCard({
+  marker,
+  isSelected,
+  isHovered,
+}: {
+  marker: FacilityMarker;
+  isSelected: boolean;
+  isHovered: boolean;
+}) {
+  const stats = marker.metadata.networkStats;
+  const isAp = marker.type === 'network_ap';
+  const isSwitch = marker.type === 'network_switch';
+  const isGateway = marker.type === 'network_gateway';
+  const isUps = marker.type === 'network_ups';
+  const isCloudKey = marker.type === 'network_cloudkey';
+  const isSuperLink = marker.type === 'network_superlink';
+  const isNas = marker.type === 'network_nas';
+
+  const clientCount = marker.metadata.connectedClients ?? stats?.clients?.length ?? 0;
+  const rx = stats?.throughputRxMbps ?? 0;
+  const tx = stats?.throughputTxMbps ?? 0;
+
+  return (
+    <div
+      className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-2xl bg-slate-950/95 text-white shadow-2xl border-2 backdrop-blur-xl overflow-hidden transition-all duration-200 pointer-events-auto select-none ${
+        isSelected
+          ? 'border-[#8DDB05] ring-4 ring-[#8DDB05]/30'
+          : isHovered
+          ? 'border-emerald-400 ring-2 ring-emerald-400/30'
+          : 'border-emerald-500/60'
+      }`}
+    >
+      {/* Top Header */}
+      <div className="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+          <span className="text-xs font-bold text-slate-100 truncate">
+            {marker.name}
+          </span>
+        </div>
+        <span className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold shrink-0">
+          {marker.metadata.unifiModel || marker.type.replace('network_', '').toUpperCase()}
+        </span>
+      </div>
+
+      {/* Body Stats */}
+      <div className="p-2.5 space-y-2 text-xs">
+        {/* Throughput Bar */}
+        {(rx > 0 || tx > 0 || isAp || isSwitch || isGateway) && (
+          <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-slate-400 text-[10px]">
+              <ArrowDownUp className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Throughput</span>
+            </div>
+            <div className="flex items-center gap-2 font-mono font-bold text-[11px]">
+              <span className="text-emerald-400">↓ {rx} <span className="text-[9px] font-normal text-slate-400">Mbps</span></span>
+              <span className="text-cyan-400">↑ {tx} <span className="text-[9px] font-normal text-slate-400">Mbps</span></span>
+            </div>
+          </div>
+        )}
+
+        {/* AP Clients / Link */}
+        {isAp && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Active Clients</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">{clientCount} Connected</div>
+            </div>
+            <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Link Speed</div>
+              <div className="text-xs font-bold text-cyan-400 font-mono mt-0.5 truncate">{marker.metadata.linkSpeed || '2.5 Gbps'}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Switch PoE / Ports */}
+        {isSwitch && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+              <div className="text-[9px] text-slate-400">PoE Power</div>
+              <div className="text-xs font-bold text-blue-400 font-mono mt-0.5">{stats?.poeTotalWatts ?? 54.2}W / {stats?.poeBudgetWatts ?? 180}W</div>
+            </div>
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Active Ports</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">{stats?.ports?.filter(p => p.up).length ?? 11} / 16 Ports</div>
+            </div>
+          </div>
+        )}
+
+        {/* Gateway WAN */}
+        {isGateway && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <div className="text-[9px] text-slate-400">WAN State</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">● Online (8.4ms)</div>
+            </div>
+            <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Protection</div>
+              <div className="text-xs font-bold text-purple-400 font-mono mt-0.5">DPI Active</div>
+            </div>
+          </div>
+        )}
+
+        {/* UPS Battery */}
+        {isUps && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Battery Level</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">{stats?.batteryPct ?? 100}% (185m)</div>
+            </div>
+            <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Load Output</div>
+              <div className="text-xs font-bold text-amber-400 font-mono mt-0.5">{stats?.batteryLoadWatts ?? 142} Watts</div>
+            </div>
+          </div>
+        )}
+
+        {/* CloudKey Apps */}
+        {isCloudKey && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-center">
+              <div className="text-[9px] text-slate-400">UniFi Apps</div>
+              <div className="text-xs font-bold text-cyan-400 font-mono mt-0.5">2 Running</div>
+            </div>
+            <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Protect Storage</div>
+              <div className="text-xs font-bold text-blue-400 font-mono mt-0.5">1.3 / 2.0 TB</div>
+            </div>
+          </div>
+        )}
+
+        {/* SuperLink RF */}
+        {isSuperLink && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="p-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Sub-GHz RF</div>
+              <div className="text-xs font-bold text-pink-400 font-mono mt-0.5">915 MHz</div>
+            </div>
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <div className="text-[9px] text-slate-400">Protect Nodes</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">12 Paired</div>
+            </div>
+          </div>
+        )}
+
+        {/* Synology NAS */}
+        {isNas && (
+          <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-center">
+            <div className="text-[10.5px] text-slate-300 font-semibold">Synology DiskStation DS923+</div>
+            <div className="text-[9px] text-slate-400 mt-0.5">4-Bay RAID-5 Storage • Telemetry Pending</div>
+          </div>
+        )}
+
+        {/* Footer info & CTA */}
+        <div className="pt-1 flex items-center justify-between text-[9.5px] font-mono text-slate-400 border-t border-slate-800/80">
+          <span>{marker.metadata.ip || '10.24.20.x'}</span>
+          <span className="text-[#8DDB05] font-semibold flex items-center gap-0.5">
+            Tap for telemetry →
+          </span>
         </div>
       </div>
     </div>
@@ -484,6 +669,314 @@ function UniFiG6BulletCamera3D({
   );
 }
 
+/** Authentic procedural 3D model of UniFi U7 Pro / U7 Pro XG Access Point */
+function UniFiApMesh3D({ isSelected, isHovered, isXg }: { isSelected: boolean; isHovered: boolean; isXg?: boolean }) {
+  const ledColor = isXg ? '#38bdf8' : '#22d3ee';
+  return (
+    <group rotation={[-Math.PI, 0, 0]}>
+      {/* Upper Mounting Bracket Ring */}
+      <mesh position={[0, 0.03, 0]} castShadow>
+        <cylinderGeometry args={[0.16, 0.18, 0.015, 32]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.4} metalness={0.4} />
+      </mesh>
+
+      {/* Main Curved Matte-White Dome Disc */}
+      <mesh position={[0, 0.015, 0]} castShadow>
+        <cylinderGeometry args={[0.22, 0.235, 0.032, 36]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.08} />
+      </mesh>
+      <mesh position={[0, -0.005, 0]}>
+        <sphereGeometry args={[0.225, 36, 16, 0, Math.PI * 2, 0, Math.PI * 0.25]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.08} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Signature Circular Glowing UniFi Status Ring */}
+      <mesh position={[0, -0.021, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.075, 0.085, 40]} />
+        <meshStandardMaterial
+          color={ledColor}
+          emissive={ledColor}
+          emissiveIntensity={isSelected || isHovered ? 2.5 : 1.4}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Center Metallic UniFi Logo Medallion */}
+      <mesh position={[0, -0.022, 0]}>
+        <cylinderGeometry args={[0.045, 0.045, 0.004, 32]} />
+        <meshStandardMaterial color="#e2e8f0" roughness={0.2} metalness={0.7} />
+      </mesh>
+
+      {/* Pulsing RF Wave Rings */}
+      <group position={[0, -0.025, 0]}>
+        <PulseRing color={isSelected ? '#8DDB05' : ledColor} />
+      </group>
+    </group>
+  );
+}
+
+/** Procedural 3D model of UniFi Switch 16 Port PoE (USW-16-PoE) */
+function UniFiSwitch16Mesh3D({ isSelected, isHovered }: { isSelected: boolean; isHovered: boolean }) {
+  return (
+    <group>
+      {/* 1U Rack Chassis */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.44, 0.044, 0.22]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.35} metalness={0.65} />
+        <Edges threshold={20} color="#64748b" />
+      </mesh>
+
+      {/* Front Brushed Aluminum Faceplate */}
+      <mesh position={[0, 0, 0.111]}>
+        <boxGeometry args={[0.436, 0.04, 0.004]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.25} metalness={0.5} />
+      </mesh>
+
+      {/* 1.3" Touchscreen LCM Status Display on Left */}
+      <mesh position={[-0.17, 0, 0.114]}>
+        <boxGeometry args={[0.045, 0.028, 0.003]} />
+        <meshStandardMaterial
+          color="#0284c7"
+          emissive="#0ea5e9"
+          emissiveIntensity={isSelected || isHovered ? 1.8 : 1.1}
+          roughness={0.15}
+        />
+      </mesh>
+
+      {/* 16 RJ45 Ports in 2 Rows of 8 in Center */}
+      {Array.from({ length: 8 }).map((_, col) => {
+        const posX = -0.09 + col * 0.022;
+        return (
+          <group key={col} position={[posX, 0, 0.113]}>
+            {/* Top Port */}
+            <mesh position={[0, 0.007, 0]}>
+              <boxGeometry args={[0.016, 0.011, 0.004]} />
+              <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.8} />
+            </mesh>
+            {/* Top Port LED */}
+            <mesh position={[0, 0.015, 0.002]}>
+              <boxGeometry args={[0.004, 0.0025, 0.001]} />
+              <meshBasicMaterial color="#10b981" />
+            </mesh>
+            {/* Bottom Port */}
+            <mesh position={[0, -0.007, 0]}>
+              <boxGeometry args={[0.016, 0.011, 0.004]} />
+              <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.8} />
+            </mesh>
+            {/* Bottom Port LED */}
+            <mesh position={[0, -0.015, 0.002]}>
+              <boxGeometry args={[0.004, 0.0025, 0.001]} />
+              <meshBasicMaterial color={col < 3 ? '#10b981' : '#f59e0b'} />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* Dual SFP Optical Ports on Right */}
+      <mesh position={[0.13, 0, 0.113]}>
+        <boxGeometry args={[0.034, 0.02, 0.005]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.8} />
+      </mesh>
+      <mesh position={[0.13, 0.012, 0.015]}>
+        <boxGeometry args={[0.006, 0.003, 0.001]} />
+        <meshBasicMaterial color="#38bdf8" />
+      </mesh>
+    </group>
+  );
+}
+
+/** Procedural 3D model of UniFi Gateway Max (UXG-Max) */
+function UniFiGatewayMaxMesh3D({ isSelected, isHovered }: { isSelected: boolean; isHovered: boolean }) {
+  return (
+    <group>
+      {/* Compact Silver Desktop/Rack Case */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.14, 0.03, 0.14]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.3} metalness={0.5} />
+        <Edges threshold={20} color="#94a3b8" />
+      </mesh>
+      {/* Front Glowing Cyan Status Bar */}
+      <mesh position={[0, -0.01, 0.071]}>
+        <boxGeometry args={[0.05, 0.004, 0.002]} />
+        <meshStandardMaterial
+          color="#06b6d4"
+          emissive="#22d3ee"
+          emissiveIntensity={isSelected || isHovered ? 2.2 : 1.4}
+        />
+      </mesh>
+      {/* Front Multi-Gig Ethernet Ports */}
+      {[-0.04, -0.015, 0.015, 0.04].map((x, i) => (
+        <mesh key={i} position={[x, 0.003, 0.071]}>
+          <boxGeometry args={[0.016, 0.012, 0.002]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Procedural 3D model of UniFi UPS Tower (SmartPower UPS Tower) */
+function UniFiUpsTowerMesh3D({ isSelected, isHovered }: { isSelected: boolean; isHovered: boolean }) {
+  return (
+    <group>
+      {/* Vertical Tower Chassis */}
+      <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.12, 0.32, 0.22]} />
+        <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.2} />
+        <Edges threshold={20} color="#94a3b8" />
+      </mesh>
+      {/* Front Dark Bezel / Status Panel */}
+      <mesh position={[0, 0.16, 0.111]}>
+        <boxGeometry args={[0.09, 0.28, 0.004]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.2} metalness={0.4} />
+      </mesh>
+      {/* Multi-segment Battery Level Gauge */}
+      {Array.from({ length: 6 }).map((_, idx) => (
+        <mesh key={idx} position={[0, 0.23 - idx * 0.016, 0.114]}>
+          <boxGeometry args={[0.038, 0.008, 0.002]} />
+          <meshStandardMaterial
+            color="#10b981"
+            emissive="#34d399"
+            emissiveIntensity={isSelected || isHovered ? 2.0 : 1.2}
+          />
+        </mesh>
+      ))}
+      {/* AC Power Line Status LED */}
+      <mesh position={[0, 0.11, 0.114]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.003, 16]} />
+        <meshStandardMaterial color="#06b6d4" emissive="#22d3ee" emissiveIntensity={1.8} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Procedural 3D model of UniFi CloudKey+ Gen2 */
+function UniFiCloudKeyMesh3D({ isSelected, isHovered }: { isSelected: boolean; isHovered: boolean }) {
+  return (
+    <group>
+      {/* Anodized Aluminum Enclosure */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.13, 0.027, 0.1]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.25} metalness={0.65} />
+        <Edges threshold={20} color="#94a3b8" />
+      </mesh>
+      {/* Front Mini OLED Screen */}
+      <mesh position={[0, 0, 0.051]}>
+        <boxGeometry args={[0.065, 0.016, 0.002]} />
+        <meshStandardMaterial
+          color="#0284c7"
+          emissive="#38bdf8"
+          emissiveIntensity={isSelected || isHovered ? 2.0 : 1.3}
+          roughness={0.1}
+        />
+      </mesh>
+      {/* HDD Drive Activity Light */}
+      <mesh position={[-0.045, 0, 0.051]}>
+        <sphereGeometry args={[0.0025, 12, 12]} />
+        <meshBasicMaterial color="#10b981" />
+      </mesh>
+    </group>
+  );
+}
+
+/** Procedural 3D model of UniFi SuperLink Bridge */
+function UniFiSuperLinkMesh3D({ isSelected, isHovered }: { isSelected: boolean; isHovered: boolean }) {
+  return (
+    <group>
+      {/* Base Casing */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.09, 0.09, 0.035]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.15} />
+        <Edges threshold={20} color="#cbd5e1" />
+      </mesh>
+      {/* External Sub-GHz Vertical Antenna */}
+      <mesh position={[0.03, 0.1, 0]} castShadow>
+        <cylinderGeometry args={[0.004, 0.006, 0.14, 16]} />
+        <meshStandardMaterial color="#334155" roughness={0.4} metalness={0.3} />
+      </mesh>
+      {/* Front RF Status LEDs */}
+      {[-0.015, 0, 0.015].map((x, i) => (
+        <mesh key={i} position={[x, -0.02, 0.018]}>
+          <cylinderGeometry args={[0.003, 0.003, 0.002, 12]} />
+          <meshBasicMaterial color={i === 2 ? '#ec4899' : '#10b981'} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Procedural 3D model of Synology DiskStation 4-Bay NAS (DS923+) */
+function SynologyNasMesh3D({ isSelected, isHovered }: { isSelected: boolean; isHovered: boolean }) {
+  return (
+    <group>
+      {/* Main NAS Tower Enclosure */}
+      <mesh position={[0, 0.085, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.2, 0.17, 0.23]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.6} metalness={0.3} />
+        <Edges threshold={20} color="#0f172a" />
+      </mesh>
+      {/* 4 Drive Caddies on Front Face */}
+      {[-0.06, -0.02, 0.02, 0.06].map((x, idx) => (
+        <group key={idx} position={[x, 0.08, 0.116]}>
+          {/* Drive Sled Face */}
+          <mesh>
+            <boxGeometry args={[0.034, 0.13, 0.004]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.5} />
+          </mesh>
+          {/* Latch Handle Lever */}
+          <mesh position={[0, -0.04, 0.003]}>
+            <boxGeometry args={[0.026, 0.015, 0.003]} />
+            <meshStandardMaterial color="#334155" roughness={0.3} metalness={0.6} />
+          </mesh>
+          {/* Drive Activity LED */}
+          <mesh position={[0, 0.05, 0.003]}>
+            <sphereGeometry args={[0.002, 10, 10]} />
+            <meshBasicMaterial color="#10b981" />
+          </mesh>
+        </group>
+      ))}
+      {/* Power Button & Status LED Strip on Right */}
+      <mesh position={[0.085, 0.04, 0.117]}>
+        <cylinderGeometry args={[0.005, 0.005, 0.003, 16]} />
+        <meshStandardMaterial
+          color="#38bdf8"
+          emissive="#0284c7"
+          emissiveIntensity={isSelected || isHovered ? 1.8 : 1.0}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** Open-frame IT Server Equipment Rack Frame */
+function ServerRackCabinetMesh3D() {
+  return (
+    <group position={[0, -0.4, 0]}>
+      {/* 4 Vertical Steel Extrusion Posts */}
+      {[
+        [-0.26, -0.15],
+        [0.26, -0.15],
+        [-0.26, 0.15],
+        [0.26, 0.15],
+      ].map(([x, z], i) => (
+        <mesh key={i} position={[x, 0.45, z]} castShadow>
+          <boxGeometry args={[0.025, 0.95, 0.025]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.8} />
+        </mesh>
+      ))}
+      {/* Top and Bottom Horizontal Braces */}
+      <mesh position={[0, 0.92, 0]} castShadow>
+        <boxGeometry args={[0.55, 0.025, 0.33]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.5} metalness={0.7} />
+      </mesh>
+      <mesh position={[0, -0.02, 0]} castShadow>
+        <boxGeometry args={[0.55, 0.025, 0.33]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.5} metalness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
 export function FacilityMarkers({
   markers,
   selectedMarkerId,
@@ -507,12 +1000,18 @@ export function FacilityMarkers({
         const show3DFeed = marker.type === 'camera' && Boolean(showCameraFeeds3D);
 
         // Pin color palette per specification + WareTrack royal blue pin accent
-        const colorMap = {
+        const colorMap: Record<string, string> = {
           camera: '#06b6d4', // Cyan glowing pin
           network_ap: '#10b981', // Emerald green glowing pin
-          inventory_bin: '#f59e0b', // Amber/Orange beacon or WareTrack pin
+          network_switch: '#3b82f6', // Electric blue
+          network_gateway: '#8b5cf6', // Violet
+          network_ups: '#f59e0b', // Amber
+          network_cloudkey: '#06b6d4', // Cyan
+          network_superlink: '#ec4899', // Pink
+          network_nas: '#64748b', // Slate
+          inventory_bin: '#f59e0b', // Amber/Orange beacon
         };
-        const accentColor = colorMap[marker.type];
+        const accentColor = colorMap[marker.type] || '#10b981';
 
         // Height offset for HTML floating badge
         const badgeHeight =
@@ -522,7 +1021,13 @@ export function FacilityMarkers({
             ? 1.55
             : variant === 'pallet_stack'
             ? 1.25
+            : marker.type === 'network_ups'
+            ? 0.55
+            : marker.type === 'network_ap'
+            ? 0.45
             : 0.7;
+
+        const isNetworkDevice = marker.type.startsWith('network_');
 
         return (
           <group
@@ -564,6 +1069,48 @@ export function FacilityMarkers({
                 {/* Animated Radiating Pulse Rings */}
                 <PulseRing color="#10b981" />
               </group>
+            )}
+
+            {marker.type === 'network_switch' && (
+              <UniFiSwitch16Mesh3D
+                isSelected={isSelected}
+                isHovered={isHovered}
+              />
+            )}
+
+            {marker.type === 'network_gateway' && (
+              <UniFiGatewayMaxMesh3D
+                isSelected={isSelected}
+                isHovered={isHovered}
+              />
+            )}
+
+            {marker.type === 'network_ups' && (
+              <UniFiUpsTowerMesh3D
+                isSelected={isSelected}
+                isHovered={isHovered}
+              />
+            )}
+
+            {marker.type === 'network_cloudkey' && (
+              <UniFiCloudKeyMesh3D
+                isSelected={isSelected}
+                isHovered={isHovered}
+              />
+            )}
+
+            {marker.type === 'network_superlink' && (
+              <UniFiSuperLinkMesh3D
+                isSelected={isSelected}
+                isHovered={isHovered}
+              />
+            )}
+
+            {marker.type === 'network_nas' && (
+              <SynologyNasMesh3D
+                isSelected={isSelected}
+                isHovered={isHovered}
+              />
             )}
 
             {marker.type === 'inventory_bin' && (
@@ -622,8 +1169,17 @@ export function FacilityMarkers({
                   />
                 )}
 
-                {/* Hover or Selected Detail Pill (hidden when 3D Camera Feed is already shown) */}
-                {!show3DFeed && (isHovered || isSelected) && (
+                {/* 3D Live Network Equipment Telemetry Popup Card (shown on click / selection) */}
+                {isNetworkDevice && isSelected && (
+                  <NetworkDevice3DPopupCard
+                    marker={marker}
+                    isSelected={isSelected}
+                    isHovered={isHovered}
+                  />
+                )}
+
+                {/* Hover or Selected Detail Pill (hidden when 3D Camera Feed or Network Popup Card is active) */}
+                {!show3DFeed && !(isNetworkDevice && isSelected) && (isHovered || isSelected) && (
                   <div className="mb-1.5 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white shadow-xl border border-white/15 backdrop-blur-md whitespace-nowrap flex items-center gap-2">
                     <span
                       className="w-2 h-2 rounded-full shrink-0"
@@ -654,6 +1210,18 @@ export function FacilityMarkers({
                       ? 'bg-cyan-500 border-white text-white'
                       : marker.type === 'network_ap'
                       ? 'bg-emerald-500 border-white text-white'
+                      : marker.type === 'network_switch'
+                      ? 'bg-blue-500 border-white text-white'
+                      : marker.type === 'network_gateway'
+                      ? 'bg-purple-500 border-white text-white'
+                      : marker.type === 'network_ups'
+                      ? 'bg-amber-500 border-white text-slate-950'
+                      : marker.type === 'network_cloudkey'
+                      ? 'bg-cyan-600 border-white text-white'
+                      : marker.type === 'network_superlink'
+                      ? 'bg-pink-500 border-white text-white'
+                      : marker.type === 'network_nas'
+                      ? 'bg-slate-700 border-white text-white'
                       : 'bg-[#8DDB05] border-white text-slate-950'
                   }`}
                 >
@@ -661,6 +1229,18 @@ export function FacilityMarkers({
                     <Camera className="w-4 h-4" />
                   ) : marker.type === 'network_ap' ? (
                     <Wifi className="w-4 h-4" />
+                  ) : marker.type === 'network_switch' ? (
+                    <Network className="w-4 h-4" />
+                  ) : marker.type === 'network_gateway' ? (
+                    <Router className="w-4 h-4" />
+                  ) : marker.type === 'network_ups' ? (
+                    <BatteryCharging className="w-4 h-4" />
+                  ) : marker.type === 'network_cloudkey' ? (
+                    <Cpu className="w-4 h-4" />
+                  ) : marker.type === 'network_superlink' ? (
+                    <Radio className="w-4 h-4" />
+                  ) : marker.type === 'network_nas' ? (
+                    <HardDrive className="w-4 h-4" />
                   ) : variant === 'forklift' ? (
                     <Truck className="w-4 h-4" />
                   ) : (
@@ -676,6 +1256,18 @@ export function FacilityMarkers({
                       ? 'border-t-cyan-500'
                       : marker.type === 'network_ap'
                       ? 'border-t-emerald-500'
+                      : marker.type === 'network_switch'
+                      ? 'border-t-blue-500'
+                      : marker.type === 'network_gateway'
+                      ? 'border-t-purple-500'
+                      : marker.type === 'network_ups'
+                      ? 'border-t-amber-500'
+                      : marker.type === 'network_cloudkey'
+                      ? 'border-t-cyan-600'
+                      : marker.type === 'network_superlink'
+                      ? 'border-t-pink-500'
+                      : marker.type === 'network_nas'
+                      ? 'border-t-slate-700'
                       : 'border-t-[#8DDB05]'
                   }`}
                 />

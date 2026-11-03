@@ -25,6 +25,20 @@ import {
   ChevronDown,
   ChevronUp,
   Maximize2,
+  Router,
+  Network,
+  BatteryCharging,
+  Cpu,
+  Radio,
+  HardDrive,
+  Smartphone,
+  Tablet,
+  Laptop,
+  Scan,
+  ShieldCheck,
+  Zap,
+  ArrowDownUp,
+  Search,
 } from 'lucide-react';
 import { UnifiSettingsConfig } from './SettingsDrawer';
 import {
@@ -359,6 +373,8 @@ export function DetailDrawer({
   const [isExpandedFeedOpen, setIsExpandedFeedOpen] = useState(false);
   const [zoneFilter, setZoneFilter] = useState<'all' | 'output' | 'input' | 'zone'>('all');
   const [zoneSearch, setZoneSearch] = useState('');
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
+  const [selectedSwitchPort, setSelectedSwitchPort] = useState<number | null>(null);
 
   // Background preloading effect: preserves current frame and loads new frame seamlessly
   React.useEffect(() => {
@@ -526,13 +542,29 @@ export function DetailDrawer({
     label: string
   ) => {
     const idPrefix =
-      type === 'camera' ? 'CAM' : type === 'network_ap' ? 'AP' : 'BIN';
+      type === 'camera'
+        ? 'CAM'
+        : type === 'network_ap'
+        ? 'AP'
+        : type === 'network_switch'
+        ? 'SW'
+        : type === 'network_gateway'
+        ? 'GW'
+        : type === 'network_ups'
+        ? 'UPS'
+        : type === 'network_cloudkey'
+        ? 'UCK'
+        : type === 'network_superlink'
+        ? 'LNK'
+        : type === 'network_nas'
+        ? 'NAS'
+        : 'BIN';
     const nextNum = markers.length + 101;
     const newMarker: FacilityMarker = {
       id: `${idPrefix}-${nextNum}`,
       type,
       name: `${label} #${ markers.length + 1 }`,
-      position: [0, type === 'inventory_bin' ? -1.45 : 1.1, 0],
+      position: [0, type === 'inventory_bin' ? -1.45 : type === 'network_ap' ? 1.1 : -0.4, 0],
       rotation: [0, 0, 0],
       modelVariant: variant,
       metadata:
@@ -551,6 +583,14 @@ export function DetailDrawer({
               connectedClients: 12,
               description: 'Newly deployed wireless mesh AP',
               bay: 'Custom Zone',
+              status: 'online',
+            }
+          : type.startsWith('network_')
+          ? {
+              ip: `10.24.20.${nextNum}`,
+              linkSpeed: '1 Gbps',
+              description: `Newly placed ${label} in facility`,
+              bay: 'Server Rack',
               status: 'online',
             }
           : {
@@ -2483,6 +2523,12 @@ export function DetailDrawer({
     const [x, y, z] = selectedMarker.position;
     const isCam = selectedMarker.type === 'camera';
     const isAp = selectedMarker.type === 'network_ap';
+    const isSwitch = selectedMarker.type === 'network_switch';
+    const isGateway = selectedMarker.type === 'network_gateway';
+    const isUps = selectedMarker.type === 'network_ups';
+    const isCloudKey = selectedMarker.type === 'network_cloudkey';
+    const isSuperLink = selectedMarker.type === 'network_superlink';
+    const isNas = selectedMarker.type === 'network_nas';
     const isBin = selectedMarker.type === 'inventory_bin';
 
     const updateCoord = (axis: 0 | 1 | 2, val: number) => {
@@ -2511,6 +2557,18 @@ export function DetailDrawer({
                   ? 'bg-cyan-500 text-white'
                   : isAp
                   ? 'bg-emerald-500 text-white'
+                  : isSwitch
+                  ? 'bg-blue-500 text-white'
+                  : isGateway
+                  ? 'bg-purple-500 text-white'
+                  : isUps
+                  ? 'bg-amber-500 text-slate-950'
+                  : isCloudKey
+                  ? 'bg-cyan-600 text-white'
+                  : isSuperLink
+                  ? 'bg-pink-500 text-white'
+                  : isNas
+                  ? 'bg-slate-700 text-white'
                   : 'bg-[#8DDB05] text-slate-950'
               }`}
             >
@@ -2518,6 +2576,18 @@ export function DetailDrawer({
                 <Camera className="w-5 h-5" />
               ) : isAp ? (
                 <Wifi className="w-5 h-5" />
+              ) : isSwitch ? (
+                <Network className="w-5 h-5" />
+              ) : isGateway ? (
+                <Router className="w-5 h-5" />
+              ) : isUps ? (
+                <BatteryCharging className="w-5 h-5" />
+              ) : isCloudKey ? (
+                <Cpu className="w-5 h-5" />
+              ) : isSuperLink ? (
+                <Radio className="w-5 h-5" />
+              ) : isNas ? (
+                <HardDrive className="w-5 h-5" />
               ) : (
                 <Package className="w-5 h-5" />
               )}
@@ -2827,39 +2897,535 @@ export function DetailDrawer({
             );
           })()}
 
-          {isAp && (
+          {/* ========================================================================= */}
+          {/* Ubiquiti WiFi Access Point Telemetry (U7 Pro & U7 Pro XG) */}
+          {/* ========================================================================= */}
+          {isAp && (() => {
+            const stats = selectedMarker.metadata.networkStats;
+            const clients = stats?.clients || [];
+            const filteredClients = clients.filter(c =>
+              !clientSearchQuery ||
+              c.hostname.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+              c.ip.includes(clientSearchQuery) ||
+              c.mac.toLowerCase().includes(clientSearchQuery.toLowerCase())
+            );
+
+            return (
+              <div className="space-y-3.5">
+                {/* 1. Real-Time Bandwidth & Throughput Card */}
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-emerald-500">
+                      <ArrowDownUp className="w-4 h-4" /> Live Throughput
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400 animate-pulse flex items-center gap-1">
+                      ● REAL-TIME
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="text-[10px] text-slate-400 font-medium">Download Rate</div>
+                      <div className="text-lg font-mono font-bold text-emerald-400 mt-0.5">
+                        {stats?.throughputRxMbps ?? 142.8} <span className="text-xs font-normal text-slate-400">Mbps</span>
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                      <div className="text-[10px] text-slate-400 font-medium">Upload Rate</div>
+                      <div className="text-lg font-mono font-bold text-cyan-400 mt-0.5">
+                        {stats?.throughputTxMbps ?? 28.4} <span className="text-xs font-normal text-slate-400">Mbps</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Radio Channels & Utilization */}
+                  <div className="space-y-2 pt-1">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+                      Tri-Band Radio Allocation &amp; Channel Load
+                    </div>
+                    {(stats?.radios || [
+                      { band: '2.4GHz', channel: 6, channelWidth: 'HE20', utilizationPct: 24, txPowerDbm: 20 },
+                      { band: '5GHz', channel: 44, channelWidth: 'HE80', utilizationPct: 38, txPowerDbm: 24 },
+                      { band: '6GHz', channel: 69, channelWidth: 'HE160', utilizationPct: 12, txPowerDbm: 22 },
+                    ]).map((r) => (
+                      <div key={r.band} className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-1">
+                        <div className="flex justify-between items-center text-[10.5px]">
+                          <span className="font-semibold text-slate-200">
+                            {r.band} <span className="text-slate-400 font-normal">({r.channelWidth} • Ch. {r.channel})</span>
+                          </span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {r.utilizationPct}% <span className="text-[9px] text-slate-400">load ({r.txPowerDbm} dBm)</span>
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              r.utilizationPct > 60
+                                ? 'bg-amber-500'
+                                : r.utilizationPct > 80
+                                ? 'bg-red-500'
+                                : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${Math.min(100, r.utilizationPct)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Connected Client Devices Table */}
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold flex items-center gap-1.5 text-blue-400">
+                        <Smartphone className="w-4 h-4" /> Connected Wireless Clients
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {clients.length} active client station(s) connected
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 font-bold">
+                      {selectedMarker.metadata.connectedClients ?? clients.length} Clients
+                    </span>
+                  </div>
+
+                  {/* Client Search Filter */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Filter by hostname, IP, or MAC..."
+                      value={clientSearchQuery}
+                      onChange={(e) => setClientSearchQuery(e.target.value)}
+                      className={`w-full pl-8 pr-3 py-1.5 rounded-xl text-[11px] border ${inputClass}`}
+                    />
+                  </div>
+
+                  {/* Client Stations List */}
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                    {filteredClients.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-slate-400">
+                        No clients matched your filter.
+                      </div>
+                    ) : (
+                      filteredClients.map((client) => {
+                        const IconComponent =
+                          client.deviceType === 'scanner'
+                            ? Scan
+                            : client.deviceType === 'tablet'
+                            ? Tablet
+                            : client.deviceType === 'laptop'
+                            ? Laptop
+                            : client.deviceType === 'phone'
+                            ? Smartphone
+                            : Cpu;
+
+                        return (
+                          <div
+                            key={client.mac}
+                            className="p-2 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between gap-2 hover:border-slate-700 transition"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 shrink-0">
+                                <IconComponent className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[11px] font-semibold text-slate-200 truncate">
+                                  {client.hostname}
+                                </div>
+                                <div className="text-[9.5px] font-mono text-slate-400 truncate">
+                                  {client.ip} • {client.mac}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="flex items-center gap-1 justify-end">
+                                <span className="text-[9px] font-mono px-1 rounded bg-slate-800 text-cyan-300">
+                                  {client.radio}
+                                </span>
+                                <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                  {client.wifiExperiencePct}%
+                                </span>
+                              </div>
+                              <div className="text-[9px] font-mono text-slate-400 mt-0.5">
+                                {client.signalDbm} dBm • {client.rxRateMbps}M
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Uplink & Hardware System Health */}
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-2.5`}>
+                  <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+                    Uplink &amp; System Health
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
+                      <div className="text-[9.5px] text-slate-400">Switch Uplink</div>
+                      <div className="font-semibold text-slate-200 mt-0.5">{selectedMarker.metadata.linkSpeed || '2.5 Gbps PoE+'}</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
+                      <div className="text-[9.5px] text-slate-400">Temperature</div>
+                      <div className="font-mono font-semibold text-slate-200 mt-0.5">{stats?.temperatureC ?? 46}°C (Optimal)</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
+                      <div className="text-[9.5px] text-slate-400">CPU &amp; Memory</div>
+                      <div className="font-mono font-semibold text-slate-200 mt-0.5">{stats?.cpuUsagePct ?? 18}% / {stats?.memoryUsagePct ?? 42}%</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
+                      <div className="text-[9.5px] text-slate-400">System Uptime</div>
+                      <div className="font-mono font-semibold text-slate-200 mt-0.5">{stats?.uptime || '28d 14h 22m'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ========================================================================= */}
+          {/* Ubiquiti Switch 16 Port PoE Telemetry */}
+          {/* ========================================================================= */}
+          {isSwitch && (() => {
+            const stats = selectedMarker.metadata.networkStats;
+            const ports = stats?.ports || [];
+            const activePort = selectedSwitchPort !== null ? ports.find(p => p.portNumber === selectedSwitchPort) : null;
+
+            return (
+              <div className="space-y-3.5">
+                {/* 1. Switch Power & Throughput Summary */}
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-blue-400">
+                      <Network className="w-4 h-4" /> Switch 16 Port PoE Status
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400">● 16-Port Managed</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                      <div className="text-[10px] text-slate-400">PoE Power Budget</div>
+                      <div className="text-base font-mono font-bold text-blue-400 mt-0.5">
+                        {stats?.poeTotalWatts ?? 54.2}W <span className="text-xs font-normal text-slate-400">/ {stats?.poeBudgetWatts ?? 180}W</span>
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="text-[10px] text-slate-400">Active Ports</div>
+                      <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
+                        {ports.filter(p => p.up).length || 11} <span className="text-xs font-normal text-slate-400">/ 16 Connected</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PoE Power Usage Progress Bar */}
+                  <div>
+                    <div className="flex justify-between text-[10.5px] mb-1">
+                      <span className="text-slate-400">PoE Allocation (APs &amp; Protect Cameras)</span>
+                      <span className="font-mono font-semibold text-blue-400">
+                        {Math.round(((stats?.poeTotalWatts ?? 54.2) / (stats?.poeBudgetWatts ?? 180)) * 100)}% Used
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 rounded-full"
+                        style={{ width: `${Math.min(100, Math.round(((stats?.poeTotalWatts ?? 54.2) / (stats?.poeBudgetWatts ?? 180)) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Interactive 16-Port Faceplate Matrix */}
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+                    <span>Front Panel Port Matrix (Click to inspect)</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Ports 1-16</span>
+                  </div>
+
+                  {/* 2 Rows of 8 Ports Matrix */}
+                  <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                    {/* Top Row: Odd Ports 1, 3, 5, 7, 9, 11, 13, 15 */}
+                    <div className="grid grid-cols-8 gap-1.5">
+                      {[1, 3, 5, 7, 9, 11, 13, 15].map((pNum) => {
+                        const port = ports.find(p => p.portNumber === pNum);
+                        const isUp = port?.up ?? false;
+                        const hasPoe = Boolean(port?.poePowerWatts && port.poePowerWatts > 0);
+                        const isPortSelected = selectedSwitchPort === pNum;
+
+                        return (
+                          <button
+                            key={pNum}
+                            type="button"
+                            onClick={() => setSelectedSwitchPort(selectedSwitchPort === pNum ? null : pNum)}
+                            className={`p-1.5 rounded-lg border text-center transition cursor-pointer flex flex-col items-center gap-0.5 ${
+                              isPortSelected
+                                ? 'bg-blue-600/30 border-blue-400 ring-2 ring-blue-400/40'
+                                : isUp
+                                ? 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                                : 'bg-slate-950/80 border-slate-800/60 opacity-50'
+                            }`}
+                          >
+                            <span className="text-[8.5px] font-mono text-slate-400 font-bold">{pNum}</span>
+                            <div className="flex items-center gap-0.5">
+                              <span className={`w-1.5 h-1.5 rounded-full ${isUp ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
+                              {hasPoe && <Zap className="w-2.5 h-2.5 text-amber-400" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Bottom Row: Even Ports 2, 4, 6, 8, 10, 12, 14, 16 */}
+                    <div className="grid grid-cols-8 gap-1.5">
+                      {[2, 4, 6, 8, 10, 12, 14, 16].map((pNum) => {
+                        const port = ports.find(p => p.portNumber === pNum);
+                        const isUp = port?.up ?? false;
+                        const hasPoe = Boolean(port?.poePowerWatts && port.poePowerWatts > 0);
+                        const isPortSelected = selectedSwitchPort === pNum;
+
+                        return (
+                          <button
+                            key={pNum}
+                            type="button"
+                            onClick={() => setSelectedSwitchPort(selectedSwitchPort === pNum ? null : pNum)}
+                            className={`p-1.5 rounded-lg border text-center transition cursor-pointer flex flex-col items-center gap-0.5 ${
+                              isPortSelected
+                                ? 'bg-blue-600/30 border-blue-400 ring-2 ring-blue-400/40'
+                                : isUp
+                                ? 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                                : 'bg-slate-950/80 border-slate-800/60 opacity-50'
+                            }`}
+                          >
+                            <span className="text-[8.5px] font-mono text-slate-400 font-bold">{pNum}</span>
+                            <div className="flex items-center gap-0.5">
+                              <span className={`w-1.5 h-1.5 rounded-full ${isUp ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
+                              {hasPoe && <Zap className="w-2.5 h-2.5 text-amber-400" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Selected Port Details Banner */}
+                  {activePort ? (
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs space-y-1">
+                      <div className="flex justify-between items-center font-semibold text-slate-200">
+                        <span className="text-blue-400">Port {activePort.portNumber} Details</span>
+                        <span className={`font-mono text-[10px] ${activePort.up ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          ● {activePort.up ? 'CONNECTED' : 'DISCONNECTED'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-300">
+                        Device: <strong>{activePort.connectedDevice || 'Unknown Device'}</strong>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] font-mono text-slate-400">
+                        <span>Speed: {activePort.speed}</span>
+                        {activePort.poePowerWatts ? (
+                          <span className="text-amber-400 font-bold">PoE: {activePort.poePowerWatts}W ({activePort.poeClass})</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-slate-400 text-center">
+                      Click any port icon above to view connected device &amp; link telemetry.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ========================================================================= */}
+          {/* Ubiquiti Gateway Max Telemetry */}
+          {/* ========================================================================= */}
+          {isGateway && (() => {
+            const stats = selectedMarker.metadata.networkStats;
+            return (
+              <div className="space-y-3.5">
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-purple-400">
+                      <Router className="w-4 h-4" /> Multi-WAN Gateway Telemetry
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400">● 2.5 Gbps Multi-WAN</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                      <div className="text-[10px] text-slate-400">ISP Status</div>
+                      <div className="text-xs font-bold text-purple-300 mt-0.5">{stats?.ispName || 'Fiber 1 Gbps'}</div>
+                      <div className="text-[9px] font-mono text-emerald-400 mt-0.5">● Connected ({stats?.wanLatencyMs ?? 8.4}ms)</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="text-[10px] text-slate-400">WAN IP</div>
+                      <div className="text-xs font-mono font-bold text-emerald-400 mt-0.5">{stats?.wanIp || '74.125.18.24'}</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">Gateway: 10.24.20.1</div>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center text-[10.5px]">
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> DPI &amp; Threat Management
+                      </span>
+                      <span className="text-emerald-400 font-bold font-mono">ACTIVE (IPS)</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Zero threats detected in past 24 hours • Deep packet inspection enabled
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ========================================================================= */}
+          {/* Ubiquiti UPS Tower Telemetry */}
+          {/* ========================================================================= */}
+          {isUps && (() => {
+            const stats = selectedMarker.metadata.networkStats;
+            return (
+              <div className="space-y-3.5">
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-amber-400">
+                      <BatteryCharging className="w-4 h-4" /> SmartPower Battery Telemetry
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400">● AC Line Normal</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="text-[10px] text-slate-400">Battery Level</div>
+                      <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
+                        {stats?.batteryPct ?? 100}%
+                      </div>
+                      <div className="text-[9.5px] font-mono text-slate-400 mt-0.5">Runtime: ~{stats?.batteryRuntimeMin ?? 185} min</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                      <div className="text-[10px] text-slate-400">Output Load</div>
+                      <div className="text-base font-mono font-bold text-amber-400 mt-0.5">
+                        {stats?.batteryLoadWatts ?? 142} <span className="text-xs font-normal">Watts</span>
+                      </div>
+                      <div className="text-[9.5px] text-slate-400 mt-0.5">Powering Rack Gear</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ========================================================================= */}
+          {/* Ubiquiti 4HG CloudKey+ Telemetry */}
+          {/* ========================================================================= */}
+          {isCloudKey && (() => {
+            const stats = selectedMarker.metadata.networkStats;
+            return (
+              <div className="space-y-3.5">
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-cyan-400">
+                      <Cpu className="w-4 h-4" /> UniFi OS Controller Health
+                    </span>
+                    <span className="text-[10px] font-mono text-cyan-300">CloudKey Gen2+</span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+                      Running Applications
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                        <span className="font-semibold text-slate-200">UniFi Network</span>
+                        <span className="font-mono text-[10px] text-emerald-400 font-bold">● Active (v8.5.6)</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                        <span className="font-semibold text-slate-200">UniFi Protect</span>
+                        <span className="font-mono text-[10px] text-emerald-400 font-bold">● Active (v4.1.53)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10.5px]">
+                      <span className="text-slate-400">Internal Video Storage</span>
+                      <span className="font-mono text-cyan-400 font-bold">
+                        {stats?.storageUsedGb ?? 1340} GB / {stats?.storageTotalGb ?? 2000} GB
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-500 rounded-full"
+                        style={{ width: `${Math.round(((stats?.storageUsedGb ?? 1340) / (stats?.storageTotalGb ?? 2000)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ========================================================================= */}
+          {/* Ubiquiti SuperLink Telemetry */}
+          {/* ========================================================================= */}
+          {isSuperLink && (() => {
+            const stats = selectedMarker.metadata.networkStats;
+            return (
+              <div className="space-y-3.5">
+                <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-pink-400">
+                      <Radio className="w-4 h-4" /> Protect Sub-GHz RF Bridge
+                    </span>
+                    <span className="text-[10px] font-mono text-pink-300">915 MHz</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-pink-500/10 border border-pink-500/20">
+                      <div className="text-[10px] text-slate-400">Paired Protect Nodes</div>
+                      <div className="text-base font-mono font-bold text-pink-400 mt-0.5">
+                        {stats?.superlinkPairedNodes ?? 12} Nodes
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="text-[10px] text-slate-400">Signal Strength</div>
+                      <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
+                        {stats?.superlinkRssi ?? -48} dBm
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ========================================================================= */}
+          {/* Synology NAS Telemetry */}
+          {/* ========================================================================= */}
+          {isNas && (
             <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3`}>
               <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="flex items-center gap-1.5 text-emerald-500">
-                  <Activity className="w-4 h-4" /> Wireless Mesh Telemetry
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <HardDrive className="w-4 h-4 text-blue-400" /> Synology Network Attached Storage
                 </span>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {selectedMarker.metadata.ip}
-                </span>
+                <span className="text-[10px] font-mono text-emerald-400">● Online</span>
               </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <div className="text-[10px] text-slate-400">Uplink Speed</div>
-                  <div className="text-sm font-bold text-emerald-500 mt-0.5">
-                    {selectedMarker.metadata.linkSpeed || '2.5 Gbps'}
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+
+              <div className="space-y-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-1">
+                  <div className="text-slate-200 font-bold">Synology DiskStation DS923+</div>
                   <div className="text-[10px] text-slate-400">
-                    Active Scanners
-                  </div>
-                  <div className="text-sm font-bold text-blue-500 mt-0.5">
-                    {selectedMarker.metadata.connectedClients ?? 24} clients
+                    4-Bay Storage Array configured in RAID-5 • Connected via Dual 1 GbE Link Aggregation
                   </div>
                 </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-[11px] mb-1">
-                  <span className="text-slate-400">6GHz Channel Utilization</span>
-                  <span className="font-semibold text-emerald-500">22% Optimal</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                  <div className="h-full w-[22%] bg-emerald-500 rounded-full" />
+
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-300 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  <span>Telemetry integration planned for future update. Hardware model positioned in 3D scene.</span>
                 </div>
               </div>
             </div>

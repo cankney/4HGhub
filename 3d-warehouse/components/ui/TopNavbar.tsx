@@ -22,6 +22,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { DisplayMode } from '@/lib/markers';
+import type { OdooProductQuant } from '@/lib/blueprint-geometry';
 
 export interface SearchResultItem {
   type: 'product' | 'location' | 'rack' | 'marker';
@@ -32,6 +33,7 @@ export interface SearchResultItem {
   slotKey?: string;
   shortCode?: string;
   position: [number, number, number];
+  product?: OdooProductQuant;
 }
 
 interface TopNavbarProps {
@@ -41,6 +43,8 @@ interface TopNavbarProps {
   onSearchChange: (q: string) => void;
   searchResults?: SearchResultItem[];
   onSelectSearchResult?: (result: SearchResultItem) => void;
+  selectedSearchResult?: SearchResultItem | null;
+  onClearSearchResult?: () => void;
   isSyncingOdoo?: boolean;
   onSyncOdoo?: () => void;
   lastSyncTime?: string | null;
@@ -75,6 +79,8 @@ export function TopNavbar({
   onSearchChange,
   searchResults,
   onSelectSearchResult,
+  selectedSearchResult,
+  onClearSearchResult,
   isSyncingOdoo,
   onSyncOdoo,
   lastSyncTime,
@@ -102,6 +108,21 @@ export function TopNavbar({
   lastCloudSyncTime,
 }: TopNavbarProps) {
   const isDark = theme === 'dark';
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const searchContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(e.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const modeOptions: { id: DisplayMode; label: string; icon: React.ReactNode }[] = [
     {
@@ -166,30 +187,47 @@ export function TopNavbar({
         </div>
 
         {/* Search Input with Autocomplete Results */}
-        <div className="relative w-32 sm:w-40 md:w-44 lg:w-48 xl:w-52 2xl:w-64">
+        <div ref={searchContainerRef} className="relative w-32 sm:w-40 md:w-44 lg:w-48 xl:w-52 2xl:w-64">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={() => {
+              if (searchQuery.trim().length >= 2) setIsDropdownOpen(true);
+            }}
+            onChange={(e) => {
+              onSearchChange(e.target.value);
+              setIsDropdownOpen(true);
+              if (selectedSearchResult && onClearSearchResult) {
+                onClearSearchResult();
+              }
+            }}
             placeholder="Search SKU, location..."
             className={`w-full pl-8 pr-7 py-1.5 text-xs font-medium rounded-xl border outline-none transition shadow-sm ${
-              isDark
+              selectedSearchResult
+                ? 'border-[#8DDB05] ring-1 ring-[#8DDB05]/50 bg-[#8DDB05]/10 text-slate-900 dark:text-slate-100'
+                : isDark
                 ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-400 focus:border-[#8DDB05]'
                 : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-500 focus:bg-white focus:border-[#8DDB05]'
             }`}
           />
-          {searchQuery && (
+          {(searchQuery || selectedSearchResult) && (
             <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-slate-600"
+              onClick={() => {
+                onSearchChange('');
+                setIsDropdownOpen(false);
+                if (onClearSearchResult) onClearSearchResult();
+              }}
+              title="Clear search"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
               ✕
             </button>
           )}
 
           {/* Autocomplete / Search Matches Dropdown */}
-          {searchQuery.trim().length >= 2 &&
+          {isDropdownOpen &&
+            searchQuery.trim().length >= 2 &&
             searchResults &&
             searchResults.length > 0 && (
               <div
@@ -209,6 +247,7 @@ export function TopNavbar({
                       key={`sr-${idx}`}
                       type="button"
                       onClick={() => {
+                        setIsDropdownOpen(false);
                         if (onSelectSearchResult) onSelectSearchResult(res);
                       }}
                       className={`w-full p-2.5 text-left transition cursor-pointer flex items-center justify-between gap-2.5 ${
