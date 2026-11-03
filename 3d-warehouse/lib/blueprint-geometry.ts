@@ -1,3 +1,5 @@
+import baselineWarehouseDefaults from './baseline-warehouse-defaults.json';
+
 export type BlueprintItemKind =
   | 'perimeter_wall'
   | 'interior_wall'
@@ -272,7 +274,7 @@ export function computeSlotWorldPosition(
  * are rendered as unified, seamless extruded meshes in `WarehouseModel.tsx` so there are zero
  * corner or segment seams.
  */
-export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
+const STATIC_BLUEPRINT_ITEMS: BlueprintItem[] = [
   // ===========================================================================
   // 1. FOUR PARALLEL EAST RACKS (Zone A • Racks 01-04)
   // ===========================================================================
@@ -687,3 +689,9 @@ export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = [
     visible: true,
   },
 ];
+
+export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] =
+  Array.isArray((baselineWarehouseDefaults as any)?.blueprintItems) &&
+  (baselineWarehouseDefaults as any).blueprintItems.length > 0
+    ? ((baselineWarehouseDefaults as any).blueprintItems as BlueprintItem[])
+    : STATIC_BLUEPRINT_ITEMS;

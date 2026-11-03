@@ -1,3 +1,5 @@
+import baselineWarehouseDefaults from './baseline-warehouse-defaults.json';
+
 export type MarkerType =
   | 'camera'
   | 'network_ap'
@@ -247,7 +249,7 @@ export function getDefaultCameraVisionMapping(
   };
 }
 
-export const DEFAULT_MARKERS: FacilityMarker[] = [
+const STATIC_MARKERS: FacilityMarker[] = [
   {
     id: 'CAM-01',
     type: 'camera',
@@ -685,7 +687,13 @@ export const DEFAULT_MARKERS: FacilityMarker[] = [
   },
 ];
 
-export const DEFAULT_MESH_OVERRIDES: MeshOverride[] = Array.from(
+export const DEFAULT_MARKERS: FacilityMarker[] =
+  Array.isArray((baselineWarehouseDefaults as any)?.markers) &&
+  (baselineWarehouseDefaults as any).markers.length > 0
+    ? ((baselineWarehouseDefaults as any).markers as FacilityMarker[])
+    : STATIC_MARKERS;
+
+const STATIC_MESH_OVERRIDES: MeshOverride[] = Array.from(
   { length: 11 },
   (_, index) => ({
     meshIndex: index,
@@ -697,7 +705,13 @@ export const DEFAULT_MESH_OVERRIDES: MeshOverride[] = Array.from(
   })
 );
 
-export const DEFAULT_CUTOUT_BOXES: CutoutBox[] = [
+export const DEFAULT_MESH_OVERRIDES: MeshOverride[] =
+  Array.isArray((baselineWarehouseDefaults as any)?.meshOverrides) &&
+  (baselineWarehouseDefaults as any).meshOverrides.length > 0
+    ? ((baselineWarehouseDefaults as any).meshOverrides as MeshOverride[])
+    : STATIC_MESH_OVERRIDES;
+
+const STATIC_CUTOUT_BOXES: CutoutBox[] = [
   {
     id: 'CUT-01',
     name: 'Center Floor Clean Patch',
@@ -708,3 +722,9 @@ export const DEFAULT_CUTOUT_BOXES: CutoutBox[] = [
     active: false,
   },
 ];
+
+export const DEFAULT_CUTOUT_BOXES: CutoutBox[] =
+  Array.isArray((baselineWarehouseDefaults as any)?.cutoutBoxes) &&
+  (baselineWarehouseDefaults as any).cutoutBoxes.length > 0
+    ? ((baselineWarehouseDefaults as any).cutoutBoxes as CutoutBox[])
+    : STATIC_CUTOUT_BOXES;

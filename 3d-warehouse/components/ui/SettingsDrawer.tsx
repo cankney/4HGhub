@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import {
+  AlertTriangle,
   Camera,
   Check,
   ChevronDown,
@@ -28,6 +29,7 @@ import {
   Sun,
   Moon,
   Trash2,
+  Upload,
   Video,
   X,
 } from 'lucide-react';
@@ -90,6 +92,10 @@ interface SettingsDrawerProps {
   lastUnifiSyncTime?: string | null;
   unifiSyncStatusMsg?: { type: 'success' | 'error'; text: string } | null;
   onExportJson?: () => void;
+  onImportJson?: (file: File) => void;
+  onSaveBaselineDefaults?: () => void;
+  isSavingBaseline?: boolean;
+  baselineSaveMsg?: { type: 'success' | 'error'; text: string } | null;
   lastCloudSyncTime?: string | null;
   isCollapsed?: boolean;
 }
@@ -117,6 +123,10 @@ export function SettingsDrawer({
   lastUnifiSyncTime,
   unifiSyncStatusMsg,
   onExportJson,
+  onImportJson,
+  onSaveBaselineDefaults,
+  isSavingBaseline = false,
+  baselineSaveMsg = null,
   lastCloudSyncTime,
   isCollapsed = false,
 }: SettingsDrawerProps) {
@@ -130,6 +140,7 @@ export function SettingsDrawer({
   const [testMessage, setTestMessage] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmLockBaseline, setConfirmLockBaseline] = useState(false);
 
   // UniFi State
   const [unifiForm, setUnifiForm] = useState<UnifiSettingsConfig>(unifiConfig);
@@ -956,29 +967,125 @@ export function SettingsDrawer({
               <span className="text-slate-300">{lastCloudSyncTime ? `Saved at ${lastCloudSyncTime}` : 'Synchronized'}</span>
             </div>
           </div>
+        </section>
 
-          {/* Export Offline JSON Backup */}
-          {onExportJson && (
-            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-500 text-[11px]">
-                {lastCloudSyncTime ? `Cloud: ${lastCloudSyncTime}` : 'All devices synchronized'}
-              </span>
-              <button
-                type="button"
-                onClick={onExportJson}
-                className="text-[#8DDB05] hover:underline font-semibold cursor-pointer text-xs"
-              >
-                Export JSON Backup
-              </button>
+        {/* SECTION 4: MASTER BASELINE & FACTORY DEFAULTS */}
+        <section className={`p-3.5 rounded-2xl border space-y-3 ${
+          isDark ? 'border-emerald-500/30 bg-emerald-950/20' : 'border-emerald-500/40 bg-emerald-50/50'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold flex items-center gap-1.5 text-emerald-500 dark:text-emerald-400">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Master Baseline & Factory Defaults
+            </span>
+          </div>
+
+          <p className={`text-[11px] leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            Lock your custom shelves, synced Odoo quants, deleted models, 3D positions, and markers as the permanent factory baseline default. Future code updates, rebuilds, and resets will preserve this exact setup.
+          </p>
+
+          {baselineSaveMsg && (
+            <div className={`p-2.5 rounded-xl text-xs font-medium border flex items-center gap-2 ${
+              baselineSaveMsg.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
+            }`}>
+              {baselineSaveMsg.type === 'success' ? (
+                <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+              )}
+              <span>{baselineSaveMsg.text}</span>
             </div>
           )}
 
-          {/* Reset to Factory Defaults */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          {/* Confirm lock baseline dialog */}
+          {confirmLockBaseline ? (
+            <div className="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 space-y-2">
+              <p className="text-xs font-semibold text-emerald-400">
+                Lock current warehouse configuration as the master factory default?
+              </p>
+              <p className="text-[10.5px] text-slate-400">
+                This writes your active shelves, Odoo stock locations, deleted models, and markers directly into the persistent codebase baseline and cloud defaults.
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={isSavingBaseline}
+                  onClick={async () => {
+                    if (onSaveBaselineDefaults) {
+                      await onSaveBaselineDefaults();
+                    }
+                    setConfirmLockBaseline(false);
+                  }}
+                  className="flex-1 py-1.5 rounded-xl text-xs font-bold bg-[#8DDB05] text-slate-950 hover:bg-[#a3e635] transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {isSavingBaseline ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isSavingBaseline ? 'Locking...' : 'Yes, Lock as Default'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmLockBaseline(false)}
+                  className="flex-1 py-1.5 rounded-xl text-xs font-semibold border border-slate-700 hover:bg-slate-800 transition cursor-pointer text-slate-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmLockBaseline(true)}
+              disabled={isSavingBaseline}
+              className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-[#8DDB05] text-slate-950 hover:bg-[#a3e635] shadow-sm transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Set Current Setup as Baseline Default</span>
+            </button>
+          )}
+
+          {/* Backup Import & Export */}
+          <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between gap-2">
+            {onExportJson && (
+              <button
+                type="button"
+                onClick={onExportJson}
+                className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-semibold border border-slate-700 hover:bg-slate-800 text-slate-300 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Export JSON</span>
+              </button>
+            )}
+
+            {onImportJson && (
+              <label className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-semibold border border-slate-700 hover:bg-slate-800 text-slate-300 transition cursor-pointer flex items-center justify-center gap-1.5">
+                <Upload className="w-3.5 h-3.5 text-sky-400" />
+                <span>Import JSON</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && onImportJson) {
+                      onImportJson(file);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
+          {/* Reset to Baseline Default */}
+          <div className="pt-2 border-t border-emerald-500/20">
             {confirmReset ? (
               <div className="space-y-2">
-                <p className="text-[11px] text-red-500 font-semibold">
-                  Reset all warehouse doors, racks, and locations to default?
+                <p className="text-[11px] text-amber-500 font-semibold">
+                  Reset current session back to the saved baseline default?
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -987,9 +1094,9 @@ export function SettingsDrawer({
                       onResetToDefaults();
                       setConfirmReset(false);
                     }}
-                    className="flex-1 py-1.5 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition cursor-pointer"
+                    className="flex-1 py-1.5 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition cursor-pointer"
                   >
-                    Yes, Reset All
+                    Yes, Reset to Baseline
                   </button>
                   <button
                     type="button"
@@ -1004,9 +1111,9 @@ export function SettingsDrawer({
               <button
                 type="button"
                 onClick={() => setConfirmReset(true)}
-                className="w-full py-1.5 rounded-xl text-xs font-semibold text-red-500 hover:text-red-600 border border-red-500/30 hover:border-red-500/60 transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-amber-400 border border-slate-800 hover:border-amber-500/30 transition cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Reset Warehouse to Factory Defaults
+                <RotateCcw className="w-3.5 h-3.5" /> Reset to Baseline Default
               </button>
             )}
           </div>

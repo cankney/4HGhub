@@ -15,6 +15,7 @@ import {
   Sun,
   Wrench,
   Settings,
+  ShieldCheck,
   RefreshCw,
   Video,
   SlidersHorizontal,
@@ -70,6 +71,8 @@ interface TopNavbarProps {
   onToggleFullscreen?: () => void;
   isSyncingCloud?: boolean;
   lastCloudSyncTime?: string | null;
+  onSaveBaselineDefaults?: () => void;
+  isSavingBaseline?: boolean;
 }
 
 export function TopNavbar({
@@ -106,6 +109,8 @@ export function TopNavbar({
   onToggleFullscreen,
   isSyncingCloud,
   lastCloudSyncTime,
+  onSaveBaselineDefaults,
+  isSavingBaseline = false,
 }: TopNavbarProps) {
   const isDark = theme === 'dark';
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -548,6 +553,27 @@ export function TopNavbar({
             >
               <Crosshair className="w-4 h-4" />
             </button>
+
+            {onSaveBaselineDefaults && (
+              <button
+                onClick={onSaveBaselineDefaults}
+                disabled={isSavingBaseline}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
+                  isDark
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25'
+                    : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                }`}
+                title="Lock current layout & settings as the permanent factory baseline default"
+                aria-label="Set as Default"
+              >
+                {isSavingBaseline ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                )}
+                <span className="hidden xl:inline">Set as Default</span>
+              </button>
+            )}
           </>
         )}
 

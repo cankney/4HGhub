@@ -168,6 +168,13 @@ export default function WarehouseDigitalTwinPage() {
     text: string;
   } | null>(null);
 
+  // Baseline Factory Defaults Locking States
+  const [isSavingBaseline, setIsSavingBaseline] = useState<boolean>(false);
+  const [baselineSaveMsg, setBaselineSaveMsg] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
   const hasHydratedRef = React.useRef<boolean>(false);
   const isHydratingRef = React.useRef<boolean>(false);
   const isUserDirtyRef = React.useRef<boolean>(false);
@@ -681,6 +688,49 @@ export default function WarehouseDigitalTwinPage() {
     }
   }, []);
 
+  // Save active warehouse layout as permanent factory baseline default
+  const handleSaveBaselineDefaults = React.useCallback(async () => {
+    setIsSavingBaseline(true);
+    setBaselineSaveMsg(null);
+    try {
+      const currentState = latestStateRef.current;
+      const res = await fetch('/3d-warehouse/api/admin/baseline-defaults', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          state: currentState,
+          deviceId: typeof navigator !== 'undefined' ? navigator.userAgent : 'admin',
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setBaselineSaveMsg({
+          type: 'success',
+          text: 'Warehouse layout & settings locked as master baseline default!',
+        });
+        try {
+          localStorage.setItem(
+            'waretrack_baseline_defaults',
+            JSON.stringify(currentState)
+          );
+        } catch {}
+      } else {
+        setBaselineSaveMsg({
+          type: 'error',
+          text: json.error || 'Failed to lock baseline default.',
+        });
+      }
+    } catch (err: any) {
+      setBaselineSaveMsg({
+        type: 'error',
+        text: err.message || 'Network error saving baseline defaults.',
+      });
+    } finally {
+      setIsSavingBaseline(false);
+    }
+  }, []);
+
   // Sync theme class to html root
   useEffect(() => {
     if (theme === 'dark') {
@@ -768,6 +818,7 @@ export default function WarehouseDigitalTwinPage() {
 
       const saved =
         localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem('waretrack_baseline_defaults') ||
         localStorage.getItem('waretrack_4hg_twin_state_v8');
       if (saved) {
         const localSavedState = JSON.parse(saved);
@@ -1089,6 +1140,39 @@ export default function WarehouseDigitalTwinPage() {
     setMarkers(next.markers);
     setBlueprintItems(next.blueprintItems);
   };
+
+  // Import JSON backup file
+  const handleImportJson = React.useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          const parsed = JSON.parse(content);
+          if (!parsed || typeof parsed !== 'object') {
+            alert('Invalid JSON file format.');
+            return;
+          }
+          pushHistory();
+          isUserDirtyRef.current = true;
+          const applied = applyHydratedState(parsed);
+          if (applied) {
+            saveStateToCloud(parsed, { immediate: true });
+            setBaselineSaveMsg({
+              type: 'success',
+              text: `Restored backup from ${file.name}! Click "Set as Baseline Default" to lock it.`,
+            });
+          } else {
+            alert('JSON file contained no recognized warehouse twin elements.');
+          }
+        } catch (err: any) {
+          alert(`Failed to import file: ${err.message || 'Invalid JSON'}`);
+        }
+      };
+      reader.readAsText(file);
+    },
+    [pushHistory, applyHydratedState, saveStateToCloud]
+  );
 
   const handleUpdateMarker = (updated: FacilityMarker, immediate = false) => {
     pushHistory();
@@ -2183,6 +2267,8 @@ export default function WarehouseDigitalTwinPage() {
         onToggleFullscreen={handleToggleFullscreen}
         isSyncingCloud={isSyncingCloud}
         lastCloudSyncTime={lastCloudSyncTime}
+        onSaveBaselineDefaults={handleSaveBaselineDefaults}
+        isSavingBaseline={isSavingBaseline}
       />
 
       <HudOverlays
@@ -2365,6 +2451,10 @@ export default function WarehouseDigitalTwinPage() {
         lastUnifiSyncTime={lastUnifiSyncTime}
         unifiSyncStatusMsg={unifiSyncStatusMsg}
         onExportJson={handleExportJson}
+        onImportJson={handleImportJson}
+        onSaveBaselineDefaults={handleSaveBaselineDefaults}
+        isSavingBaseline={isSavingBaseline}
+        baselineSaveMsg={baselineSaveMsg}
         lastCloudSyncTime={lastCloudSyncTime}
       />
 
