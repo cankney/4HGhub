@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthGate } from "@/components/ui/AuthGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body suppressHydrationWarning className="min-h-dvh flex flex-col">{children}</body>
+      <body suppressHydrationWarning className="min-h-dvh flex flex-col">
+        <AuthGate>{children}</AuthGate>
+      </body>
     </html>
   );
 }

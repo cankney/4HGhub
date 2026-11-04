@@ -32,8 +32,11 @@ import {
   Upload,
   Video,
   X,
+  LogOut,
+  ExternalLink,
 } from 'lucide-react';
 import { CardinalFacing, getCardinalMapping } from '@/lib/compass';
+import { auth, firebaseSignOut, setAuthCookie } from '@/lib/firebase-auth';
 
 export interface OdooSettingsConfig {
   baseUrl: string;
@@ -906,6 +909,49 @@ export function SettingsDrawer({
                 <RotateCcw className="w-3.5 h-3.5" /> Reset to Baseline Default
               </button>
             )}
+          </div>
+        </section>
+
+        {/* 7. 4HG Hub Authentication & Session */}
+        <section
+          className={`p-3.5 rounded-2xl border space-y-2.5 ${
+            isDark
+              ? 'border-slate-800 bg-slate-900/70'
+              : 'border-slate-200 bg-slate-50'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-[#8DDB05]" /> 4HG Hub Session
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 font-bold">
+              ● Authenticated
+            </span>
+          </div>
+          {auth.currentUser?.email && (
+            <div className={`text-[11px] font-mono truncate ${labelClass}`}>
+              Signed in as: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{auth.currentUser.email}</strong>
+            </div>
+          )}
+          <div className="flex items-center gap-2 pt-1">
+            <a
+              href="https://4hghub.com"
+              className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-semibold border border-slate-700 hover:bg-slate-800 text-slate-300 transition flex items-center justify-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-[#8DDB05]" />
+              <span>4HG Hub</span>
+            </a>
+            <button
+              type="button"
+              onClick={async () => {
+                setAuthCookie(null);
+                await firebaseSignOut(auth);
+              }}
+              className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-semibold bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 transition cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </section>
       </div>
