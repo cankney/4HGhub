@@ -288,11 +288,18 @@ function NetworkDevice3DPopupCard({
           <div className="grid grid-cols-2 gap-1.5">
             <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
               <div className="text-[9px] text-slate-400">PoE Power</div>
-              <div className="text-xs font-bold text-blue-400 font-mono mt-0.5">{stats?.poeTotalWatts ?? 54.2}W / {stats?.poeBudgetWatts ?? 180}W</div>
+              <div className="text-xs font-bold text-blue-400 font-mono mt-0.5">
+                {stats?.poeTotalWatts !== undefined ? `${stats.poeTotalWatts}W` : '—'}{' '}
+                <span className="text-[9px] font-normal text-slate-400">
+                  {stats?.poeBudgetWatts ? `/ ${stats.poeBudgetWatts}W` : ''}
+                </span>
+              </div>
             </div>
             <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
               <div className="text-[9px] text-slate-400">Active Ports</div>
-              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">{stats?.ports?.filter(p => p.up).length ?? 11} / 16 Ports</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">
+                {stats?.ports ? `${stats.ports.filter(p => p.up).length} / ${stats.ports.length}` : 'Active'}
+              </div>
             </div>
           </div>
         )}
@@ -302,11 +309,15 @@ function NetworkDevice3DPopupCard({
           <div className="grid grid-cols-2 gap-1.5">
             <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
               <div className="text-[9px] text-slate-400">WAN State</div>
-              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">● Online (8.4ms)</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">
+                ● {stats?.wanStatus || marker.metadata.status || 'Online'}
+              </div>
             </div>
             <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-center">
-              <div className="text-[9px] text-slate-400">Protection</div>
-              <div className="text-xs font-bold text-purple-400 font-mono mt-0.5">DPI Active</div>
+              <div className="text-[9px] text-slate-400">Gateway IP</div>
+              <div className="text-xs font-bold text-purple-400 font-mono mt-0.5 truncate">
+                {marker.metadata.ip || '192.168.2.1'}
+              </div>
             </div>
           </div>
         )}
@@ -316,11 +327,15 @@ function NetworkDevice3DPopupCard({
           <div className="grid grid-cols-2 gap-1.5">
             <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
               <div className="text-[9px] text-slate-400">Battery Level</div>
-              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">{stats?.batteryPct ?? 100}% (185m)</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono mt-0.5">
+                {stats?.batteryPct !== undefined ? `${stats.batteryPct}%` : 'Normal'}
+              </div>
             </div>
             <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
               <div className="text-[9px] text-slate-400">Load Output</div>
-              <div className="text-xs font-bold text-amber-400 font-mono mt-0.5">{stats?.batteryLoadWatts ?? 142} Watts</div>
+              <div className="text-xs font-bold text-amber-400 font-mono mt-0.5">
+                {stats?.batteryLoadWatts !== undefined ? `${stats.batteryLoadWatts} W` : 'Protected'}
+              </div>
             </div>
           </div>
         )}

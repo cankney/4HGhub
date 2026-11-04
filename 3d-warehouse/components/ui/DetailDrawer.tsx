@@ -319,6 +319,23 @@ interface DetailDrawerProps {
   onUndo: () => void;
   onRedo: () => void;
   unifiConfig?: UnifiSettingsConfig;
+  unifiSiteSummary?: {
+    consoleName?: string;
+    consoleState?: string;
+    consoleModel?: string;
+    wanIp?: string;
+    ispName?: string;
+    wanStatus?: string;
+    wanLatencyMs?: number;
+    devicesTotal?: number;
+    devicesOnline?: number;
+    devicesOffline?: number;
+    wifiClients?: number;
+    guestClients?: number;
+    controllers?: { name: string; status: string; version: string }[];
+  } | null;
+  onSyncUnifi?: () => void;
+  isSyncingUnifi?: boolean;
   isCollapsed?: boolean;
   onFocusItem?: (pos: [number, number, number]) => void;
 }
@@ -359,6 +376,9 @@ export function DetailDrawer({
   onUndo,
   onRedo,
   unifiConfig,
+  unifiSiteSummary,
+  onSyncUnifi,
+  isSyncingUnifi,
   isCollapsed = false,
   onFocusItem,
 }: DetailDrawerProps) {
@@ -2970,13 +2990,13 @@ export function DetailDrawer({
                     <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                       <div className="text-[10px] text-slate-400 font-medium">Download Rate</div>
                       <div className="text-lg font-mono font-bold text-emerald-400 mt-0.5">
-                        {stats?.throughputRxMbps ?? 142.8} <span className="text-xs font-normal text-slate-400">Mbps</span>
+                        {stats?.throughputRxMbps ?? 0} <span className="text-xs font-normal text-slate-400">Mbps</span>
                       </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
                       <div className="text-[10px] text-slate-400 font-medium">Upload Rate</div>
                       <div className="text-lg font-mono font-bold text-cyan-400 mt-0.5">
-                        {stats?.throughputTxMbps ?? 28.4} <span className="text-xs font-normal text-slate-400">Mbps</span>
+                        {stats?.throughputTxMbps ?? 0} <span className="text-xs font-normal text-slate-400">Mbps</span>
                       </div>
                     </div>
                   </div>
@@ -2986,10 +3006,10 @@ export function DetailDrawer({
                     <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
                       Tri-Band Radio Allocation &amp; Channel Load
                     </div>
-                    {(stats?.radios || [
-                      { band: '2.4GHz', channel: 6, channelWidth: 'HE20', utilizationPct: 24, txPowerDbm: 20 },
-                      { band: '5GHz', channel: 44, channelWidth: 'HE80', utilizationPct: 38, txPowerDbm: 24 },
-                      { band: '6GHz', channel: 69, channelWidth: 'HE160', utilizationPct: 12, txPowerDbm: 22 },
+                    {(stats?.radios && stats.radios.length > 0 ? stats.radios : [
+                      { band: '2.4GHz', channel: 6, channelWidth: 'HE20', utilizationPct: 18, txPowerDbm: 20 },
+                      { band: '5GHz', channel: 44, channelWidth: 'HE80', utilizationPct: 26, txPowerDbm: 24 },
+                      { band: '6GHz', channel: 69, channelWidth: 'HE160', utilizationPct: 8, txPowerDbm: 22 },
                     ]).map((r) => (
                       <div key={r.band} className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-1">
                         <div className="flex justify-between items-center text-[10.5px]">
@@ -3114,15 +3134,21 @@ export function DetailDrawer({
                     </div>
                     <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
                       <div className="text-[9.5px] text-slate-400">Temperature</div>
-                      <div className="font-mono font-semibold text-slate-200 mt-0.5">{stats?.temperatureC ?? 46}°C (Optimal)</div>
+                      <div className="font-mono font-semibold text-slate-200 mt-0.5">
+                        {stats?.temperatureC !== undefined ? `${stats.temperatureC}°C (Optimal)` : 'Optimal'}
+                      </div>
                     </div>
                     <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
                       <div className="text-[9.5px] text-slate-400">CPU &amp; Memory</div>
-                      <div className="font-mono font-semibold text-slate-200 mt-0.5">{stats?.cpuUsagePct ?? 18}% / {stats?.memoryUsagePct ?? 42}%</div>
+                      <div className="font-mono font-semibold text-slate-200 mt-0.5">
+                        {stats?.cpuUsagePct !== undefined && stats?.memoryUsagePct !== undefined
+                          ? `${stats.cpuUsagePct}% / ${stats.memoryUsagePct}%`
+                          : 'Normal'}
+                      </div>
                     </div>
                     <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
                       <div className="text-[9.5px] text-slate-400">System Uptime</div>
-                      <div className="font-mono font-semibold text-slate-200 mt-0.5">{stats?.uptime || '28d 14h 22m'}</div>
+                      <div className="font-mono font-semibold text-slate-200 mt-0.5">{stats?.uptime || 'Active'}</div>
                     </div>
                   </div>
                 </div>
@@ -3153,13 +3179,14 @@ export function DetailDrawer({
                     <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
                       <div className="text-[10px] text-slate-400">PoE Power Budget</div>
                       <div className="text-base font-mono font-bold text-blue-400 mt-0.5">
-                        {stats?.poeTotalWatts ?? 54.2}W <span className="text-xs font-normal text-slate-400">/ {stats?.poeBudgetWatts ?? 180}W</span>
+                        {stats?.poeTotalWatts !== undefined ? `${stats.poeTotalWatts}W` : 'PoE Active'}{' '}
+                        <span className="text-xs font-normal text-slate-400">{stats?.poeBudgetWatts ? `/ ${stats.poeBudgetWatts}W` : ''}</span>
                       </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                       <div className="text-[10px] text-slate-400">Active Ports</div>
                       <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
-                        {ports.filter(p => p.up).length || 11} <span className="text-xs font-normal text-slate-400">/ 16 Connected</span>
+                        {ports.length > 0 ? `${ports.filter(p => p.up).length} / ${ports.length} Connected` : '16-Port Managed'}
                       </div>
                     </div>
                   </div>
@@ -3169,13 +3196,15 @@ export function DetailDrawer({
                     <div className="flex justify-between text-[10.5px] mb-1">
                       <span className="text-slate-400">PoE Allocation (APs &amp; Protect Cameras)</span>
                       <span className="font-mono font-semibold text-blue-400">
-                        {Math.round(((stats?.poeTotalWatts ?? 54.2) / (stats?.poeBudgetWatts ?? 180)) * 100)}% Used
+                        {stats?.poeTotalWatts !== undefined && stats?.poeBudgetWatts
+                          ? `${Math.round((stats.poeTotalWatts / stats.poeBudgetWatts) * 100)}% Used`
+                          : 'PoE Normal'}
                       </span>
                     </div>
                     <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
                       <div
                         className="h-full bg-blue-500 rounded-full"
-                        style={{ width: `${Math.min(100, Math.round(((stats?.poeTotalWatts ?? 54.2) / (stats?.poeBudgetWatts ?? 180)) * 100))}%` }}
+                        style={{ width: `${Math.min(100, Math.round(((stats?.poeTotalWatts ?? 20) / (stats?.poeBudgetWatts ?? 180)) * 100))}%` }}
                       />
                     </div>
                   </div>
@@ -3300,13 +3329,15 @@ export function DetailDrawer({
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
                       <div className="text-[10px] text-slate-400">ISP Status</div>
-                      <div className="text-xs font-bold text-purple-300 mt-0.5">{stats?.ispName || 'Fiber 1 Gbps'}</div>
-                      <div className="text-[9px] font-mono text-emerald-400 mt-0.5">● Connected ({stats?.wanLatencyMs ?? 8.4}ms)</div>
+                      <div className="text-xs font-bold text-purple-300 mt-0.5">{stats?.ispName || 'Fiber Broadband'}</div>
+                      <div className="text-[9px] font-mono text-emerald-400 mt-0.5">
+                        ● {stats?.wanStatus || 'Connected'}{stats?.wanLatencyMs ? ` (${stats.wanLatencyMs}ms)` : ''}
+                      </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                      <div className="text-[10px] text-slate-400">WAN IP</div>
-                      <div className="text-xs font-mono font-bold text-emerald-400 mt-0.5">{stats?.wanIp || '74.125.18.24'}</div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">Gateway: 10.24.20.1</div>
+                      <div className="text-[10px] text-slate-400">WAN / LAN IP</div>
+                      <div className="text-xs font-mono font-bold text-emerald-400 mt-0.5">{stats?.wanIp || selectedMarker.metadata.ip || '192.168.2.1'}</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">Gateway: {stats?.gatewayIp || '192.168.2.1'}</div>
                     </div>
                   </div>
 
@@ -3345,14 +3376,16 @@ export function DetailDrawer({
                     <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                       <div className="text-[10px] text-slate-400">Battery Level</div>
                       <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
-                        {stats?.batteryPct ?? 100}%
+                        {stats?.batteryPct !== undefined ? `${stats.batteryPct}%` : 'Normal'}
                       </div>
-                      <div className="text-[9.5px] font-mono text-slate-400 mt-0.5">Runtime: ~{stats?.batteryRuntimeMin ?? 185} min</div>
+                      <div className="text-[9.5px] font-mono text-slate-400 mt-0.5">
+                        {stats?.batteryRuntimeMin !== undefined ? `Runtime: ~${stats.batteryRuntimeMin} min` : 'AC Power Line'}
+                      </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
                       <div className="text-[10px] text-slate-400">Output Load</div>
                       <div className="text-base font-mono font-bold text-amber-400 mt-0.5">
-                        {stats?.batteryLoadWatts ?? 142} <span className="text-xs font-normal">Watts</span>
+                        {stats?.batteryLoadWatts !== undefined ? `${stats.batteryLoadWatts} Watts` : 'Protected'}
                       </div>
                       <div className="text-[9.5px] text-slate-400 mt-0.5">Powering Rack Gear</div>
                     </div>
@@ -3374,7 +3407,9 @@ export function DetailDrawer({
                     <span className="flex items-center gap-1.5 text-cyan-400">
                       <Cpu className="w-4 h-4" /> UniFi OS Controller Health
                     </span>
-                    <span className="text-[10px] font-mono text-cyan-300">CloudKey Gen2+</span>
+                    <span className="text-[10px] font-mono text-cyan-300">
+                      {selectedMarker.metadata.unifiModel || 'CloudKey+ Gen2'}
+                    </span>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2">
@@ -3384,11 +3419,11 @@ export function DetailDrawer({
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-950 border border-slate-800">
                         <span className="font-semibold text-slate-200">UniFi Network</span>
-                        <span className="font-mono text-[10px] text-emerald-400 font-bold">● Active (v8.5.6)</span>
+                        <span className="font-mono text-[10px] text-emerald-400 font-bold">● Active</span>
                       </div>
                       <div className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-950 border border-slate-800">
                         <span className="font-semibold text-slate-200">UniFi Protect</span>
-                        <span className="font-mono text-[10px] text-emerald-400 font-bold">● Active (v4.1.53)</span>
+                        <span className="font-mono text-[10px] text-emerald-400 font-bold">● Active</span>
                       </div>
                     </div>
                   </div>
@@ -3397,15 +3432,19 @@ export function DetailDrawer({
                     <div className="flex justify-between text-[10.5px]">
                       <span className="text-slate-400">Internal Video Storage</span>
                       <span className="font-mono text-cyan-400 font-bold">
-                        {stats?.storageUsedGb ?? 1340} GB / {stats?.storageTotalGb ?? 2000} GB
+                        {stats?.storageUsedGb !== undefined && stats?.storageTotalGb !== undefined
+                          ? `${stats.storageUsedGb} GB / ${stats.storageTotalGb} GB`
+                          : '1.0 TB Storage Drive (Normal)'}
                       </span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                      <div
-                        className="h-full bg-cyan-500 rounded-full"
-                        style={{ width: `${Math.round(((stats?.storageUsedGb ?? 1340) / (stats?.storageTotalGb ?? 2000)) * 100)}%` }}
-                      />
-                    </div>
+                    {stats?.storageUsedGb !== undefined && stats?.storageTotalGb !== undefined && (
+                      <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                        <div
+                          className="h-full bg-cyan-500 rounded-full"
+                          style={{ width: `${Math.round((stats.storageUsedGb / stats.storageTotalGb) * 100)}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3431,13 +3470,13 @@ export function DetailDrawer({
                     <div className="p-2.5 rounded-xl bg-pink-500/10 border border-pink-500/20">
                       <div className="text-[10px] text-slate-400">Paired Protect Nodes</div>
                       <div className="text-base font-mono font-bold text-pink-400 mt-0.5">
-                        {stats?.superlinkPairedNodes ?? 12} Nodes
+                        {stats?.superlinkPairedNodes !== undefined ? `${stats.superlinkPairedNodes} Nodes` : 'Bridge Active'}
                       </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                       <div className="text-[10px] text-slate-400">Signal Strength</div>
                       <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
-                        {stats?.superlinkRssi ?? -48} dBm
+                        {stats?.superlinkRssi !== undefined ? `${stats.superlinkRssi} dBm` : 'Optimal'}
                       </div>
                     </div>
                   </div>
@@ -4100,6 +4139,154 @@ export function DetailDrawer({
 
       {/* Scrollable Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* ========================================================================= */}
+        {/* UniFi Hardware & Network Overview Card */}
+        {/* ========================================================================= */}
+        {(() => {
+          const netMarkers = markers.filter((m) => m.type.startsWith('network_') || m.type === 'camera');
+          const onlineCount = unifiSiteSummary?.devicesOnline ?? netMarkers.filter(m => m.metadata.status !== 'offline').length;
+          const totalCount = unifiSiteSummary?.devicesTotal ?? netMarkers.length;
+          const consoleName = unifiSiteSummary?.consoleName || '4HG CloudKey+';
+          const wanIp = unifiSiteSummary?.wanIp || '192.168.2.1';
+          const ispName = unifiSiteSummary?.ispName || 'Fiber Gateway';
+          const wifiClients = unifiSiteSummary?.wifiClients ?? 0;
+
+          return (
+            <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-3 shadow-sm`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-500">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold flex items-center gap-1.5">
+                      <span className={headingClass}>UniFi Network &amp; Hardware</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    </div>
+                    <div className={`text-[10px] ${labelClass}`}>
+                      {consoleName} • Site Manager Live
+                    </div>
+                  </div>
+                </div>
+
+                {onSyncUnifi && (
+                  <button
+                    type="button"
+                    onClick={onSyncUnifi}
+                    disabled={isSyncingUnifi}
+                    className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer ${
+                      isDark
+                        ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                        : 'border-blue-500/40 bg-blue-500/15 text-blue-700 hover:bg-blue-500/25'
+                    }`}
+                    title="Poll Ubiquiti API for latest network hardware state"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isSyncingUnifi ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingUnifi ? 'Syncing...' : 'Sync Fleet'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Console & WAN Telemetry Grid */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className={`p-2 rounded-xl border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-[9.5px] ${labelClass}`}>Internet Gateway</div>
+                  <div className={`font-semibold mt-0.5 truncate ${valueClass}`}>{ispName}</div>
+                  <div className="text-[9.5px] font-mono text-emerald-500 mt-0.5">● WAN {wanIp}</div>
+                </div>
+                <div className={`p-2 rounded-xl border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-[9.5px] ${labelClass}`}>Adopted Fleet</div>
+                  <div className={`font-semibold mt-0.5 ${valueClass}`}>
+                    {onlineCount} / {totalCount} Online
+                  </div>
+                  <div className="text-[9.5px] font-mono text-blue-400 mt-0.5">
+                    {wifiClients > 0 ? `${wifiClients} WiFi Clients` : 'Cloud Controller Active'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Adopted Network Devices & Cameras List */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[10.5px] px-0.5">
+                  <span className={`font-bold uppercase tracking-wider ${labelClass}`}>Adopted Hardware ({netMarkers.length})</span>
+                  <span className={`text-[9.5px] ${labelClass}`}>Click to locate in 3D</span>
+                </div>
+
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {netMarkers.map((dev) => {
+                    const isOnline = dev.metadata.status !== 'offline';
+                    const devIp = dev.metadata.ip || '192.168.2.9';
+                    const devModel = dev.metadata.unifiModel || (dev.type === 'camera' ? 'Protect Cam' : 'UniFi Hardware');
+
+                    const DevIcon =
+                      dev.type === 'network_gateway'
+                        ? Router
+                        : dev.type === 'network_switch'
+                        ? Network
+                        : dev.type === 'network_ap'
+                        ? Wifi
+                        : dev.type === 'camera'
+                        ? Camera
+                        : dev.type === 'network_ups'
+                        ? BatteryCharging
+                        : Cpu;
+
+                    return (
+                      <button
+                        key={dev.id}
+                        type="button"
+                        onClick={() => {
+                          onSelectMarker(dev);
+                          if (onFocusItem) onFocusItem(dev.position);
+                        }}
+                        className={`w-full p-2 rounded-xl border text-left transition flex items-center justify-between gap-2 cursor-pointer hover:border-blue-400/60 ${
+                          isDark
+                            ? 'bg-slate-900/60 border-slate-800/80 hover:bg-slate-900'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                            dev.type === 'camera'
+                              ? 'bg-cyan-500/15 text-cyan-400'
+                              : dev.type === 'network_ap'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : dev.type === 'network_switch'
+                              ? 'bg-blue-500/15 text-blue-400'
+                              : 'bg-purple-500/15 text-purple-400'
+                          }`}>
+                            <DevIcon className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className={`text-xs font-bold truncate ${valueClass}`}>
+                              {dev.name}
+                            </div>
+                            <div className={`text-[9.5px] font-mono truncate ${labelClass}`}>
+                              {devModel} • {devIp}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold ${
+                            isOnline
+                              ? isDark
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-emerald-500/20 text-emerald-700 border border-emerald-500/30'
+                              : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'
+                          }`}>
+                            ● {isOnline ? 'ONLINE' : 'OFFLINE'}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Add / Spawn New Shelves, Desks, Computers & Accessories (Only in Edit Mode) */}
         {appMode === 'edit' && (
           <div className={`p-3.5 rounded-2xl border ${subCardClass} space-y-2.5 shadow-sm`}>

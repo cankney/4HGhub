@@ -172,6 +172,8 @@ export async function POST(req: NextRequest) {
     }
 
     let rawCameras: any[] = [];
+    let rawNetworkDevices: any[] = [];
+    let hostConsoleId = '';
     let nvrName = 'UniFi Console';
     let authSucceeded = false;
     let authSource: string | null = null;
@@ -335,6 +337,7 @@ export async function POST(req: NextRequest) {
               ) || hosts[0];
 
             nvrName = targetHost.name || targetHost.reportedState?.name || 'UniFi Cloud Gateway';
+            hostConsoleId = targetHost.id;
             const consoleId = targetHost.id;
 
             // Query Protect cameras via official Cloud Connector
@@ -353,20 +356,21 @@ export async function POST(req: NextRequest) {
               console.warn('[UniFi Sync] Cloud connector Protect cameras error:', cErr.message);
             }
 
-            // Fallback: list adopted devices from Site Manager
-            if (rawCameras.length === 0) {
-              try {
-                const cloudDevRes = await makeUnifiRequest(
-                  'https://api.ui.com/v1/devices',
-                  { method: 'GET', headers: authHeaders, timeoutMs: 12000 }
-                );
-                if (cloudDevRes.statusCode === 200) {
-                  const devData = JSON.parse(cloudDevRes.body);
-                  const devs = Array.isArray(devData)
-                    ? devData
-                    : Array.isArray(devData.data)
-                    ? devData.data
-                    : [];
+            // Always list adopted network devices from Site Manager
+            try {
+              const cloudDevRes = await makeUnifiRequest(
+                'https://api.ui.com/v1/devices',
+                { method: 'GET', headers: authHeaders, timeoutMs: 12000 }
+              );
+              if (cloudDevRes.statusCode === 200) {
+                const devData = JSON.parse(cloudDevRes.body);
+                const devs = Array.isArray(devData)
+                  ? devData
+                  : Array.isArray(devData.data)
+                  ? devData.data
+                  : [];
+                rawNetworkDevices = devs;
+                if (rawCameras.length === 0) {
                   rawCameras = devs.filter((d: any) => {
                     const modelKey = (d.modelKey || '').toLowerCase();
                     const type = (d.type || '').toLowerCase();
@@ -381,9 +385,9 @@ export async function POST(req: NextRequest) {
                     );
                   });
                 }
-              } catch (dErr: any) {
-                console.warn('[UniFi Sync] Site Manager devices fallback error:', dErr.message);
               }
+            } catch (dErr: any) {
+              console.warn('[UniFi Sync] Site Manager devices query error:', dErr.message);
             }
           }
         }
@@ -554,19 +558,34 @@ export async function POST(req: NextRequest) {
       };
     });
 
+    const discoveredNetworkDevices = rawNetworkDevices.map((d: any) => ({
+      id: String(d.id || d.mac || ''),
+      name: d.name || d.shortname || d.model || 'UniFi Device',
+      model: d.model || d.modelKey || d.shortname || 'UniFi',
+      shortname: d.shortname,
+      ip: d.ip || hostOnly,
+      mac: d.mac || '',
+      state: (d.state === 'online' || d.isOnline === true) ? 'online' : 'offline',
+      firmwareVersion: d.firmwareVersion || d.version,
+      uptime: d.uptime,
+    }));
+
     if (testOnly) {
       return NextResponse.json({
         success: true,
-        message: `Connected successfully to ${nvrName} via ${authSource}! Found ${discoveredCameras.length} camera(s).`,
+        message: `Connected successfully to ${nvrName} via ${authSource}! Found ${discoveredCameras.length} camera(s) and ${discoveredNetworkDevices.length} network device(s).`,
         cameraCount: discoveredCameras.length,
+        networkDeviceCount: discoveredNetworkDevices.length,
       });
     }
 
     return NextResponse.json({
       success: true,
       nvrName,
+      consoleId: hostConsoleId,
       cameras: discoveredCameras,
-      message: `Discovered and mapped ${discoveredCameras.length} camera(s) from ${nvrName} (${authSource}).`,
+      networkDevices: discoveredNetworkDevices,
+      message: `Discovered and mapped ${discoveredCameras.length} camera(s) and ${discoveredNetworkDevices.length} network device(s) from ${nvrName} (${authSource}).`,
     });
   } catch (err: any) {
     console.error('[UniFi Sync] Exception:', err);

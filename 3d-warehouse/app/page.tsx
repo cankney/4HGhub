@@ -164,6 +164,7 @@ export default function WarehouseDigitalTwinPage() {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+  const [unifiSiteSummary, setUnifiSiteSummary] = useState<any>(null);
 
   // Cloud Synchronization States
   const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
@@ -2052,152 +2053,277 @@ export default function WarehouseDigitalTwinPage() {
     };
 
     pollTelemetry();
-    const interval = setInterval(pollTelemetry, 3500);
+    const interval = setInterval(pollTelemetry, 4500);
     return () => clearInterval(interval);
   }, [selectedMarkerId]);
 
-  const handleSyncUnifiCameras = async () => {
-    setIsSyncingUnifi(true);
-    setUnifiSyncStatusMsg(null);
-
-    try {
-      const res = await fetch('/3d-warehouse/api/unifi/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(unifiConfig),
-      });
-
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || `HTTP ${res.status} from UniFi Protect`);
-      }
-
-      const discovered = data.cameras || [];
-      if (discovered.length === 0) {
-        setUnifiSyncStatusMsg({
-          type: 'success',
-          text: `Connected to ${data.nvrName || 'UniFi Protect'}, but no cameras were found on this console.`,
-        });
-        return;
-      }
-
-      pushHistory();
-
-      setMarkers((prevMarkers) => {
-        const existingCams = prevMarkers.filter((m) => m.type === 'camera');
-        const otherMarkers = prevMarkers.filter((m) => m.type !== 'camera');
-
-        const usedMarkerIds = new Set<string>();
-        const updatedCams: FacilityMarker[] = [];
-
-        // Map each discovered UniFi Protect camera
-        discovered.forEach((uCam: any, idx: number) => {
-          // 1. Try to match by unifiId, IP, or name
-          let matched = existingCams.find(
-            (m) =>
-              !usedMarkerIds.has(m.id) &&
-              (m.metadata.unifiId === uCam.id ||
-                (uCam.ip && m.metadata.ip === uCam.ip) ||
-                m.name.toLowerCase().includes(uCam.name.toLowerCase()) ||
-                uCam.name.toLowerCase().includes(m.name.toLowerCase()))
-          );
-
-          // 2. Fallback: match first available unassigned camera slot
-          if (!matched) {
-            matched = existingCams.find((m) => !usedMarkerIds.has(m.id));
-          }
-
-          if (matched) {
-            usedMarkerIds.add(matched.id);
-            updatedCams.push({
-              ...matched,
-              name: uCam.name,
-              metadata: {
-                ...matched.metadata,
-                ip: uCam.ip || matched.metadata.ip,
-                streamUrl: uCam.streamUrl || matched.metadata.streamUrl,
-                status: uCam.state === 'online' ? 'online' : 'offline',
-                unifiId: uCam.id,
-                unifiModel: uCam.model,
-                unifiConsoleId: uCam.consoleId || data.consoleId,
-                rtspHigh: uCam.rtspHigh,
-                rtspMedium: uCam.rtspMedium,
-                rtspLow: uCam.rtspLow,
-                description: `UniFi ${uCam.model} • IP: ${uCam.ip || 'DHCP'} • Status: ${uCam.state}`,
-              },
-            });
-          } else {
-            // 3. Create a new camera pin along the perimeter walls
-            const newId = `CAM-${String(existingCams.length + idx + 1).padStart(2, '0')}`;
-            const perimeterSlots: [number, number, number][] = [
-              [5.95, 1.05, -8.55],
-              [5.95, 1.05, 8.35],
-              [-5.95, 1.05, 0.85],
-              [-5.95, 1.05, -6.5],
-              [-5.95, 1.05, 6.5],
-              [0, 1.05, -8.55],
-            ];
-            const p = perimeterSlots[idx % perimeterSlots.length];
-            const offsetZ = Math.floor(idx / perimeterSlots.length) * 1.5;
-
-            updatedCams.push({
-              id: newId,
-              type: 'camera',
-              name: uCam.name,
-              position: [p[0], p[1], p[2] + offsetZ],
-              rotation: [0, 0, 0],
-              modelVariant: 'pin',
-              metadata: {
-                ip: uCam.ip,
-                streamUrl: uCam.streamUrl,
-                status: uCam.state === 'online' ? 'online' : 'offline',
-                unifiId: uCam.id,
-                unifiModel: uCam.model,
-                unifiConsoleId: uCam.consoleId || data.consoleId,
-                rtspHigh: uCam.rtspHigh,
-                rtspMedium: uCam.rtspMedium,
-                rtspLow: uCam.rtspLow,
-                description: `UniFi ${uCam.model} • IP: ${uCam.ip || 'DHCP'}`,
-                bay: 'UniFi Discovered',
-              },
-            });
-          }
-        });
-
-        // Keep any remaining manual cameras that were not matched
-        existingCams.forEach((m) => {
-          if (!usedMarkerIds.has(m.id)) {
-            updatedCams.push(m);
-          }
-        });
-
-        const nextAll = [...otherMarkers, ...updatedCams];
-        saveStateToCloud({ markers: nextAll }, { immediate: true });
-        return nextAll;
-      });
-
-      const timeStr = new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      setLastUnifiSyncTime(timeStr);
+  // Periodic UniFi Site Manager summary refresh
+  useEffect(() => {
+    const fetchSummary = async () => {
       try {
-        localStorage.setItem('waretrack_last_unifi_sync_time', timeStr);
-      } catch {}
+        const res = await fetch('/3d-warehouse/api/unifi/network');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.siteSummary) {
+            setUnifiSiteSummary(data.siteSummary);
+          }
+        }
+      } catch {
+        // Ignore background polling errors
+      }
+    };
 
-      setUnifiSyncStatusMsg({
-        type: 'success',
-        text: `Successfully mapped ${discovered.length} camera feed(s) from ${data.nvrName || 'UniFi Protect'}!`,
-      });
-    } catch (err: any) {
-      setUnifiSyncStatusMsg({
-        type: 'error',
-        text: err.message || 'Failed to sync cameras from UniFi Protect.',
-      });
-    } finally {
-      setIsSyncingUnifi(false);
+    fetchSummary();
+    const interval = setInterval(fetchSummary, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSyncUnifiCameras = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      const isSilent = Boolean(options?.silent);
+      setIsSyncingUnifi(true);
+      if (!isSilent) setUnifiSyncStatusMsg(null);
+
+      try {
+        const res = await fetch('/3d-warehouse/api/unifi/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(unifiConfig),
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || `HTTP ${res.status} from UniFi Site Manager`);
+        }
+
+        // Also fetch updated network overview summary
+        try {
+          const netRes = await fetch('/3d-warehouse/api/unifi/network');
+          if (netRes.ok) {
+            const netData = await netRes.json();
+            if (netData.success && netData.siteSummary) {
+              setUnifiSiteSummary(netData.siteSummary);
+            }
+          }
+        } catch {}
+
+        const discovered = data.cameras || [];
+        const discoveredNetDevices = data.networkDevices || [];
+
+        if (discovered.length === 0 && discoveredNetDevices.length === 0) {
+          if (!isSilent) {
+            setUnifiSyncStatusMsg({
+              type: 'success',
+              text: `Connected to ${data.nvrName || 'UniFi Site Manager'}, but no devices were reported.`,
+            });
+          }
+          return;
+        }
+
+        pushHistory();
+
+        setMarkers((prevMarkers) => {
+          let updated = [...prevMarkers];
+
+          // 1. Update Camera markers
+          const existingCams = updated.filter((m) => m.type === 'camera');
+          const otherMarkers = updated.filter((m) => m.type !== 'camera');
+          const usedMarkerIds = new Set<string>();
+          const updatedCams: FacilityMarker[] = [];
+
+          discovered.forEach((uCam: any, idx: number) => {
+            let matched = existingCams.find(
+              (m) =>
+                !usedMarkerIds.has(m.id) &&
+                (m.metadata.unifiId === uCam.id ||
+                  (uCam.ip && m.metadata.ip === uCam.ip) ||
+                  m.name.toLowerCase().includes(uCam.name.toLowerCase()) ||
+                  uCam.name.toLowerCase().includes(m.name.toLowerCase()))
+            );
+
+            if (!matched) {
+              matched = existingCams.find((m) => !usedMarkerIds.has(m.id));
+            }
+
+            if (matched) {
+              usedMarkerIds.add(matched.id);
+              updatedCams.push({
+                ...matched,
+                name: uCam.name,
+                metadata: {
+                  ...matched.metadata,
+                  ip: uCam.ip || matched.metadata.ip,
+                  streamUrl: uCam.streamUrl || matched.metadata.streamUrl,
+                  status: uCam.state === 'online' ? 'online' : 'offline',
+                  unifiId: uCam.id,
+                  unifiModel: uCam.model,
+                  unifiConsoleId: uCam.consoleId || data.consoleId,
+                  rtspHigh: uCam.rtspHigh,
+                  rtspMedium: uCam.rtspMedium,
+                  rtspLow: uCam.rtspLow,
+                  description: `UniFi ${uCam.model} • IP: ${uCam.ip || 'DHCP'} • Status: ${uCam.state}`,
+                },
+              });
+            } else {
+              const newId = `CAM-${String(existingCams.length + idx + 1).padStart(2, '0')}`;
+              const perimeterSlots: [number, number, number][] = [
+                [5.95, 1.05, -8.55],
+                [5.95, 1.05, 8.35],
+                [-5.95, 1.05, 0.85],
+                [-5.95, 1.05, -6.5],
+                [-5.95, 1.05, 6.5],
+                [0, 1.05, -8.55],
+              ];
+              const p = perimeterSlots[idx % perimeterSlots.length];
+              const offsetZ = Math.floor(idx / perimeterSlots.length) * 1.5;
+
+              updatedCams.push({
+                id: newId,
+                type: 'camera',
+                name: uCam.name,
+                position: [p[0], p[1], p[2] + offsetZ],
+                rotation: [0, 0, 0],
+                modelVariant: 'pin',
+                metadata: {
+                  ip: uCam.ip,
+                  streamUrl: uCam.streamUrl,
+                  status: uCam.state === 'online' ? 'online' : 'offline',
+                  unifiId: uCam.id,
+                  unifiModel: uCam.model,
+                  unifiConsoleId: uCam.consoleId || data.consoleId,
+                  rtspHigh: uCam.rtspHigh,
+                  rtspMedium: uCam.rtspMedium,
+                  rtspLow: uCam.rtspLow,
+                  description: `UniFi ${uCam.model} • IP: ${uCam.ip || 'DHCP'}`,
+                  bay: 'UniFi Discovered',
+                },
+              });
+            }
+          });
+
+          existingCams.forEach((m) => {
+            if (!usedMarkerIds.has(m.id)) {
+              updatedCams.push(m);
+            }
+          });
+
+          updated = [...otherMarkers, ...updatedCams];
+
+          // 2. Update Network Hardware markers (APs, Switch, Gateway, CloudKey)
+          if (discoveredNetDevices.length > 0) {
+            const usedNetIds = new Set<string>();
+            updated = updated.map((m) => {
+              if (!m.type.startsWith('network_')) return m;
+
+              const matchedDev = discoveredNetDevices.find((uDev: any) => {
+                if (usedNetIds.has(uDev.id)) return false;
+                if (m.metadata.unifiId && m.metadata.unifiId === uDev.id) return true;
+                if (uDev.mac && m.metadata.networkStats?.mac?.toLowerCase() === uDev.mac.toLowerCase()) return true;
+                if (uDev.ip && m.metadata.ip === uDev.ip && m.metadata.ip !== '192.168.2.9') return true;
+
+                if (uDev.type === 'gateway' && m.type === 'network_gateway') return true;
+                if (uDev.type === 'switch' && m.type === 'network_switch') return true;
+                if (uDev.type === 'cloudkey' && m.type === 'network_cloudkey') return true;
+                if (uDev.type === 'ap' && m.type === 'network_ap') {
+                  if (uDev.name && m.name.toLowerCase().includes(uDev.name.toLowerCase())) return true;
+                  if (uDev.model && m.metadata.unifiModel?.toLowerCase() === uDev.model.toLowerCase()) return true;
+                  return true;
+                }
+                return false;
+              });
+
+              if (matchedDev) {
+                usedNetIds.add(matchedDev.id);
+                return {
+                  ...m,
+                  name: matchedDev.name || m.name,
+                  metadata: {
+                    ...m.metadata,
+                    ip: matchedDev.ip || m.metadata.ip,
+                    status: (matchedDev.state === 'online' ? 'online' : (matchedDev.state === 'offline' ? 'offline' : m.metadata.status)) as any,
+                    unifiId: matchedDev.id,
+                    unifiModel: matchedDev.model || m.metadata.unifiModel,
+                    unifiConsoleId: matchedDev.consoleId || data.consoleId,
+                    networkStats: {
+                      ...(m.metadata.networkStats || {}),
+                      mac: matchedDev.mac || m.metadata.networkStats?.mac,
+                      firmwareVersion: matchedDev.firmware || m.metadata.networkStats?.firmwareVersion,
+                      uptime: matchedDev.uptime || m.metadata.networkStats?.uptime,
+                      gatewayIp: matchedDev.ip?.startsWith('192.168.2.') ? '192.168.2.1' : m.metadata.networkStats?.gatewayIp,
+                    },
+                  },
+                };
+              }
+              return m;
+            });
+          }
+
+          saveStateToCloud({ markers: updated }, { immediate: true });
+          return updated;
+        });
+
+        const timeStr = new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        setLastUnifiSyncTime(timeStr);
+        try {
+          localStorage.setItem('waretrack_last_unifi_sync_time', timeStr);
+        } catch {}
+
+        if (!isSilent) {
+          const totalDiscovered = discovered.length + discoveredNetDevices.length;
+          setUnifiSyncStatusMsg({
+            type: 'success',
+            text: `Synced ${totalDiscovered} UniFi device(s) & feeds from ${data.nvrName || 'Site Manager'}!`,
+          });
+          showToastNotification('success', `Synced ${totalDiscovered} UniFi device(s)`);
+        }
+      } catch (err: any) {
+        if (!isSilent) {
+          setUnifiSyncStatusMsg({
+            type: 'error',
+            text: err.message || 'Failed to sync devices from UniFi Site Manager.',
+          });
+          showToastNotification('error', 'UniFi sync error: ' + (err.message || 'Failed'));
+        }
+      } finally {
+        setIsSyncingUnifi(false);
+      }
+    },
+    [unifiConfig, pushHistory, saveStateToCloud, showToastNotification]
+  );
+
+  // Auto-sync UniFi hardware upon launch and periodically in background
+  const hasAutoSyncedUnifiRef = React.useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) return;
+
+    let timer: NodeJS.Timeout | null = null;
+    if (!hasAutoSyncedUnifiRef.current) {
+      hasAutoSyncedUnifiRef.current = true;
+      timer = setTimeout(() => {
+        if (isInitialCloudPullDoneRef.current) {
+          handleSyncUnifiCameras({ silent: true });
+        } else {
+          setTimeout(() => {
+            handleSyncUnifiCameras({ silent: true });
+          }, 2400);
+        }
+      }, 2400);
     }
-  };
+
+    // Background refresh every 3 minutes
+    const interval = setInterval(() => {
+      handleSyncUnifiCameras({ silent: true });
+    }, 180000);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [handleSyncUnifiCameras]);
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -2656,6 +2782,9 @@ export default function WarehouseDigitalTwinPage() {
           handleRedo();
         }}
         unifiConfig={unifiConfig}
+        unifiSiteSummary={unifiSiteSummary}
+        onSyncUnifi={handleSyncUnifiCameras}
+        isSyncingUnifi={isSyncingUnifi}
         isCollapsed={isSidebarCollapsed || isFullscreen}
         onFocusItem={(pos) => {
           const [tx, ty, tz] = pos;

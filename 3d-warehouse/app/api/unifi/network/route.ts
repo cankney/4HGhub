@@ -4,15 +4,51 @@ import http from 'node:http';
 import { URL } from 'node:url';
 import { NetworkClientStation, SwitchPortInfo, ApRadioInfo, NetworkDeviceStats } from '@/lib/markers';
 
-interface UnifiNetworkPayload {
-  baseUrl?: string;
-  apiKey?: string;
-  username?: string;
-  password?: string;
-  allowSelfSigned?: boolean;
-  deviceId?: string;
-  type?: string;
+export interface DiscoveredNetworkDevice {
+  id: string;
+  name: string;
+  model: string;
+  shortname?: string;
+  type: string;
+  ip: string;
+  mac: string;
+  status: 'online' | 'offline' | 'warning';
+  firmwareVersion?: string;
+  uptime?: string;
+  networkStats?: Partial<NetworkDeviceStats>;
+  lastSeen?: string;
 }
+
+export interface UnifiSiteSummary {
+  consoleName: string;
+  consoleId: string;
+  isOnline: boolean;
+  ip: string;
+  wanIp?: string;
+  wanStatus?: 'connected' | 'disconnected';
+  wanLatencyMs?: number;
+  ispName?: string;
+  totalDevices: number;
+  onlineDevices: number;
+  offlineDevices: number;
+  totalClients: number;
+  wirelessClients: number;
+  wiredClients: number;
+  controllers: { name: string; status: 'running' | 'stopped'; version?: string }[];
+  lastUpdated: string;
+}
+
+interface CacheEntry {
+  data: {
+    summary: UnifiSiteSummary;
+    devices: DiscoveredNetworkDevice[];
+    clients: NetworkClientStation[];
+  };
+  timestamp: number;
+}
+
+let inMemoryCache: CacheEntry | null = null;
+const CACHE_TTL_MS = 10000; // 10 seconds
 
 function cleanUnifiUrl(rawUrl: string): string {
   let str = (rawUrl || '').trim();
@@ -85,221 +121,486 @@ function makeUnifiRequest(
   });
 }
 
-/**
- * Generate slightly jittered live telemetry based on base values to reflect continuous network activity
- */
-function getSimulatedLiveStats(type: string, id: string): Partial<NetworkDeviceStats> {
+function formatUptime(seconds?: number): string | undefined {
+  if (!seconds || seconds <= 0) return undefined;
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+function classifyDeviceType(model: string = '', name: string = '', shortname: string = ''): string {
+  const combined = `${model} ${name} ${shortname}`.toLowerCase();
+  if (combined.includes('u7') || combined.includes('u6') || combined.includes('ap') || combined.includes('access point') || combined.includes('wifi')) {
+    return 'network_ap';
+  }
+  if (combined.includes('switch') || combined.includes('usw') || combined.includes('poe') || combined.includes('flex')) {
+    return 'network_switch';
+  }
+  if (combined.includes('gateway') || combined.includes('uxg') || combined.includes('udm') || combined.includes('router')) {
+    return 'network_gateway';
+  }
+  if (combined.includes('cloudkey') || combined.includes('uck') || combined.includes('console')) {
+    return 'network_cloudkey';
+  }
+  if (combined.includes('ups') || combined.includes('smartpower') || combined.includes('usp')) {
+    return 'network_ups';
+  }
+  if (combined.includes('superlink') || combined.includes('bridge') || combined.includes('sensor')) {
+    return 'network_superlink';
+  }
+  if (combined.includes('camera') || combined.includes('uvc') || combined.includes('bullet') || combined.includes('dome') || combined.includes('g5') || combined.includes('g6')) {
+    return 'camera';
+  }
+  return 'network_switch';
+}
+
+async function fetchRealUnifiData(cleanKey: string, cleanOrigin: string, allowSelfSigned: boolean) {
   const now = Date.now();
-  const jitter = (Math.sin(now / 4000) * 0.15) + (Math.cos(now / 2500) * 0.08);
-
-  if (type === 'network_ap') {
-    const isXg = id.includes('XG') || id.includes('02');
-    const baseRx = isXg ? 220 : 145;
-    const baseTx = isXg ? 65 : 28;
-    const rx = Math.max(12, Math.round((baseRx * (1 + jitter)) * 10) / 10);
-    const tx = Math.max(4, Math.round((baseTx * (1 + jitter * 0.8)) * 10) / 10);
-    return {
-      throughputRxMbps: rx,
-      throughputTxMbps: tx,
-      cpuUsagePct: Math.min(95, Math.max(12, Math.round((isXg ? 24 : 18) + jitter * 8))),
-      memoryUsagePct: Math.round((isXg ? 48 : 42) + jitter * 3),
-      temperatureC: isXg ? 49 : 46,
-    };
+  if (inMemoryCache && now - inMemoryCache.timestamp < CACHE_TTL_MS) {
+    return inMemoryCache.data;
   }
 
-  if (type === 'network_switch') {
-    const rx = Math.round((380 * (1 + jitter)) * 10) / 10;
-    const tx = Math.round((110 * (1 + jitter * 0.7)) * 10) / 10;
-    const poe = Math.round((54.2 + jitter * 3.5) * 10) / 10;
-    return {
-      throughputRxMbps: rx,
-      throughputTxMbps: tx,
-      poeTotalWatts: poe,
-      cpuUsagePct: Math.round(14 + jitter * 5),
-      memoryUsagePct: 36,
-      temperatureC: 44,
-    };
+  const authHeaders: Record<string, string> = {
+    Accept: 'application/json',
+    'User-Agent': 'WareTrack-3D/1.0',
+    'X-API-KEY': cleanKey,
+    'X-API-Key': cleanKey,
+  };
+
+  let summary: UnifiSiteSummary = {
+    consoleName: '4HG CloudKey+',
+    consoleId: '',
+    isOnline: true,
+    ip: '192.168.2.9',
+    wanIp: undefined,
+    wanStatus: 'connected',
+    wanLatencyMs: undefined,
+    ispName: undefined,
+    totalDevices: 0,
+    onlineDevices: 0,
+    offlineDevices: 0,
+    totalClients: 0,
+    wirelessClients: 0,
+    wiredClients: 0,
+    controllers: [],
+    lastUpdated: new Date().toISOString(),
+  };
+
+  let devices: DiscoveredNetworkDevice[] = [];
+  let clients: NetworkClientStation[] = [];
+  let hostConsoleId = '';
+
+  // 1. Query Official Site Manager Hosts API (api.ui.com/v1/hosts)
+  try {
+    const hostsRes = await makeUnifiRequest('https://api.ui.com/v1/hosts', {
+      method: 'GET',
+      headers: authHeaders,
+      timeoutMs: 10000,
+    });
+
+    if (hostsRes.statusCode === 200) {
+      const parsed = JSON.parse(hostsRes.body);
+      const hostsList: any[] = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed.data)
+        ? parsed.data
+        : [];
+
+      if (hostsList.length > 0) {
+        const host = hostsList[0];
+        hostConsoleId = host.id || '';
+        const rep = host.reportedState || {};
+
+        summary.consoleName = host.name || rep.name || '4HG CloudKey+';
+        summary.consoleId = hostConsoleId;
+        summary.isOnline = Boolean(host.isOnline ?? rep.isOnline ?? true);
+        summary.ip = rep.ip || host.ip || '192.168.2.9';
+        summary.wanIp = rep.wanIp || host.wanIp;
+        summary.ispName = rep.isp || host.isp || rep.organization || host.organization;
+
+        // Controllers running (Network, Protect, Access, Talk, etc.)
+        const apps = rep.apps || host.apps || [];
+        if (Array.isArray(apps)) {
+          summary.controllers = apps.map((app: any) => ({
+            name: app.name === 'network' ? 'UniFi Network' : app.name === 'protect' ? 'UniFi Protect' : String(app.name),
+            status: app.state === 'running' || app.status === 'running' ? 'running' : 'stopped',
+            version: app.version || app.installedVersion,
+          }));
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('[UniFi Network] Site Manager hosts query error:', err.message);
   }
 
-  if (type === 'network_gateway') {
-    const rx = Math.round((385 * (1 + jitter)) * 10) / 10;
-    const tx = Math.round((112 * (1 + jitter * 0.7)) * 10) / 10;
-    const latency = Math.max(4, Math.round((8.4 + jitter * 2) * 10) / 10);
-    return {
-      throughputRxMbps: rx,
-      throughputTxMbps: tx,
-      wanLatencyMs: latency,
-      cpuUsagePct: Math.round(22 + jitter * 6),
-      memoryUsagePct: 46,
-      temperatureC: 48,
-    };
+  // 2. Query Official Site Manager Devices API (api.ui.com/v1/devices)
+  try {
+    const devRes = await makeUnifiRequest('https://api.ui.com/v1/devices', {
+      method: 'GET',
+      headers: authHeaders,
+      timeoutMs: 12000,
+    });
+
+    if (devRes.statusCode === 200) {
+      const parsed = JSON.parse(devRes.body);
+      const rawDevs: any[] = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed.data)
+        ? parsed.data
+        : [];
+
+      if (rawDevs.length > 0) {
+        devices = rawDevs.map((d: any) => {
+          const devName = d.name || d.modelKey || d.shortname || d.model || 'UniFi Device';
+          const devModel = d.model || d.modelKey || d.shortname || 'UniFi';
+          const devType = classifyDeviceType(devModel, devName, d.shortname || '');
+          const isOnline = d.state === 'online' || d.state === 'CONNECTED' || d.isOnline === true;
+
+          const stats: Partial<NetworkDeviceStats> = {
+            mac: d.mac,
+            gatewayIp: d.gatewayIp || summary.ip,
+            firmwareVersion: d.firmwareVersion || d.version,
+            uptime: formatUptime(d.uptime),
+            cpuUsagePct: typeof d.cpuUsage === 'number' ? Math.round(d.cpuUsage) : undefined,
+            memoryUsagePct: typeof d.memoryUsage === 'number' ? Math.round(d.memoryUsage) : undefined,
+            temperatureC: d.temperature,
+            throughputRxMbps: typeof d.rxRateMbps === 'number' ? d.rxRateMbps : 0,
+            throughputTxMbps: typeof d.txRateMbps === 'number' ? d.txRateMbps : 0,
+          };
+
+          return {
+            id: String(d.id || d.mac || ''),
+            name: devName,
+            model: devModel,
+            shortname: d.shortname,
+            type: devType,
+            ip: d.ip || summary.ip,
+            mac: d.mac || '',
+            status: isOnline ? 'online' : 'offline',
+            firmwareVersion: d.firmwareVersion || d.version,
+            uptime: formatUptime(d.uptime),
+            networkStats: stats,
+            lastSeen: d.lastSeen,
+          };
+        });
+
+        summary.totalDevices = devices.length;
+        summary.onlineDevices = devices.filter((d) => d.status === 'online').length;
+        summary.offlineDevices = summary.totalDevices - summary.onlineDevices;
+      }
+    }
+  } catch (err: any) {
+    console.warn('[UniFi Network] Site Manager devices query error:', err.message);
   }
 
-  if (type === 'network_ups') {
-    return {
-      batteryPct: 100,
-      batteryRuntimeMin: 185,
-      batteryLoadWatts: Math.round(142 + jitter * 12),
-      acPowerState: 'normal',
-    };
+  // 3. Query Site Manager Sites Overview (api.ui.com/v1/sites) for client metrics
+  try {
+    const sitesRes = await makeUnifiRequest('https://api.ui.com/v1/sites', {
+      method: 'GET',
+      headers: authHeaders,
+      timeoutMs: 8000,
+    });
+
+    if (sitesRes.statusCode === 200) {
+      const parsed = JSON.parse(sitesRes.body);
+      const sitesList: any[] = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed.data)
+        ? parsed.data
+        : [];
+
+      if (sitesList.length > 0) {
+        const site = sitesList[0];
+        const stats = site.statistics || site.reportedState || {};
+        if (typeof stats.clientsCount === 'number') {
+          summary.totalClients = stats.clientsCount;
+        } else if (typeof site.clientsCount === 'number') {
+          summary.totalClients = site.clientsCount;
+        }
+        if (typeof stats.wirelessClientsCount === 'number') {
+          summary.wirelessClients = stats.wirelessClientsCount;
+        }
+        if (typeof stats.wiredClientsCount === 'number') {
+          summary.wiredClients = stats.wiredClientsCount;
+        }
+        if (summary.totalClients > 0 && summary.wirelessClients === 0 && summary.wiredClients === 0) {
+          summary.wirelessClients = summary.totalClients;
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('[UniFi Network] Site Manager sites query error:', err.message);
   }
 
-  if (type === 'network_cloudkey') {
-    return {
-      throughputRxMbps: Math.round((48.2 * (1 + jitter)) * 10) / 10,
-      throughputTxMbps: Math.round((12.6 * (1 + jitter * 0.5)) * 10) / 10,
-      cpuUsagePct: Math.round(31 + jitter * 8),
-      memoryUsagePct: 58,
-      temperatureC: 45,
-    };
+  // 4. Try Cloud Connector for detailed real-time Network Integration data if consoleId is available
+  if (hostConsoleId) {
+    try {
+      const connBase = `https://api.ui.com/v1/connector/consoles/${hostConsoleId}/proxy/network/integration/v1`;
+      const netSitesRes = await makeUnifiRequest(`${connBase}/sites`, {
+        method: 'GET',
+        headers: authHeaders,
+        timeoutMs: 8000,
+      });
+
+      if (netSitesRes.statusCode === 200) {
+        const sitesData = JSON.parse(netSitesRes.body);
+        const sites = Array.isArray(sitesData)
+          ? sitesData
+          : Array.isArray(sitesData.data)
+          ? sitesData.data
+          : [{ id: 'default' }];
+        const siteId = sites[0]?.id || 'default';
+
+        // Fetch detailed network devices (ports, radios, PoE)
+        const detailedDevRes = await makeUnifiRequest(`${connBase}/sites/${siteId}/devices`, {
+          method: 'GET',
+          headers: authHeaders,
+          timeoutMs: 10000,
+        });
+
+        if (detailedDevRes.statusCode === 200) {
+          const dData = JSON.parse(detailedDevRes.body);
+          const detailedList: any[] = Array.isArray(dData)
+            ? dData
+            : Array.isArray(dData.data)
+            ? dData.data
+            : [];
+
+          for (const d of detailedList) {
+            const matchIdx = devices.findIndex(
+              (dev) => dev.id === d.id || dev.mac.toLowerCase() === (d.mac || '').toLowerCase()
+            );
+
+            const stats: Partial<NetworkDeviceStats> = {
+              mac: d.mac,
+              firmwareVersion: d.firmwareVersion || d.version,
+              uptime: formatUptime(d.uptime),
+              cpuUsagePct: typeof d.cpuUsage === 'number' ? Math.round(d.cpuUsage) : undefined,
+              memoryUsagePct: typeof d.memoryUsage === 'number' ? Math.round(d.memoryUsage) : undefined,
+              temperatureC: d.temperature,
+            };
+
+            // Switch ports if reported
+            if (Array.isArray(d.ports)) {
+              stats.ports = d.ports.map((p: any) => ({
+                portNumber: p.portNumber || p.index || 0,
+                name: p.name || `Port ${p.portNumber || p.index}`,
+                up: Boolean(p.up || p.isUp),
+                speed: p.speed ? `${p.speed} Mbps` : '1 Gbps',
+                poePowerWatts: p.poePower,
+                poeClass: p.poeClass,
+                connectedDevice: p.connectedDeviceName || p.connectedDevice,
+              }));
+              const totalPoe = d.ports.reduce((sum: number, p: any) => sum + (p.poePower || 0), 0);
+              if (totalPoe > 0) stats.poeTotalWatts = Math.round(totalPoe * 10) / 10;
+            }
+
+            // AP Radios if reported
+            if (Array.isArray(d.radios)) {
+              stats.radios = d.radios.map((r: any) => ({
+                band: r.band === 'na' || r.band === '5g' ? '5GHz' : r.band === '6g' ? '6GHz' : '2.4GHz',
+                channel: r.channel || 0,
+                channelWidth: r.channelWidth ? `HE${r.channelWidth}` : 'HE80',
+                utilizationPct: r.utilization || 0,
+                txPowerDbm: r.txPower || 20,
+              }));
+            }
+
+            if (matchIdx >= 0) {
+              devices[matchIdx] = {
+                ...devices[matchIdx],
+                networkStats: {
+                  ...devices[matchIdx].networkStats,
+                  ...stats,
+                },
+              };
+            } else {
+              devices.push({
+                id: String(d.id || d.mac || ''),
+                name: d.name || d.model || 'UniFi Device',
+                model: d.model || 'UniFi',
+                type: classifyDeviceType(d.model, d.name),
+                ip: d.ip || summary.ip,
+                mac: d.mac || '',
+                status: 'online',
+                networkStats: stats,
+              });
+            }
+          }
+        }
+
+        // Fetch connected client stations
+        const clientRes = await makeUnifiRequest(`${connBase}/sites/${siteId}/clients`, {
+          method: 'GET',
+          headers: authHeaders,
+          timeoutMs: 8000,
+        });
+
+        if (clientRes.statusCode === 200) {
+          const cData = JSON.parse(clientRes.body);
+          const rawClients: any[] = Array.isArray(cData)
+            ? cData
+            : Array.isArray(cData.data)
+            ? cData.data
+            : [];
+
+          clients = rawClients.map((c: any) => ({
+            mac: c.mac,
+            ip: c.ip || '',
+            hostname: c.hostname || c.name || `Client ${c.mac.slice(-5)}`,
+            signalDbm: c.signalDbm || -50,
+            wifiExperiencePct: c.wifiExperience || 98,
+            radio: c.radio === '6g' ? '6GHz' : c.radio === '5g' ? '5GHz' : '2.4GHz',
+            channel: c.channel || 0,
+            rxRateMbps: c.rxRateMbps || 0,
+            txRateMbps: c.txRateMbps || 0,
+            uptimeSeconds: c.uptime || 0,
+          }));
+
+          summary.totalClients = clients.length;
+          summary.wirelessClients = clients.filter((c) => c.signalDbm !== undefined).length;
+          summary.wiredClients = summary.totalClients - summary.wirelessClients;
+        }
+      }
+    } catch (cErr: any) {
+      console.warn('[UniFi Network] Cloud Connector proxy query error:', cErr.message);
+    }
   }
 
-  if (type === 'network_superlink') {
-    return {
-      throughputRxMbps: Math.round((1.4 * (1 + jitter * 0.2)) * 10) / 10,
-      throughputTxMbps: Math.round((0.8 * (1 + jitter * 0.2)) * 10) / 10,
-      superlinkRssi: Math.round(-48 + jitter * 3),
-    };
+  // If local gateway was specified and is reachable, enrich/merge
+  if (cleanOrigin && !cleanOrigin.includes('api.ui.com')) {
+    try {
+      const localSitesRes = await makeUnifiRequest(`${cleanOrigin}/proxy/network/integration/v1/sites`, {
+        method: 'GET',
+        headers: authHeaders,
+        allowSelfSigned,
+        timeoutMs: 4000,
+      });
+      if (localSitesRes.statusCode === 200) {
+        summary.ip = cleanOrigin.replace(/^https?:\/\//i, '').split(':')[0];
+      }
+    } catch {}
   }
 
-  return {};
+  const result = { summary, devices, clients };
+  inMemoryCache = { data: result, timestamp: Date.now() };
+  return result;
 }
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const type = url.searchParams.get('type') || '';
-  const id = url.searchParams.get('id') || '';
+  try {
+    const url = new URL(req.url);
+    const type = url.searchParams.get('type') || '';
+    const id = url.searchParams.get('id') || '';
+    const mac = url.searchParams.get('mac') || '';
 
-  const simulated = getSimulatedLiveStats(type, id);
-  return NextResponse.json({
-    success: true,
-    telemetry: simulated,
-    timestamp: new Date().toISOString(),
-  });
+    const cleanKey = (
+      process.env.UNIFI_API_KEY ||
+      process.env.NEXT_PUBLIC_UNIFI_API_KEY ||
+      ''
+    ).trim();
+
+    const cleanOrigin = cleanUnifiUrl(
+      process.env.UNIFI_BASE_URL ||
+      process.env.NEXT_PUBLIC_UNIFI_BASE_URL ||
+      ''
+    );
+
+    if (!cleanKey) {
+      return NextResponse.json({
+        success: false,
+        error: 'No UniFi API Key configured. Please verify UNIFI_API_KEY in Vercel.',
+      });
+    }
+
+    const { summary, devices, clients } = await fetchRealUnifiData(cleanKey, cleanOrigin, true);
+
+    // If an overview was requested (no specific id or id is 'overview' or 'summary')
+    if (!id || id === 'overview' || id === 'summary') {
+      return NextResponse.json({
+        success: true,
+        summary,
+        devices,
+        clientsCount: summary.totalClients,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Match specific device
+    const matchedDevice = devices.find((d) => {
+      if (mac && d.mac.toLowerCase() === mac.toLowerCase()) return true;
+      if (d.id === id) return true;
+      if (id && d.name.toLowerCase().includes(id.toLowerCase())) return true;
+      if (type && d.type === type) return true;
+      return false;
+    });
+
+    const telemetry = matchedDevice?.networkStats || {
+      mac: matchedDevice?.mac,
+      firmwareVersion: matchedDevice?.firmwareVersion,
+      uptime: matchedDevice?.uptime,
+      wanIp: summary.wanIp,
+      wanStatus: summary.wanStatus,
+      ispName: summary.ispName,
+    };
+
+    return NextResponse.json({
+      success: true,
+      device: matchedDevice || null,
+      telemetry,
+      summary,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    return NextResponse.json({
+      success: false,
+      error: err.message || 'Internal error fetching live UniFi network telemetry.',
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const payload: UnifiNetworkPayload = await req.json();
-    const { baseUrl, apiKey, username, password, allowSelfSigned = true, deviceId, type } = payload;
+    let payload: any = {};
+    try {
+      payload = await req.json();
+    } catch {}
 
-    const cleanOrigin = cleanUnifiUrl(
-      process.env.UNIFI_BASE_URL ||
-        process.env.UNIFI_IP ||
-        process.env.UNIFI_HOST ||
-        process.env.NEXT_PUBLIC_UNIFI_BASE_URL ||
-        process.env.NEXT_PUBLIC_UNIFI_IP ||
-        baseUrl ||
-        ''
-    );
     const cleanKey = (
       process.env.UNIFI_API_KEY ||
       process.env.NEXT_PUBLIC_UNIFI_API_KEY ||
-      apiKey ||
+      payload.apiKey ||
       ''
     ).trim();
 
-    let liveDataDiscovered = false;
-    let rawDevices: any[] = [];
-    let rawClients: any[] = [];
-    let nvrName = 'UniFi Console';
+    const cleanOrigin = cleanUnifiUrl(
+      process.env.UNIFI_BASE_URL ||
+      process.env.NEXT_PUBLIC_UNIFI_BASE_URL ||
+      payload.baseUrl ||
+      ''
+    );
 
-    const authHeaders: Record<string, string> = {
-      Accept: 'application/json',
-      'User-Agent': 'WareTrack-3D/1.0',
-    };
-    if (cleanKey) {
-      authHeaders['X-API-KEY'] = cleanKey;
-      authHeaders['X-API-Key'] = cleanKey;
-    }
+    const allowSelfSigned = payload.allowSelfSigned !== false;
 
-    // 1. Try Local Network Integration API
-    if (cleanKey && cleanOrigin && !cleanOrigin.includes('api.ui.com')) {
-      try {
-        const netRes = await makeUnifiRequest(
-          `${cleanOrigin}/proxy/network/integration/v1/sites/default/devices`,
-          {
-            method: 'GET',
-            headers: authHeaders,
-            allowSelfSigned,
-            timeoutMs: 6000,
-          }
-        );
-        if (netRes.statusCode === 200) {
-          const parsed = JSON.parse(netRes.body);
-          rawDevices = Array.isArray(parsed) ? parsed : Array.isArray(parsed.data) ? parsed.data : [];
-          liveDataDiscovered = true;
-        }
-      } catch (err: any) {
-        // Fallback to local session login or simulation
-      }
-    }
-
-    // 2. Try Local Session Login if credentials provided
-    if (!liveDataDiscovered && username && password && cleanOrigin && !cleanOrigin.includes('api.ui.com')) {
-      try {
-        const loginRes = await makeUnifiRequest(`${cleanOrigin}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ username, password, token: '' }),
-          allowSelfSigned,
-          timeoutMs: 6000,
-        });
-
-        if (loginRes.statusCode === 200) {
-          const rawCookies = loginRes.headers['set-cookie'];
-          if (rawCookies && rawCookies.length > 0) {
-            const cookieStr = rawCookies.map((c) => c.split(';')[0]).join('; ');
-            const sessionHeaders: Record<string, string> = {
-              Accept: 'application/json',
-              'User-Agent': 'WareTrack-3D/1.0',
-              Cookie: cookieStr,
-            };
-
-            const devRes = await makeUnifiRequest(
-              `${cleanOrigin}/proxy/network/api/s/default/stat/device`,
-              { method: 'GET', headers: sessionHeaders, allowSelfSigned, timeoutMs: 8000 }
-            );
-            if (devRes.statusCode === 200) {
-              const devParsed = JSON.parse(devRes.body);
-              rawDevices = Array.isArray(devParsed.data) ? devParsed.data : [];
-              liveDataDiscovered = true;
-            }
-
-            const staRes = await makeUnifiRequest(
-              `${cleanOrigin}/proxy/network/api/s/default/stat/sta`,
-              { method: 'GET', headers: sessionHeaders, allowSelfSigned, timeoutMs: 8000 }
-            );
-            if (staRes.statusCode === 200) {
-              const staParsed = JSON.parse(staRes.body);
-              rawClients = Array.isArray(staParsed.data) ? staParsed.data : [];
-            }
-          }
-        }
-      } catch (err: any) {
-        // Fallback
-      }
-    }
-
-    // If live data was discovered from the UniFi Console, parse and return it
-    if (liveDataDiscovered && rawDevices.length > 0) {
+    if (!cleanKey) {
       return NextResponse.json({
-        success: true,
-        source: 'unifi_controller',
-        nvrName,
-        devices: rawDevices,
-        clients: rawClients,
-        message: `Synced ${rawDevices.length} network device(s) and ${rawClients.length} connected client(s).`,
+        success: false,
+        error: 'Missing UniFi API Key. Ensure UNIFI_API_KEY is configured in Vercel.',
       });
     }
 
-    // Dynamic live simulation fallback for cloud/preview/testing
-    const simulated = getSimulatedLiveStats(type || '', deviceId || '');
+    const { summary, devices, clients } = await fetchRealUnifiData(cleanKey, cleanOrigin, allowSelfSigned);
+
     return NextResponse.json({
       success: true,
-      source: 'live_telemetry_simulation',
-      telemetry: simulated,
-      message: 'Active UniFi live telemetry streaming.',
+      summary,
+      devices,
+      clients,
+      message: `Discovered ${devices.length} real UniFi network device(s) and ${clients.length} active client station(s) from ${summary.consoleName}.`,
+      timestamp: new Date().toISOString(),
     });
   } catch (err: any) {
     return NextResponse.json({
