@@ -148,7 +148,7 @@ function UnifiedArchitecturalWalls({
       [];
 
     for (const d of doors) {
-      if (!d.visible) continue;
+      if (d.visible === false) continue;
       const [dx, , dz] = d.position;
       const [dw, dh] = d.size;
       // Add rough-opening clearance (+0.11m width, +0.04m height) so the door jambs & header trim
@@ -2587,7 +2587,7 @@ export function WarehouseModel({
 
           {/* Render All Interactive Shelves, Racks, Doors, Forklifts, Desks, Computers & Accessories */}
           {blueprintItems
-            .filter((item) => item.visible)
+            .filter((item) => item.visible !== false)
             .map((item) => (
               <BlueprintInteractiveNode
                 key={item.id}

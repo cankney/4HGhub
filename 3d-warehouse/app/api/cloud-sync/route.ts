@@ -44,6 +44,13 @@ export async function GET() {
     if (!Array.isArray(parsed.blueprintItems) || parsed.blueprintItems.length === 0) {
       parsed.blueprintItems = (baselineDefaults as any)?.blueprintItems || [];
     }
+    // Normalize visibility
+    if (Array.isArray(parsed.blueprintItems)) {
+      parsed.blueprintItems = parsed.blueprintItems.map((item: any) => ({
+        ...item,
+        visible: item.visible !== false,
+      }));
+    }
     if (!Array.isArray(parsed.markers) || parsed.markers.length === 0) {
       parsed.markers = (baselineDefaults as any)?.markers || [];
     }
@@ -114,6 +121,10 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(cleanState.blueprintItems) || cleanState.blueprintItems.length === 0) {
       cleanState.blueprintItems = (baselineDefaults as any)?.blueprintItems || [];
     }
+    cleanState.blueprintItems = cleanState.blueprintItems.map((item: any) => ({
+      ...item,
+      visible: item.visible !== false,
+    }));
 
     const now = new Date().toISOString();
     const payloadStr = JSON.stringify(cleanState);

@@ -690,8 +690,12 @@ const STATIC_BLUEPRINT_ITEMS: BlueprintItem[] = [
   },
 ];
 
-export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] =
+export const DEFAULT_BLUEPRINT_ITEMS: BlueprintItem[] = (
   Array.isArray((baselineWarehouseDefaults as any)?.blueprintItems) &&
   (baselineWarehouseDefaults as any).blueprintItems.length > 0
     ? ((baselineWarehouseDefaults as any).blueprintItems as BlueprintItem[])
-    : STATIC_BLUEPRINT_ITEMS;
+    : STATIC_BLUEPRINT_ITEMS
+).map((item) => ({
+  ...item,
+  visible: item.visible !== false,
+}));

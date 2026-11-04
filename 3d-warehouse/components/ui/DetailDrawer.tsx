@@ -320,6 +320,7 @@ interface DetailDrawerProps {
   onRedo: () => void;
   unifiConfig?: UnifiSettingsConfig;
   isCollapsed?: boolean;
+  onFocusItem?: (pos: [number, number, number]) => void;
 }
 
 export function DetailDrawer({
@@ -359,8 +360,10 @@ export function DetailDrawer({
   onRedo,
   unifiConfig,
   isCollapsed = false,
+  onFocusItem,
 }: DetailDrawerProps) {
   const isDark = theme === 'dark';
+  const [modelFilterQuery, setModelFilterQuery] = useState('');
   const [copiedJson, setCopiedJson] = useState(false);
   const [copiedRtsp, setCopiedRtsp] = useState(false);
   const [snapshotNonce, setSnapshotNonce] = useState(0);
@@ -995,6 +998,49 @@ export function DetailDrawer({
                 </button>
               </>
             )}
+            {onFocusItem && (
+              <button
+                type="button"
+                onClick={() => onFocusItem(selectedBlueprintItem.position)}
+                className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition cursor-pointer ${
+                  isDark
+                    ? 'border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+                title="Focus 3D View on this model"
+                aria-label="Focus in 3D"
+              >
+                <MapPin className="w-4 h-4 text-[#8DDB05]" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateBlueprintItem({
+                  ...selectedBlueprintItem,
+                  visible: selectedBlueprintItem.visible === false,
+                })
+              }
+              className={`p-1.5 touch-target flex items-center justify-center rounded-xl border transition cursor-pointer ${
+                selectedBlueprintItem.visible !== false
+                  ? isDark
+                    ? 'border-slate-700 text-slate-300 hover:bg-slate-800'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                  : 'bg-amber-500/15 border-amber-500/40 text-amber-500'
+              }`}
+              title={
+                selectedBlueprintItem.visible !== false
+                  ? 'Hide model from 3D scene'
+                  : 'Show model in 3D scene'
+              }
+              aria-label="Toggle Visibility"
+            >
+              {selectedBlueprintItem.visible !== false ? (
+                <Eye className="w-4 h-4" />
+              ) : (
+                <EyeOff className="w-4 h-4" />
+              )}
+            </button>
             <button
               onClick={onCloseBlueprintItem}
               className={`p-1.5 touch-target flex items-center justify-center rounded-xl transition cursor-pointer ${
@@ -4181,53 +4227,145 @@ export function DetailDrawer({
           <div className="flex items-center justify-between text-xs px-1">
             <span className={headingClass}>Shelves, Racks &amp; Odoo Locations</span>
             <span className={labelClass}>
-              {blueprintItems.length} models
+              {blueprintItems.filter((bp) => {
+                if (!modelFilterQuery.trim()) return true;
+                const q = modelFilterQuery.toLowerCase();
+                return (
+                  bp.name.toLowerCase().includes(q) ||
+                  bp.kind.toLowerCase().includes(q) ||
+                  (bp.locationPrefix && bp.locationPrefix.toLowerCase().includes(q)) ||
+                  (bp.customLocation && bp.customLocation.toLowerCase().includes(q)) ||
+                  (bp.zone && `zone ${bp.zone}`.toLowerCase().includes(q))
+                );
+              }).length}{' '}
+              of {blueprintItems.length} models
             </span>
           </div>
+
+          {/* Quick Filter Box for Models */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={modelFilterQuery}
+              onChange={(e) => setModelFilterQuery(e.target.value)}
+              placeholder="Filter shelves, desks, doors, equipment..."
+              className={`w-full pl-8 pr-7 py-1.5 text-xs rounded-xl border outline-none font-medium transition ${inputClass}`}
+            />
+            {modelFilterQuery && (
+              <button
+                type="button"
+                onClick={() => setModelFilterQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-            {blueprintItems.map((bp) => {
-              const slotCount = bp.shelfLocations
-                ? Object.values(bp.shelfLocations).filter(
-                    (s) => s.locationCode || s.odooLocationId
-                  ).length
-                : 0;
-              return (
-                <button
-                  key={bp.id}
-                  onClick={() => onSelectBlueprintItem(bp.id)}
-                  className={`w-full p-2.5 rounded-2xl border text-left transition flex items-center justify-between gap-2 cursor-pointer hover:border-[#8DDB05] ${subCardClass}`}
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      {bp.locationPrefix && (
-                        <span className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold shrink-0 ${
-                          isDark ? 'bg-[#8DDB05]/20 text-[#8DDB05]' : 'bg-[#8DDB05]/25 text-[#3f6212]'
-                        }`}>
-                          {bp.locationPrefix}
+            {blueprintItems
+              .filter((bp) => {
+                if (!modelFilterQuery.trim()) return true;
+                const q = modelFilterQuery.toLowerCase();
+                return (
+                  bp.name.toLowerCase().includes(q) ||
+                  bp.kind.toLowerCase().includes(q) ||
+                  (bp.locationPrefix && bp.locationPrefix.toLowerCase().includes(q)) ||
+                  (bp.customLocation && bp.customLocation.toLowerCase().includes(q)) ||
+                  (bp.zone && `zone ${bp.zone}`.toLowerCase().includes(q))
+                );
+              })
+              .map((bp) => {
+                const slotCount = bp.shelfLocations
+                  ? Object.values(bp.shelfLocations).filter(
+                      (s) => s.locationCode || s.odooLocationId
+                    ).length
+                  : 0;
+                const isHidden = bp.visible === false;
+                return (
+                  <div
+                    key={bp.id}
+                    className={`w-full p-2.5 rounded-2xl border text-left transition flex items-center justify-between gap-2 ${
+                      isHidden ? 'opacity-50' : ''
+                    } ${subCardClass}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectBlueprintItem(bp.id);
+                        if (onFocusItem) onFocusItem(bp.position);
+                      }}
+                      className="min-w-0 flex-1 text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {bp.locationPrefix && (
+                          <span
+                            className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold shrink-0 ${
+                              isDark
+                                ? 'bg-[#8DDB05]/20 text-[#8DDB05]'
+                                : 'bg-[#8DDB05]/25 text-[#3f6212]'
+                            }`}
+                          >
+                            {bp.locationPrefix}
+                          </span>
+                        )}
+                        <span className={`text-xs font-bold truncate ${valueClass}`}>
+                          {bp.name}
                         </span>
-                      )}
-                      <span className={`text-xs font-bold truncate ${valueClass}`}>
-                        {bp.name}
-                      </span>
-                    </div>
-                    <div className={`text-[10px] font-mono mt-0.5 ${labelClass}`}>
-                      {formatFeetInches(bp.size[0])} ×{' '}
-                      {formatFeetInches(bp.size[2])} •{' '}
-                      {bp.kind === 'rack' || bp.kind === 'workbench'
-                        ? `${bp.bays ?? 3} bays × ${bp.levels ?? 3} tiers${
-                            slotCount > 0 ? ` • ${slotCount} Odoo slots` : ''
-                          }`
-                        : bp.kind}
+                      </div>
+                      <div className={`text-[10px] font-mono mt-0.5 ${labelClass}`}>
+                        {formatFeetInches(bp.size[0])} ×{' '}
+                        {formatFeetInches(bp.size[2])} •{' '}
+                        {bp.kind === 'rack' || bp.kind === 'workbench'
+                          ? `${bp.bays ?? 3} bays × ${bp.levels ?? 3} tiers${
+                              slotCount > 0 ? ` • ${slotCount} Odoo slots` : ''
+                            }`
+                          : bp.kind}
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateBlueprintItem({
+                            ...bp,
+                            visible: bp.visible === false ? true : false,
+                          });
+                        }}
+                        className={`p-1.5 rounded-lg transition cursor-pointer ${
+                          !isHidden
+                            ? 'text-slate-400 hover:text-slate-200'
+                            : 'text-amber-500 bg-amber-500/10'
+                        }`}
+                        title={isHidden ? 'Show in 3D' : 'Hide from 3D'}
+                        aria-label="Toggle Visibility"
+                      >
+                        {!isHidden ? (
+                          <Eye className="w-3.5 h-3.5" />
+                        ) : (
+                          <EyeOff className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectBlueprintItem(bp.id);
+                          if (onFocusItem) onFocusItem(bp.position);
+                        }}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 cursor-pointer ${
+                          isDark
+                            ? 'bg-[#8DDB05]/15 text-[#8DDB05]'
+                            : 'bg-[#8DDB05]/25 text-[#3f6212]'
+                        }`}
+                      >
+                        {appMode === 'view' ? 'Locations' : 'Edit'}
+                      </button>
                     </div>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${
-                    isDark ? 'bg-[#8DDB05]/15 text-[#8DDB05]' : 'bg-[#8DDB05]/25 text-[#3f6212]'
-                  }`}>
-                    {appMode === 'view' ? 'Locations' : 'Edit'}
-                  </span>
-                </button>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
 

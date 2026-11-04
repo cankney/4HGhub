@@ -27,9 +27,16 @@ export async function GET() {
       const payloadStr = doc.fields?.payload?.stringValue;
       const updatedAt = doc.fields?.updatedAt?.stringValue || null;
       if (payloadStr) {
+        const parsed = JSON.parse(payloadStr);
+        if (Array.isArray(parsed.blueprintItems)) {
+          parsed.blueprintItems = parsed.blueprintItems.map((b: any) => ({
+            ...b,
+            visible: b.visible !== false,
+          }));
+        }
         return NextResponse.json({
           success: true,
-          data: JSON.parse(payloadStr),
+          data: parsed,
           updatedAt,
           source: 'cloud',
         });
@@ -79,6 +86,10 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(clean.blueprintItems) || clean.blueprintItems.length === 0) {
       clean.blueprintItems = fallbackData.blueprintItems || [];
     }
+    clean.blueprintItems = clean.blueprintItems.map((b: any) => ({
+      ...b,
+      visible: b.visible !== false,
+    }));
     if (!Array.isArray(clean.markers) || clean.markers.length === 0) {
       clean.markers = fallbackData.markers || [];
     }

@@ -21,6 +21,10 @@ import {
   SlidersHorizontal,
   Maximize2,
   Minimize2,
+  Undo2,
+  Redo2,
+  Check,
+  AlertTriangle,
 } from 'lucide-react';
 import { DisplayMode } from '@/lib/markers';
 import type { OdooProductQuant } from '@/lib/blueprint-geometry';
@@ -73,6 +77,11 @@ interface TopNavbarProps {
   lastCloudSyncTime?: string | null;
   onSaveBaselineDefaults?: () => void;
   isSavingBaseline?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  toastMsg?: { type: 'success' | 'error' | 'info'; text: string } | null;
 }
 
 export function TopNavbar({
@@ -111,6 +120,11 @@ export function TopNavbar({
   lastCloudSyncTime,
   onSaveBaselineDefaults,
   isSavingBaseline = false,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+  toastMsg = null,
 }: TopNavbarProps) {
   const isDark = theme === 'dark';
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -524,6 +538,42 @@ export function TopNavbar({
         {/* Model & Scan Tools only shown in Edit Mode */}
         {appMode === 'edit' && (
           <>
+            {onUndo && (
+              <button
+                onClick={onUndo}
+                disabled={!canUndo}
+                className={`p-2 flex items-center justify-center rounded-xl border transition-all cursor-pointer touch-target ${
+                  !canUndo
+                    ? 'opacity-40 cursor-not-allowed border-transparent'
+                    : isDark
+                    ? 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200'
+                }`}
+                title="Undo edit (Cmd+Z)"
+                aria-label="Undo"
+              >
+                <Undo2 className="w-4 h-4" />
+              </button>
+            )}
+
+            {onRedo && (
+              <button
+                onClick={onRedo}
+                disabled={!canRedo}
+                className={`p-2 flex items-center justify-center rounded-xl border transition-all cursor-pointer touch-target ${
+                  !canRedo
+                    ? 'opacity-40 cursor-not-allowed border-transparent'
+                    : isDark
+                    ? 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200'
+                }`}
+                title="Redo edit (Cmd+Shift+Z)"
+                aria-label="Redo"
+              >
+                <Redo2 className="w-4 h-4" />
+              </button>
+            )}
+
             <button
               onClick={onToggleEditModel}
               className={`p-2 flex items-center justify-center rounded-xl border transition-all cursor-pointer touch-target ${
@@ -632,6 +682,30 @@ export function TopNavbar({
           </button>
         )}
       </div>
+
+      {/* Global Status Pill Toast Notification */}
+      {toastMsg && (
+        <div className="fixed top-[calc(4.85rem+var(--safe-top))] left-1/2 -translate-x-1/2 z-50 pointer-events-auto transition-all animate-in fade-in slide-in-from-top-2 duration-200">
+          <div
+            className={`px-4 py-2 rounded-2xl shadow-2xl border backdrop-blur-xl flex items-center gap-2.5 text-xs font-semibold ${
+              toastMsg.type === 'success'
+                ? 'bg-slate-900/95 border-emerald-500/50 text-emerald-400'
+                : toastMsg.type === 'error'
+                ? 'bg-slate-900/95 border-red-500/50 text-red-400'
+                : 'bg-slate-900/95 border-sky-500/50 text-sky-300'
+            }`}
+          >
+            {toastMsg.type === 'success' ? (
+              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : toastMsg.type === 'error' ? (
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-sky-400 shrink-0" />
+            )}
+            <span>{toastMsg.text}</span>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

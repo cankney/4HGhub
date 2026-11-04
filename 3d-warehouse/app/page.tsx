@@ -181,6 +181,27 @@ export default function WarehouseDigitalTwinPage() {
   const isUserDirtyRef = React.useRef<boolean>(false);
   const lastCloudUpdatedAtRef = React.useRef<string | null>(null);
   const skipNextSyncRef = React.useRef<boolean>(false);
+  const baselineDefaultsRef = React.useRef<any>(null);
+  const isInitialCloudPullDoneRef = React.useRef<boolean>(false);
+
+  // Global auto-dismissing toast status notification for toolbar actions
+  const [toastMsg, setToastMsg] = useState<{
+    type: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
+  const toastTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const showToastNotification = React.useCallback(
+    (type: 'success' | 'error' | 'info', text: string) => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      setToastMsg({ type, text });
+      toastTimerRef.current = setTimeout(() => {
+        setToastMsg(null);
+        toastTimerRef.current = null;
+      }, 3500);
+    },
+    []
+  );
 
   // Always keep a ref to the latest state snapshot to avoid re-creating sync callbacks
   const latestStateRef = React.useRef({
@@ -455,6 +476,7 @@ export default function WarehouseDigitalTwinPage() {
 
           return {
             ...item,
+            visible: item.visible !== false,
             zone: isShelf && !isZoneTracked ? z : undefined,
             rowNumber: isShelf && !isZoneTracked ? r : undefined,
             rackNumber: isShelf && !isZoneTracked ? r : undefined,
@@ -606,10 +628,9 @@ export default function WarehouseDigitalTwinPage() {
             return;
           }
 
-          // If silent (background polling or auto-load on start), NEVER overwrite user's local layout
-          // if a local layout already exists in localStorage!
-          const hasLocalLayout = typeof window !== 'undefined' && Boolean(localStorage.getItem(STORAGE_KEY));
-          if (silent && hasLocalLayout) {
+          // If silent (background polling or auto-load on start):
+          // Only avoid overwriting if the user has active unsaved edits in this current session!
+          if (silent && isUserDirtyRef.current) {
             if (json.data.odooConfig) setOdooConfig(json.data.odooConfig);
             if (json.data.unifiConfig) setUnifiConfig(json.data.unifiConfig);
             if (json.data.fsdConfig) setFsdConfig(json.data.fsdConfig);
@@ -628,6 +649,9 @@ export default function WarehouseDigitalTwinPage() {
 
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
+            if (json.updatedAt) {
+              localStorage.setItem('waretrack_state_updated_at', json.updatedAt);
+            }
           } catch {}
 
           const timeStr = json.updatedAt
@@ -732,10 +756,12 @@ export default function WarehouseDigitalTwinPage() {
       }
 
       if (json.success) {
+        baselineDefaultsRef.current = currentState;
         setBaselineSaveMsg({
           type: 'success',
           text: 'Warehouse layout & settings locked as master baseline default!',
         });
+        showToastNotification('success', 'Layout locked as master baseline default!');
         try {
           localStorage.setItem(
             'waretrack_baseline_defaults',
@@ -843,6 +869,13 @@ export default function WarehouseDigitalTwinPage() {
         setIsSidebarCollapsed(true);
       }
 
+      try {
+        const localBaseline = localStorage.getItem('waretrack_baseline_defaults');
+        if (localBaseline) {
+          baselineDefaultsRef.current = JSON.parse(localBaseline);
+        }
+      } catch {}
+
       const saved =
         localStorage.getItem(STORAGE_KEY) ||
         localStorage.getItem('waretrack_baseline_defaults') ||
@@ -860,6 +893,22 @@ export default function WarehouseDigitalTwinPage() {
 
     // Pull authoritative configuration from 4HG Cloud
     handlePullFromCloud(true);
+
+    // Fetch master baseline defaults in background
+    fetch('/3d-warehouse/api/admin/baseline-defaults')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          baselineDefaultsRef.current = res.data;
+          try {
+            localStorage.setItem(
+              'waretrack_baseline_defaults',
+              JSON.stringify(res.data)
+            );
+          } catch {}
+        }
+      })
+      .catch(() => {});
   }, [applyHydratedState, handlePullFromCloud]);
 
   // Periodic background check to keep all users in sync with admin changes
@@ -1155,6 +1204,11 @@ export default function WarehouseDigitalTwinPage() {
     setPastHistory((prev) => prev.slice(0, -1));
     setMarkers(previous.markers);
     setBlueprintItems(previous.blueprintItems);
+    isUserDirtyRef.current = true;
+    saveStateToCloud(
+      { markers: previous.markers, blueprintItems: previous.blueprintItems },
+      { immediate: false }
+    );
   };
 
   const handleRedo = () => {
@@ -1164,6 +1218,11 @@ export default function WarehouseDigitalTwinPage() {
     setFutureHistory((prev) => prev.slice(1));
     setMarkers(next.markers);
     setBlueprintItems(next.blueprintItems);
+    isUserDirtyRef.current = true;
+    saveStateToCloud(
+      { markers: next.markers, blueprintItems: next.blueprintItems },
+      { immediate: false }
+    );
   };
 
   // Import JSON backup file
@@ -1386,19 +1445,39 @@ export default function WarehouseDigitalTwinPage() {
   const handleResetToDefaults = () => {
     pushHistory();
     isUserDirtyRef.current = true;
-    setMarkers(DEFAULT_MARKERS);
-    setMeshOverrides(DEFAULT_MESH_OVERRIDES);
-    setBlueprintItems(
-      applyCardinalOrientation(DEFAULT_BLUEPRINT_ITEMS, cardinalFacing)
+    const base = baselineDefaultsRef.current;
+    const fallbackFacing = cardinalFacing || 'north';
+    const targetMarkers =
+      Array.isArray(base?.markers) && base.markers.length > 0
+        ? base.markers
+        : DEFAULT_MARKERS;
+    const targetMeshes =
+      Array.isArray(base?.meshOverrides) && base.meshOverrides.length > 0
+        ? base.meshOverrides
+        : DEFAULT_MESH_OVERRIDES;
+    const rawBp: BlueprintItem[] =
+      Array.isArray(base?.blueprintItems) && base.blueprintItems.length > 0
+        ? base.blueprintItems
+        : DEFAULT_BLUEPRINT_ITEMS;
+    const targetBp: BlueprintItem[] = applyCardinalOrientation(
+      rawBp.map((b) => ({ ...b, visible: b.visible !== false })),
+      fallbackFacing
     );
-    setCutoutBoxes(DEFAULT_CUTOUT_BOXES);
+    const targetBoxes =
+      Array.isArray(base?.cutoutBoxes) ? base.cutoutBoxes : DEFAULT_CUTOUT_BOXES;
+
+    setMarkers(targetMarkers);
+    setMeshOverrides(targetMeshes);
+    setBlueprintItems(targetBp);
+    setCutoutBoxes(targetBoxes);
     handlePushToCloud({
       ...latestStateRef.current,
-      markers: DEFAULT_MARKERS,
-      meshOverrides: DEFAULT_MESH_OVERRIDES,
-      blueprintItems: applyCardinalOrientation(DEFAULT_BLUEPRINT_ITEMS, cardinalFacing),
-      cutoutBoxes: DEFAULT_CUTOUT_BOXES,
+      markers: targetMarkers,
+      meshOverrides: targetMeshes,
+      blueprintItems: targetBp,
+      cutoutBoxes: targetBoxes,
     });
+    showToastNotification('success', 'Reset scene back to master baseline defaults.');
   };
 
   const handleSelectSearchResult = (result: SearchResultItem) => {
@@ -1790,6 +1869,7 @@ export default function WarehouseDigitalTwinPage() {
             type: 'success',
             text: successText,
           });
+          showToastNotification('success', `Synced ${inventory.length} quants from Odoo (${matchedSlotCount} slots matched)`);
         }
       } catch (err: any) {
         console.warn('[Odoo Sync] Error:', err.message);
@@ -1798,12 +1878,13 @@ export default function WarehouseDigitalTwinPage() {
             type: 'error',
             text: err.message || 'Failed to sync inventory from Odoo.',
           });
+          showToastNotification('error', err.message || 'Failed to sync inventory from Odoo.');
         }
       } finally {
         setIsSyncingOdoo(false);
       }
     },
-    [odooConfig, pushHistory, saveStateToCloud]
+    [odooConfig, pushHistory, saveStateToCloud, showToastNotification]
   );
 
   // Auto-sync Odoo inventory upon application launch
@@ -1813,10 +1894,16 @@ export default function WarehouseDigitalTwinPage() {
     if (!hasHydratedRef.current || hasAutoSyncedOdooRef.current) return;
     hasAutoSyncedOdooRef.current = true;
 
-    // Small delay to let initial canvas & cloud hydration settle
+    // Delay to let initial canvas & cloud hydration settle before syncing Odoo
     const timer = setTimeout(() => {
-      handleSyncOdoo({ silent: true });
-    }, 1200);
+      if (isInitialCloudPullDoneRef.current) {
+        handleSyncOdoo({ silent: true });
+      } else {
+        setTimeout(() => {
+          handleSyncOdoo({ silent: true });
+        }, 1800);
+      }
+    }, 1800);
 
     return () => clearTimeout(timer);
   }, [handleSyncOdoo]);
@@ -2084,6 +2171,49 @@ export default function WarehouseDigitalTwinPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen]);
 
+  // Global Keyboard Shortcuts (Undo, Redo, Deselect)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        (e.target as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          if (futureHistory.length > 0) {
+            handleRedo();
+            showToastNotification('info', 'Redo');
+          }
+        } else {
+          e.preventDefault();
+          if (pastHistory.length > 0) {
+            handleUndo();
+            showToastNotification('info', 'Undo');
+          }
+        }
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        if (futureHistory.length > 0) {
+          handleRedo();
+          showToastNotification('info', 'Redo');
+        }
+      } else if (e.key === 'Escape') {
+        setSelectedBlueprintId(null);
+        setSelectedMarkerId(null);
+        setSelectedMeshIndex(null);
+        setSelectedSearchResult(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pastHistory, futureHistory, handleUndo, handleRedo, showToastNotification]);
+
   const handleUpdateBlueprintItem = React.useCallback(
     (updated: BlueprintItem, immediate = true) => {
       pushHistory();
@@ -2127,12 +2257,24 @@ export default function WarehouseDigitalTwinPage() {
   const handleResetBlueprintItems = React.useCallback(() => {
     pushHistory();
     isUserDirtyRef.current = true;
-    setBlueprintItems(DEFAULT_BLUEPRINT_ITEMS);
+    const base = baselineDefaultsRef.current;
+    const fallbackFacing = cardinalFacing || 'north';
+    const rawBp: BlueprintItem[] =
+      Array.isArray(base?.blueprintItems) && base.blueprintItems.length > 0
+        ? base.blueprintItems
+        : DEFAULT_BLUEPRINT_ITEMS;
+    const targetBp: BlueprintItem[] = applyCardinalOrientation(
+      rawBp.map((b) => ({ ...b, visible: b.visible !== false })),
+      fallbackFacing
+    );
+
+    setBlueprintItems(targetBp);
     saveStateToCloud(
-      { blueprintItems: DEFAULT_BLUEPRINT_ITEMS },
+      { blueprintItems: targetBp },
       { immediate: true }
     );
-  }, [pushHistory, saveStateToCloud]);
+    showToastNotification('success', 'Reset blueprint items back to baseline defaults.');
+  }, [pushHistory, saveStateToCloud, cardinalFacing, showToastNotification]);
 
   const handleToggleCutoutBox = React.useCallback(
     (id: string) => {
@@ -2294,6 +2436,11 @@ export default function WarehouseDigitalTwinPage() {
         lastCloudSyncTime={lastCloudSyncTime}
         onSaveBaselineDefaults={handleSaveBaselineDefaults}
         isSavingBaseline={isSavingBaseline}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={pastHistory.length > 0}
+        canRedo={futureHistory.length > 0}
+        toastMsg={toastMsg}
       />
 
       <HudOverlays
@@ -2439,6 +2586,15 @@ export default function WarehouseDigitalTwinPage() {
         }}
         unifiConfig={unifiConfig}
         isCollapsed={isSidebarCollapsed || isFullscreen}
+        onFocusItem={(pos) => {
+          const [tx, ty, tz] = pos;
+          setCameraCommand({
+            type: 'focus',
+            target: [tx, ty, tz],
+            position: [tx + 3.2, ty + 2.5, tz + 3.5],
+            timestamp: Date.now(),
+          });
+        }}
       />
 
       {!isFullscreen && (

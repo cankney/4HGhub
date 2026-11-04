@@ -23,12 +23,16 @@ export function sanitizeTwinStateForPersistence(rawState: Record<string, any>): 
         kind: bp.kind,
         position: bp.position,
         size: bp.size,
+        visible: bp.visible !== false,
       };
       if (bp.rotationY !== undefined) cleanBp.rotationY = bp.rotationY;
       if (bp.color !== undefined) cleanBp.color = bp.color;
       if (bp.bays !== undefined) cleanBp.bays = bp.bays;
       if (bp.levels !== undefined) cleanBp.levels = bp.levels;
       if (bp.rows !== undefined) cleanBp.rows = bp.rows;
+      if (bp.showBoxes !== undefined) cleanBp.showBoxes = bp.showBoxes;
+      if (bp.isOpen !== undefined) cleanBp.isOpen = bp.isOpen;
+      if (bp.doorColor !== undefined) cleanBp.doorColor = bp.doorColor;
       if (bp.zone !== undefined) cleanBp.zone = bp.zone;
       if (bp.rowNumber !== undefined) cleanBp.rowNumber = bp.rowNumber;
       if (bp.rackNumber !== undefined) cleanBp.rackNumber = bp.rackNumber;
@@ -56,13 +60,20 @@ export function sanitizeTwinStateForPersistence(rawState: Record<string, any>): 
           if (s.totalQuantity !== undefined) cleanSlot.totalQuantity = s.totalQuantity;
           if (s.notes) cleanSlot.notes = s.notes;
 
-          // If products exist, store a compact representation (id, sku, name, qty) max 20 per slot
+          // If products exist, store a compact representation max 20 per slot
           if (Array.isArray(s.products)) {
             cleanSlot.products = s.products.slice(0, 20).map((p: any) => ({
               id: p.id,
+              productId: p.productId,
               sku: p.sku || '',
               name: p.name || '',
               quantity: p.quantity || 0,
+              reservedQuantity: p.reservedQuantity || 0,
+              lot: p.lot || '',
+              locationId: p.locationId,
+              locationName: p.locationName || '',
+              shortCode: p.shortCode || '',
+              barcode: p.barcode || '',
             }));
           }
           cleanSlots[slotKey] = cleanSlot;
@@ -74,9 +85,16 @@ export function sanitizeTwinStateForPersistence(rawState: Record<string, any>): 
       if (Array.isArray(bp.products)) {
         cleanBp.products = bp.products.slice(0, 30).map((p: any) => ({
           id: p.id,
+          productId: p.productId,
           sku: p.sku || '',
           name: p.name || '',
           quantity: p.quantity || 0,
+          reservedQuantity: p.reservedQuantity || 0,
+          lot: p.lot || '',
+          locationId: p.locationId,
+          locationName: p.locationName || '',
+          shortCode: p.shortCode || '',
+          barcode: p.barcode || '',
         }));
       }
 
@@ -132,6 +150,8 @@ export function sanitizeTwinStateForPersistence(rawState: Record<string, any>): 
   if (rawState.theme) clean.theme = rawState.theme;
   if (rawState.roofCutoffY !== undefined) clean.roofCutoffY = rawState.roofCutoffY;
   if (rawState.lastSyncTime) clean.lastSyncTime = rawState.lastSyncTime;
+  if (rawState.savedAt) clean.savedAt = rawState.savedAt;
+  if (rawState.updatedAt) clean.updatedAt = rawState.updatedAt;
 
   return clean;
 }
