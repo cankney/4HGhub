@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=VT323&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/nude-egg-game/style.css" />
 </head>
 <body>
   <!-- Authentication Gate Overlay -->
@@ -35,19 +35,19 @@
 
           <!-- Egg Character (moves to center during pants/mooning phases) -->
           <div id="egg-character" class="egg-character">
-            <img src="assets/egg-open.svg" class="sprite active" data-frame="open" alt="Egg open mouth" draggable="false" />
-            <img src="assets/egg-closed.svg" class="sprite" data-frame="closed" alt="Egg chewing" draggable="false" />
-            <img src="assets/egg-pants-1.svg" class="sprite" data-frame="pants-1" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-pants-2.svg" class="sprite" data-frame="pants-2" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-pants-3.svg" class="sprite" data-frame="pants-3" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-pants-4.svg" class="sprite" data-frame="pants-4" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-pants-5.svg" class="sprite" data-frame="pants-5" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-moon-1.svg" class="sprite" data-frame="moon-1" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-moon-2.svg" class="sprite" data-frame="moon-2" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-moon-3.svg" class="sprite" data-frame="moon-3" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-moon-4.svg" class="sprite" data-frame="moon-4" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-moon-5.svg" class="sprite" data-frame="moon-5" alt="Egg frame" draggable="false" />
-            <img src="assets/egg-moon-6.svg" class="sprite" data-frame="moon-6" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-open.svg" class="sprite active" data-frame="open" alt="Egg open mouth" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-closed.svg" class="sprite" data-frame="closed" alt="Egg chewing" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-pants-1.svg" class="sprite" data-frame="pants-1" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-pants-2.svg" class="sprite" data-frame="pants-2" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-pants-3.svg" class="sprite" data-frame="pants-3" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-pants-4.svg" class="sprite" data-frame="pants-4" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-pants-5.svg" class="sprite" data-frame="pants-5" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-moon-1.svg" class="sprite" data-frame="moon-1" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-moon-2.svg" class="sprite" data-frame="moon-2" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-moon-3.svg" class="sprite" data-frame="moon-3" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-moon-4.svg" class="sprite" data-frame="moon-4" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-moon-5.svg" class="sprite" data-frame="moon-5" alt="Egg frame" draggable="false" />
+            <img src="/nude-egg-game/assets/egg-moon-6.svg" class="sprite" data-frame="moon-6" alt="Egg frame" draggable="false" />
             <!-- Invisible mouth drop target -->
             <div id="mouth-target" class="mouth-target"></div>
           </div>
@@ -55,16 +55,16 @@
           <!-- Basket & Egg Counter -->
           <div id="basket-area" class="basket-area">
             <div id="basket-hitbox" class="basket-hitbox" title="Drag an egg to the mouth">
-              <img src="assets/basket.svg" class="basket-img" alt="Basket of eggs" draggable="false" />
+              <img src="/nude-egg-game/assets/basket.svg" class="basket-img" alt="Basket of eggs" draggable="false" />
             </div>
             <div id="egg-counter" class="egg-counter hidden">EGGS: 80</div>
           </div>
 
           <!-- Ghost trail + dragged egg -->
           <div id="drag-layer" class="drag-layer">
-            <img id="ghost-egg-2" src="assets/egg-small.svg" class="drag-egg ghost-2 hidden" alt="" draggable="false" />
-            <img id="ghost-egg-1" src="assets/egg-small.svg" class="drag-egg ghost-1 hidden" alt="" draggable="false" />
-            <img id="drag-egg" src="assets/egg-small.svg" class="drag-egg hidden" alt="" draggable="false" />
+            <img id="ghost-egg-2" src="/nude-egg-game/assets/egg-small.svg" class="drag-egg ghost-2 hidden" alt="" draggable="false" />
+            <img id="ghost-egg-1" src="/nude-egg-game/assets/egg-small.svg" class="drag-egg ghost-1 hidden" alt="" draggable="false" />
+            <img id="drag-egg" src="/nude-egg-game/assets/egg-small.svg" class="drag-egg hidden" alt="" draggable="false" />
           </div>
 
           <!-- Small/Medium Popup Window (6 EGGS, Warning, 40 eggs, 41 EGGS, Nude Egg) -->
@@ -74,7 +74,7 @@
             </div>
             <div class="modal-content" id="popup-content">
               <div id="popup-text" class="popup-text">6 EGGS</div>
-              <img id="popup-warning" src="assets/warning.svg" class="popup-warning hidden" alt="Warning" draggable="false" />
+              <img id="popup-warning" src="/nude-egg-game/assets/warning.svg" class="popup-warning hidden" alt="Warning" draggable="false" />
             </div>
           </div>
 
@@ -115,10 +115,10 @@
       </div>
 
       <!-- Custom in-stage hand cursor -->
-      <img id="hand-cursor" src="assets/hand-open.svg" class="hand-cursor hidden" alt="" draggable="false" />
+      <img id="hand-cursor" src="/nude-egg-game/assets/hand-open.svg" class="hand-cursor hidden" alt="" draggable="false" />
     </div>
   </div>
 
-  <script type="module" src="game.js"></script>
+  <script type="module" src="/nude-egg-game/game.js"></script>
 </body>
 </html>

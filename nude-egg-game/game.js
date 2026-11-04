@@ -447,7 +447,7 @@ const auth = getAuth(firebaseApp);
   }
 
   function setHandGrab(grabbing) {
-    handCursorEl.src = grabbing ? 'assets/hand-grab.svg' : 'assets/hand-open.svg';
+    handCursorEl.src = grabbing ? '/nude-egg-game/assets/hand-grab.svg' : '/nude-egg-game/assets/hand-open.svg';
   }
 
   stage.addEventListener('pointermove', (e) => {
