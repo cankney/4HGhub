@@ -127,10 +127,19 @@ export async function POST(req: NextRequest) {
     } = payload;
 
     const cleanOrigin = cleanUnifiUrl(
-      baseUrl || process.env.UNIFI_IP || process.env.NEXT_PUBLIC_UNIFI_IP || ''
+      process.env.UNIFI_BASE_URL ||
+        process.env.UNIFI_IP ||
+        process.env.UNIFI_HOST ||
+        process.env.NEXT_PUBLIC_UNIFI_BASE_URL ||
+        process.env.NEXT_PUBLIC_UNIFI_IP ||
+        baseUrl ||
+        ''
     );
     const cleanKey = (
-      apiKey || process.env.UNIFI_API_KEY || process.env.NEXT_PUBLIC_UNIFI_API_KEY || ''
+      process.env.UNIFI_API_KEY ||
+      process.env.NEXT_PUBLIC_UNIFI_API_KEY ||
+      apiKey ||
+      ''
     ).trim();
     const cleanUser = (username || '').trim();
     const cleanPass = (password || '').trim();

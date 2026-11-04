@@ -999,8 +999,8 @@ export function CameraSpatialVision({
       return;
     }
 
-    if (!unifiConfig?.apiKey || cameraMarkersRef.current.length === 0) {
-      setDetectorStatus('Set UniFi API Key in Settings to enable live AI vision');
+    if (cameraMarkersRef.current.length === 0) {
+      setDetectorStatus('No camera markers configured for live AI vision');
       return;
     }
 
@@ -1038,16 +1038,16 @@ export function CameraSpatialVision({
           return;
         }
 
-        const url = `/api/unifi/snapshot?id=${encodeURIComponent(
+        const url = `/3d-warehouse/api/unifi/snapshot?id=${encodeURIComponent(
           unifiId
         )}&host=${encodeURIComponent(
-          unifiConfig.baseUrl || ''
+          unifiConfig?.baseUrl || ''
         )}&apiKey=${encodeURIComponent(
-          unifiConfig.apiKey
+          unifiConfig?.apiKey || ''
         )}&consoleId=${encodeURIComponent(
           cam.metadata.unifiConsoleId || ''
         )}&allowSelfSigned=${
-          unifiConfig.allowSelfSigned !== false
+          unifiConfig?.allowSelfSigned !== false
         }&t=${Date.now()}`;
 
         const img = new Image();

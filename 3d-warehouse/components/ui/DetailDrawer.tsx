@@ -384,8 +384,7 @@ export function DetailDrawer({
     if (
       !selectedMarker ||
       selectedMarker.type !== 'camera' ||
-      !selectedMarker.metadata.unifiId ||
-      !unifiConfig?.apiKey
+      !selectedMarker.metadata.unifiId
     ) {
       setCurrentImageSrc(null);
       setIsPreloading(false);
@@ -393,13 +392,13 @@ export function DetailDrawer({
       return;
     }
 
-    const targetUrl = `/api/unifi/snapshot?id=${selectedMarker.metadata.unifiId}&host=${encodeURIComponent(
-      unifiConfig.baseUrl || ''
+    const targetUrl = `/3d-warehouse/api/unifi/snapshot?id=${selectedMarker.metadata.unifiId}&host=${encodeURIComponent(
+      unifiConfig?.baseUrl || ''
     )}&apiKey=${encodeURIComponent(
-      unifiConfig.apiKey || ''
+      unifiConfig?.apiKey || ''
     )}&consoleId=${encodeURIComponent(
       selectedMarker.metadata.unifiConsoleId || ''
-    )}&allowSelfSigned=${unifiConfig.allowSelfSigned !== false}&t=${snapshotNonce}`;
+    )}&allowSelfSigned=${unifiConfig?.allowSelfSigned !== false}&t=${snapshotNonce}`;
 
     if (!currentImageSrc) {
       setIsPreloading(true);
@@ -2727,12 +2726,10 @@ export function DetailDrawer({
               selectedMarker.metadata.streamUrl ||
               '';
 
-            const hasSnapshot =
-              Boolean(selectedMarker.metadata.unifiId) &&
-              Boolean(unifiConfig?.apiKey);
+            const hasSnapshot = Boolean(selectedMarker.metadata.unifiId);
 
             const snapshotUrl = hasSnapshot
-              ? `/api/unifi/snapshot?id=${selectedMarker.metadata.unifiId}&host=${encodeURIComponent(
+              ? `/3d-warehouse/api/unifi/snapshot?id=${selectedMarker.metadata.unifiId}&host=${encodeURIComponent(
                   unifiConfig?.baseUrl || ''
                 )}&apiKey=${encodeURIComponent(
                   unifiConfig?.apiKey || ''

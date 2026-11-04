@@ -129,16 +129,32 @@ export async function POST(req: NextRequest) {
     const { baseUrl, database, username, apiKey, stockLocationPrefix = 'WH/Stock', testOnly } = payload;
 
     const cleanBaseUrl = cleanOdooUrl(
-      baseUrl || process.env.ODOO_BASE_URL || process.env.NEXT_PUBLIC_ODOO_BASE_URL || ''
+      process.env.ODOO_BASE_URL ||
+        process.env.ODOO_URL ||
+        process.env.NEXT_PUBLIC_ODOO_BASE_URL ||
+        baseUrl ||
+        'https://4hg.odoo.com'
     );
     const cleanDb = (
-      database || process.env.ODOO_DB || process.env.NEXT_PUBLIC_ODOO_DB || ''
+      process.env.ODOO_DB ||
+      process.env.ODOO_DATABASE ||
+      process.env.NEXT_PUBLIC_ODOO_DB ||
+      database ||
+      '4hg-live'
     ).trim();
     const cleanUser = (
-      username || process.env.ODOO_LOGIN || process.env.NEXT_PUBLIC_ODOO_LOGIN || ''
+      process.env.ODOO_USERNAME ||
+      process.env.ODOO_LOGIN ||
+      process.env.NEXT_PUBLIC_ODOO_USERNAME ||
+      process.env.NEXT_PUBLIC_ODOO_LOGIN ||
+      username ||
+      'admin@4hg.com'
     ).trim();
     const cleanApiKey = (
-      apiKey || process.env.ODOO_API_KEY || process.env.NEXT_PUBLIC_ODOO_API_KEY || ''
+      process.env.ODOO_API_KEY ||
+      process.env.NEXT_PUBLIC_ODOO_API_KEY ||
+      apiKey ||
+      ''
     ).trim();
 
     if (!cleanBaseUrl || !cleanDb || !cleanUser || !cleanApiKey) {

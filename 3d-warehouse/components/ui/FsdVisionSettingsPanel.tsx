@@ -103,23 +103,23 @@ export function FsdVisionSettingsPanel({
 
   // Poll live snapshot for the selected camera so the user sees the real camera view
   useEffect(() => {
-    if (!isOpen || !activeCam?.metadata.unifiId || !unifiConfig?.apiKey) {
+    if (!isOpen || !activeCam?.metadata.unifiId) {
       setLiveSnapshotSrc(null);
       return;
     }
 
     let cancelled = false;
     const fetchSnap = () => {
-      const url = `/api/unifi/snapshot?id=${encodeURIComponent(
+      const url = `/3d-warehouse/api/unifi/snapshot?id=${encodeURIComponent(
         activeCam.metadata.unifiId!
       )}&host=${encodeURIComponent(
-        unifiConfig.baseUrl || ''
+        unifiConfig?.baseUrl || ''
       )}&apiKey=${encodeURIComponent(
-        unifiConfig.apiKey
+        unifiConfig?.apiKey || ''
       )}&consoleId=${encodeURIComponent(
         activeCam.metadata.unifiConsoleId || ''
       )}&allowSelfSigned=${
-        unifiConfig.allowSelfSigned !== false
+        unifiConfig?.allowSelfSigned !== false
       }&t=${Date.now()}`;
 
       const img = new Image();
@@ -321,23 +321,15 @@ export function FsdVisionSettingsPanel({
               Visual 3D Vision &amp; Compass Setup
             </div>
             <div className="text-[10px] text-slate-400">
-              {lastCloudSyncTime ? `Cloud synced: ${lastCloudSyncTime}` : 'Shared live across all users'}
+              {isSyncingCloud
+                ? 'Auto-saving changes...'
+                : lastCloudSyncTime
+                ? `Auto-saved (${lastCloudSyncTime})`
+                : 'Auto-saves & syncs across all devices'}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {onPushToCloud && (
-            <button
-              type="button"
-              onClick={onPushToCloud}
-              disabled={isSyncingCloud}
-              className="px-2.5 py-1 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-[10.5px] flex items-center gap-1 shadow-sm transition cursor-pointer"
-              title="Publish all 3D vision zones and settings to cloud for all users"
-            >
-              <Cloud className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-bounce' : ''}`} />
-              <span>{isSyncingCloud ? 'Syncing...' : 'Save & Sync'}</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={() => {

@@ -57,41 +57,67 @@ export async function GET() {
 
     // Merge server-level Vercel environment variables if configured
     const envOdoo = {
-      baseUrl: process.env.ODOO_BASE_URL || process.env.NEXT_PUBLIC_ODOO_BASE_URL,
-      database: process.env.ODOO_DB || process.env.NEXT_PUBLIC_ODOO_DB,
-      username: process.env.ODOO_LOGIN || process.env.NEXT_PUBLIC_ODOO_LOGIN,
-      apiKey: process.env.ODOO_API_KEY || process.env.NEXT_PUBLIC_ODOO_API_KEY,
+      baseUrl:
+        process.env.ODOO_BASE_URL ||
+        process.env.ODOO_URL ||
+        process.env.NEXT_PUBLIC_ODOO_BASE_URL,
+      database:
+        process.env.ODOO_DB ||
+        process.env.ODOO_DATABASE ||
+        process.env.NEXT_PUBLIC_ODOO_DB,
+      username:
+        process.env.ODOO_USERNAME ||
+        process.env.ODOO_LOGIN ||
+        process.env.NEXT_PUBLIC_ODOO_USERNAME ||
+        process.env.NEXT_PUBLIC_ODOO_LOGIN,
+      apiKey:
+        process.env.ODOO_API_KEY ||
+        process.env.NEXT_PUBLIC_ODOO_API_KEY,
     };
     const envUnifi = {
-      baseUrl: process.env.UNIFI_IP || process.env.NEXT_PUBLIC_UNIFI_IP,
-      apiKey: process.env.UNIFI_API_KEY || process.env.NEXT_PUBLIC_UNIFI_API_KEY,
-      consoleId: process.env.UNIFI_CONSOLE_ID || process.env.NEXT_PUBLIC_UNIFI_CONSOLE_ID,
-      rtspHost: process.env.UNIFI_RTSP_HOST || process.env.NEXT_PUBLIC_UNIFI_RTSP_HOST,
+      baseUrl:
+        process.env.UNIFI_BASE_URL ||
+        process.env.UNIFI_IP ||
+        process.env.UNIFI_HOST ||
+        process.env.NEXT_PUBLIC_UNIFI_BASE_URL ||
+        process.env.NEXT_PUBLIC_UNIFI_IP,
+      apiKey:
+        process.env.UNIFI_API_KEY ||
+        process.env.NEXT_PUBLIC_UNIFI_API_KEY,
+      consoleId:
+        process.env.UNIFI_CONSOLE_ID ||
+        process.env.NEXT_PUBLIC_UNIFI_CONSOLE_ID,
+      rtspHost:
+        process.env.UNIFI_RTSP_HOST ||
+        process.env.NEXT_PUBLIC_UNIFI_RTSP_HOST,
     };
 
-    if (envOdoo.apiKey || envOdoo.baseUrl) {
-      parsed.odooConfig = {
-        ...parsed.odooConfig,
-        baseUrl: parsed.odooConfig?.baseUrl || envOdoo.baseUrl || '',
-        database: parsed.odooConfig?.database || envOdoo.database || '',
-        username: parsed.odooConfig?.username || envOdoo.username || '',
-        apiKey: parsed.odooConfig?.apiKey || envOdoo.apiKey || '',
-      };
-    }
+    parsed.odooConfig = {
+      ...parsed.odooConfig,
+      baseUrl: envOdoo.baseUrl || parsed.odooConfig?.baseUrl || 'https://4hg.odoo.com',
+      database: envOdoo.database || parsed.odooConfig?.database || '4hg-live',
+      username: envOdoo.username || parsed.odooConfig?.username || 'admin@4hg.com',
+      apiKey: envOdoo.apiKey || parsed.odooConfig?.apiKey || '',
+      stockLocationPrefix:
+        parsed.odooConfig?.stockLocationPrefix || 'WH/Stock, WH/Packing Zone',
+    };
 
-    if (envUnifi.apiKey || envUnifi.baseUrl) {
-      parsed.unifiConfig = {
-        ...parsed.unifiConfig,
-        baseUrl: parsed.unifiConfig?.baseUrl || envUnifi.baseUrl || '',
-        apiKey: parsed.unifiConfig?.apiKey || envUnifi.apiKey || '',
-        consoleId: parsed.unifiConfig?.consoleId || envUnifi.consoleId || '',
-        rtspHost: parsed.unifiConfig?.rtspHost || envUnifi.rtspHost || '',
-      };
-    }
+    parsed.unifiConfig = {
+      ...parsed.unifiConfig,
+      baseUrl: envUnifi.baseUrl || parsed.unifiConfig?.baseUrl || 'https://192.168.1.1',
+      apiKey: envUnifi.apiKey || parsed.unifiConfig?.apiKey || '',
+      consoleId: envUnifi.consoleId || parsed.unifiConfig?.consoleId || '',
+      rtspHost: envUnifi.rtspHost || parsed.unifiConfig?.rtspHost || '',
+      allowSelfSigned: parsed.unifiConfig?.allowSelfSigned ?? true,
+    };
 
     return NextResponse.json({
       success: true,
       data: parsed,
+      envConfigured: {
+        odoo: Boolean(envOdoo.apiKey),
+        unifi: Boolean(envUnifi.apiKey),
+      },
       updatedAt,
       deviceId,
     });
@@ -125,6 +151,42 @@ export async function POST(req: NextRequest) {
       ...item,
       visible: item.visible !== false,
     }));
+
+    // Safeguard: never allow an empty client apiKey to delete an existing saved API key in Firestore or Vercel Env
+    const envOdooKey =
+      process.env.ODOO_API_KEY || process.env.NEXT_PUBLIC_ODOO_API_KEY || '';
+    const envUnifiKey =
+      process.env.UNIFI_API_KEY || process.env.NEXT_PUBLIC_UNIFI_API_KEY || '';
+
+    if (!cleanState.odooConfig?.apiKey || !cleanState.unifiConfig?.apiKey) {
+      let existingOdooKey = '';
+      let existingUnifiKey = '';
+      try {
+        const existingRes = await fetch(FIRESTORE_URL, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+        });
+        if (existingRes.ok) {
+          const existingDoc = await existingRes.json();
+          const existingPayloadStr = existingDoc.fields?.payload?.stringValue;
+          if (existingPayloadStr) {
+            const existingParsed = JSON.parse(existingPayloadStr);
+            existingOdooKey = existingParsed?.odooConfig?.apiKey || '';
+            existingUnifiKey = existingParsed?.unifiConfig?.apiKey || '';
+          }
+        }
+      } catch {}
+
+      cleanState.odooConfig = {
+        ...cleanState.odooConfig,
+        apiKey: cleanState.odooConfig?.apiKey || envOdooKey || existingOdooKey || '',
+      };
+      cleanState.unifiConfig = {
+        ...cleanState.unifiConfig,
+        apiKey: cleanState.unifiConfig?.apiKey || envUnifiKey || existingUnifiKey || '',
+      };
+    }
 
     const now = new Date().toISOString();
     const payloadStr = JSON.stringify(cleanState);

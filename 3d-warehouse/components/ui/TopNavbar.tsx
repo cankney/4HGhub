@@ -298,39 +298,6 @@ export function TopNavbar({
             )}
         </div>
 
-        {/* Sync with Odoo ERP Button */}
-        {onSyncOdoo && (
-          <button
-            type="button"
-            onClick={onSyncOdoo}
-            disabled={isSyncingOdoo}
-            className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-bold transition cursor-pointer border shadow-xs touch-target ${
-              isSyncingOdoo
-                ? 'bg-[#8DDB05]/20 text-[#8DDB05] border-[#8DDB05]/40 opacity-75 cursor-wait'
-                : isDark
-                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:border-[#8DDB05]'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-[#8DDB05]'
-            }`}
-            title={
-              lastSyncTime
-                ? `Last synced with Odoo at ${lastSyncTime}. Click to re-sync.`
-                : 'Sync on-hand inventory directly from Odoo ERP'
-            }
-            aria-label="Sync Odoo"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${
-                isSyncingOdoo
-                  ? 'animate-spin text-[#8DDB05]'
-                  : 'text-[#8DDB05]'
-              }`}
-            />
-            <span className="hidden 2xl:inline">
-              {isSyncingOdoo ? 'Syncing...' : 'Sync Odoo'}
-            </span>
-          </button>
-        )}
-
         {/* Live 4HG Cloud Multi-Device Status Indicator */}
         <div
           className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-semibold border shadow-xs select-none touch-target ${
@@ -603,27 +570,6 @@ export function TopNavbar({
             >
               <Crosshair className="w-4 h-4" />
             </button>
-
-            {onSaveBaselineDefaults && (
-              <button
-                onClick={onSaveBaselineDefaults}
-                disabled={isSavingBaseline}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
-                  isDark
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25'
-                    : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
-                }`}
-                title="Lock current layout & settings as the permanent factory baseline default"
-                aria-label="Set as Default"
-              >
-                {isSavingBaseline ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                ) : (
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                )}
-                <span className="hidden xl:inline">Set as Default</span>
-              </button>
-            )}
           </>
         )}
 

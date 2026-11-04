@@ -128,6 +128,10 @@ export default function WarehouseDigitalTwinPage() {
     useState<OdooSettingsConfig>(DEFAULT_ODOO_CONFIG);
   const [unifiConfig, setUnifiConfig] =
     useState<UnifiSettingsConfig>(DEFAULT_UNIFI_CONFIG);
+  const [envConfigured, setEnvConfigured] = useState<{
+    odoo?: boolean;
+    unifi?: boolean;
+  }>({});
   const [cardinalFacing, setCardinalFacing] = useState<CardinalFacing>('north');
   const [showShelfTags, setShowShelfTags] = useState<boolean>(true);
   const [showCameraFeeds3D, setShowCameraFeeds3D] = useState<boolean>(false);
@@ -259,17 +263,51 @@ export default function WarehouseDigitalTwinPage() {
       }
 
       if (parsed.odooConfig && typeof parsed.odooConfig === 'object') {
-        setOdooConfig((prev) => ({ ...prev, ...parsed.odooConfig }));
-        try {
-          localStorage.setItem('waretrack_odoo_config', JSON.stringify(parsed.odooConfig));
-        } catch {}
+        setOdooConfig((prev) => {
+          const merged: OdooSettingsConfig = {
+            ...prev,
+            ...parsed.odooConfig,
+            baseUrl:
+              parsed.odooConfig.baseUrl ||
+              prev.baseUrl ||
+              DEFAULT_ODOO_CONFIG.baseUrl,
+            database:
+              parsed.odooConfig.database ||
+              prev.database ||
+              DEFAULT_ODOO_CONFIG.database,
+            username:
+              parsed.odooConfig.username ||
+              prev.username ||
+              DEFAULT_ODOO_CONFIG.username,
+            apiKey: parsed.odooConfig.apiKey || prev.apiKey || '',
+            stockLocationPrefix:
+              parsed.odooConfig.stockLocationPrefix ||
+              prev.stockLocationPrefix ||
+              DEFAULT_ODOO_CONFIG.stockLocationPrefix,
+          };
+          try {
+            localStorage.setItem('waretrack_odoo_config', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
       }
 
       if (parsed.unifiConfig && typeof parsed.unifiConfig === 'object') {
-        setUnifiConfig((prev) => ({ ...prev, ...parsed.unifiConfig }));
-        try {
-          localStorage.setItem('waretrack_unifi_config', JSON.stringify(parsed.unifiConfig));
-        } catch {}
+        setUnifiConfig((prev) => {
+          const merged: UnifiSettingsConfig = {
+            ...prev,
+            ...parsed.unifiConfig,
+            baseUrl:
+              parsed.unifiConfig.baseUrl ||
+              prev.baseUrl ||
+              DEFAULT_UNIFI_CONFIG.baseUrl,
+            apiKey: parsed.unifiConfig.apiKey || prev.apiKey || '',
+          };
+          try {
+            localStorage.setItem('waretrack_unifi_config', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
       }
 
       // 3D FSD Vision Settings
@@ -612,6 +650,9 @@ export default function WarehouseDigitalTwinPage() {
           cache: 'no-store',
         });
         const json = await res.json();
+        if (json.envConfigured) {
+          setEnvConfigured(json.envConfigured);
+        }
         if (json.success && json.data) {
           // If we already have this exact server version and silent is true, skip
           if (
@@ -631,8 +672,20 @@ export default function WarehouseDigitalTwinPage() {
           // If silent (background polling or auto-load on start):
           // Only avoid overwriting if the user has active unsaved edits in this current session!
           if (silent && isUserDirtyRef.current) {
-            if (json.data.odooConfig) setOdooConfig(json.data.odooConfig);
-            if (json.data.unifiConfig) setUnifiConfig(json.data.unifiConfig);
+            if (json.data.odooConfig?.apiKey) {
+              setOdooConfig((prev) => ({
+                ...prev,
+                ...json.data.odooConfig,
+                apiKey: json.data.odooConfig.apiKey || prev.apiKey || '',
+              }));
+            }
+            if (json.data.unifiConfig?.apiKey) {
+              setUnifiConfig((prev) => ({
+                ...prev,
+                ...json.data.unifiConfig,
+                apiKey: json.data.unifiConfig.apiKey || prev.apiKey || '',
+              }));
+            }
             if (json.data.fsdConfig) setFsdConfig(json.data.fsdConfig);
             if (json.updatedAt) lastCloudUpdatedAtRef.current = json.updatedAt;
             return;
@@ -642,6 +695,7 @@ export default function WarehouseDigitalTwinPage() {
           isHydratingRef.current = true;
           applyHydratedState(json.data);
           isHydratingRef.current = false;
+          isInitialCloudPullDoneRef.current = true;
 
           if (json.updatedAt) {
             lastCloudUpdatedAtRef.current = json.updatedAt;
@@ -1394,7 +1448,14 @@ export default function WarehouseDigitalTwinPage() {
     pushHistory();
     isUserDirtyRef.current = true;
     setCardinalFacing(newFacing);
-    setBlueprintItems((prev) => applyCardinalOrientation(prev, newFacing));
+    setBlueprintItems((prev) => {
+      const next = applyCardinalOrientation(prev, newFacing);
+      saveStateToCloud(
+        { cardinalFacing: newFacing, blueprintItems: next },
+        { immediate: true }
+      );
+      return next;
+    });
     try {
       localStorage.setItem('waretrack_cardinal_facing', newFacing);
     } catch {
@@ -1887,25 +1948,35 @@ export default function WarehouseDigitalTwinPage() {
     [odooConfig, pushHistory, saveStateToCloud, showToastNotification]
   );
 
-  // Auto-sync Odoo inventory upon application launch
+  // Auto-sync Odoo inventory upon application launch and periodically in the background
   const hasAutoSyncedOdooRef = React.useRef<boolean>(false);
 
   useEffect(() => {
-    if (!hasHydratedRef.current || hasAutoSyncedOdooRef.current) return;
-    hasAutoSyncedOdooRef.current = true;
+    if (!hasHydratedRef.current) return;
 
-    // Delay to let initial canvas & cloud hydration settle before syncing Odoo
-    const timer = setTimeout(() => {
-      if (isInitialCloudPullDoneRef.current) {
-        handleSyncOdoo({ silent: true });
-      } else {
-        setTimeout(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (!hasAutoSyncedOdooRef.current) {
+      hasAutoSyncedOdooRef.current = true;
+      timer = setTimeout(() => {
+        if (isInitialCloudPullDoneRef.current) {
           handleSyncOdoo({ silent: true });
-        }, 1800);
-      }
-    }, 1800);
+        } else {
+          setTimeout(() => {
+            handleSyncOdoo({ silent: true });
+          }, 1800);
+        }
+      }, 1800);
+    }
 
-    return () => clearTimeout(timer);
+    // Background refresh every 5 minutes
+    const interval = setInterval(() => {
+      handleSyncOdoo({ silent: true });
+    }, 300000);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [handleSyncOdoo]);
 
   const handleSaveUnifiConfig = (cfg: UnifiSettingsConfig) => {
@@ -2611,9 +2682,18 @@ export default function WarehouseDigitalTwinPage() {
         isCollapsed={isSidebarCollapsed || isFullscreen}
         onClose={() => setIsSettingsOpen(false)}
         theme={theme}
-        onToggleTheme={() =>
-          setTheme((prev) => (prev === 'daylight' ? 'dark' : 'daylight'))
-        }
+        onToggleTheme={() => {
+          const next = theme === 'daylight' ? 'dark' : 'daylight';
+          setTheme(next);
+          try {
+            localStorage.setItem('waretrack_theme', next);
+          } catch {}
+          isUserDirtyRef.current = true;
+          handlePushToCloud({
+            ...latestStateRef.current,
+            theme: next,
+          });
+        }}
         odooConfig={odooConfig}
         onSaveOdooConfig={handleSaveOdooConfig}
         unifiConfig={unifiConfig}
@@ -2637,6 +2717,7 @@ export default function WarehouseDigitalTwinPage() {
         isSavingBaseline={isSavingBaseline}
         baselineSaveMsg={baselineSaveMsg}
         lastCloudSyncTime={lastCloudSyncTime}
+        envConfigured={envConfigured}
       />
 
       <CalibrationOverlay
@@ -2646,11 +2727,14 @@ export default function WarehouseDigitalTwinPage() {
         onClose={() => setCalibrationMode(false)}
         onCreateMarkerAtPoint={handleCreateMarkerAtPoint}
         onHideClickedMesh={(meshIdx) => {
-          setMeshOverrides((prev) =>
-            prev.map((m) =>
+          isUserDirtyRef.current = true;
+          setMeshOverrides((prev) => {
+            const next = prev.map((m) =>
               m.meshIndex === meshIdx ? { ...m, visible: false } : m
-            )
-          );
+            );
+            saveStateToCloud({ meshOverrides: next }, { immediate: true });
+            return next;
+          });
         }}
       />
 
@@ -2664,7 +2748,7 @@ export default function WarehouseDigitalTwinPage() {
           cameras={markers.filter((m) => m.type === 'camera')}
           selectedCameraId={selectedFsdCameraId}
           onSelectCameraId={setSelectedFsdCameraId}
-          onUpdateCameraMarker={handleUpdateMarker}
+          onUpdateCameraMarker={(updated) => handleUpdateMarker(updated, true)}
           unifiConfig={unifiConfig}
           cardinalFacing={cardinalFacing}
           onSelectCardinalFacing={handleSelectCardinalFacing}
@@ -2683,7 +2767,6 @@ export default function WarehouseDigitalTwinPage() {
           latestDetectionsByCamera={latestDetectionsByCamera}
           lastCloudSyncTime={lastCloudSyncTime}
           isSyncingCloud={isSyncingCloud}
-          onPushToCloud={() => handlePushToCloud()}
         />
       )}
     </main>

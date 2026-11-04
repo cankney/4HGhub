@@ -95,9 +95,25 @@ function fetchSnapshotBuffer(
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const cameraId = searchParams.get('id');
-  const host = searchParams.get('host');
-  const apiKey = searchParams.get('apiKey');
-  const queryConsoleId = searchParams.get('consoleId');
+  const host =
+    searchParams.get('host') ||
+    process.env.UNIFI_BASE_URL ||
+    process.env.UNIFI_IP ||
+    process.env.UNIFI_HOST ||
+    process.env.NEXT_PUBLIC_UNIFI_BASE_URL ||
+    process.env.NEXT_PUBLIC_UNIFI_IP ||
+    '';
+  const apiKey = (
+    process.env.UNIFI_API_KEY ||
+    process.env.NEXT_PUBLIC_UNIFI_API_KEY ||
+    searchParams.get('apiKey') ||
+    ''
+  ).trim();
+  const queryConsoleId =
+    searchParams.get('consoleId') ||
+    process.env.UNIFI_CONSOLE_ID ||
+    process.env.NEXT_PUBLIC_UNIFI_CONSOLE_ID ||
+    '';
   const allowSelfSigned = searchParams.get('allowSelfSigned') !== 'false';
 
   if (!cameraId || !apiKey) {

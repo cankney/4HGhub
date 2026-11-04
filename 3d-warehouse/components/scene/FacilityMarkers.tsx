@@ -58,17 +58,17 @@ function Camera3DPopupCard({
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const unifiId = marker.metadata.unifiId;
-  const apiKey = unifiConfig?.apiKey;
+  const apiKey = unifiConfig?.apiKey || '';
 
   useEffect(() => {
-    if (!unifiId || !apiKey) {
+    if (!unifiId) {
       setCurrentSrc(null);
       setIsPreloading(false);
       setHasError(false);
       return;
     }
 
-    const targetUrl = `/api/unifi/snapshot?id=${encodeURIComponent(
+    const targetUrl = `/3d-warehouse/api/unifi/snapshot?id=${encodeURIComponent(
       unifiId
     )}&host=${encodeURIComponent(
       unifiConfig?.baseUrl || ''

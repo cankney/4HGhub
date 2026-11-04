@@ -45,10 +45,13 @@ export interface OdooSettingsConfig {
 }
 
 export const DEFAULT_ODOO_CONFIG: OdooSettingsConfig = {
-  baseUrl: 'https://4hg.odoo.com',
-  database: '4hg-live',
-  username: 'admin@4hg.com',
-  apiKey: '',
+  baseUrl: process.env.NEXT_PUBLIC_ODOO_BASE_URL || 'https://4hg.odoo.com',
+  database: process.env.NEXT_PUBLIC_ODOO_DB || '4hg-live',
+  username:
+    process.env.NEXT_PUBLIC_ODOO_USERNAME ||
+    process.env.NEXT_PUBLIC_ODOO_LOGIN ||
+    'admin@4hg.com',
+  apiKey: process.env.NEXT_PUBLIC_ODOO_API_KEY || '',
   stockLocationPrefix: 'WH/Stock, WH/Packing Zone',
   parentLocations: ['WH/Stock', 'WH/Packing Zone'],
 };
@@ -62,8 +65,11 @@ export interface UnifiSettingsConfig {
 }
 
 export const DEFAULT_UNIFI_CONFIG: UnifiSettingsConfig = {
-  baseUrl: 'https://192.168.1.1',
-  apiKey: '',
+  baseUrl:
+    process.env.NEXT_PUBLIC_UNIFI_BASE_URL ||
+    process.env.NEXT_PUBLIC_UNIFI_IP ||
+    'https://192.168.1.1',
+  apiKey: process.env.NEXT_PUBLIC_UNIFI_API_KEY || '',
   username: '',
   password: '',
   allowSelfSigned: true,
@@ -98,6 +104,7 @@ interface SettingsDrawerProps {
   baselineSaveMsg?: { type: 'success' | 'error'; text: string } | null;
   lastCloudSyncTime?: string | null;
   isCollapsed?: boolean;
+  envConfigured?: { odoo?: boolean; unifi?: boolean };
 }
 
 export function SettingsDrawer({
@@ -129,6 +136,7 @@ export function SettingsDrawer({
   baselineSaveMsg = null,
   lastCloudSyncTime,
   isCollapsed = false,
+  envConfigured,
 }: SettingsDrawerProps) {
   const isDark = theme === 'dark';
 
@@ -153,6 +161,25 @@ export function SettingsDrawer({
   >('idle');
   const [unifiTestMessage, setUnifiTestMessage] = useState<string | null>(null);
   const [unifiSaveSuccess, setUnifiSaveSuccess] = useState(false);
+
+  const odooAutoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const unifiAutoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const updateOdooForm = (nextForm: OdooSettingsConfig) => {
+    setForm(nextForm);
+    if (odooAutoSaveTimerRef.current) clearTimeout(odooAutoSaveTimerRef.current);
+    odooAutoSaveTimerRef.current = setTimeout(() => {
+      onSaveOdooConfig(nextForm);
+    }, 500);
+  };
+
+  const updateUnifiForm = (nextUnifiForm: UnifiSettingsConfig) => {
+    setUnifiForm(nextUnifiForm);
+    if (unifiAutoSaveTimerRef.current) clearTimeout(unifiAutoSaveTimerRef.current);
+    unifiAutoSaveTimerRef.current = setTimeout(() => {
+      onSaveUnifiConfig(nextUnifiForm);
+    }, 500);
+  };
 
   // Sync internal state if prop updates
   React.useEffect(() => {
@@ -309,7 +336,7 @@ export function SettingsDrawer({
                   value={form.baseUrl}
                   placeholder="https://my-company.odoo.com"
                   onChange={(e) =>
-                    setForm({ ...form, baseUrl: e.target.value })
+                    updateOdooForm({ ...form, baseUrl: e.target.value })
                   }
                   className={`w-full pl-8 pr-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
@@ -328,7 +355,7 @@ export function SettingsDrawer({
                   value={form.database}
                   placeholder="e.g. production"
                   onChange={(e) =>
-                    setForm({ ...form, database: e.target.value })
+                    updateOdooForm({ ...form, database: e.target.value })
                   }
                   className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
@@ -344,7 +371,7 @@ export function SettingsDrawer({
                   value={form.stockLocationPrefix}
                   placeholder="WH/Stock, WH/Packing Zone"
                   onChange={(e) =>
-                    setForm({ ...form, stockLocationPrefix: e.target.value })
+                    updateOdooForm({ ...form, stockLocationPrefix: e.target.value })
                   }
                   className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
@@ -368,7 +395,7 @@ export function SettingsDrawer({
                             nextParts = [...currentParts, loc];
                           }
                           const combined = nextParts.join(', ');
-                          setForm({
+                          updateOdooForm({
                             ...form,
                             stockLocationPrefix: combined,
                             parentLocations: nextParts,
@@ -404,26 +431,37 @@ export function SettingsDrawer({
                 value={form.username}
                 placeholder="warehouse-admin@domain.com"
                 onChange={(e) =>
-                  setForm({ ...form, username: e.target.value })
+                  updateOdooForm({ ...form, username: e.target.value })
                 }
                 className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium border ${inputClass}`}
               />
             </div>
 
             <div>
-              <label
-                className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}
-              >
-                API Key / Access Token
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label
+                  className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
+                >
+                  API Key / Access Token
+                </label>
+                {envConfigured?.odoo && (
+                  <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    ✓ Loaded from Vercel Env
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <Key className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                 <input
                   type={showApiKey ? 'text' : 'password'}
                   value={form.apiKey}
-                  placeholder="Enter Odoo API key or personal access token"
+                  placeholder={
+                    envConfigured?.odoo
+                      ? 'Configured via Vercel ODOO_API_KEY'
+                      : 'Enter Odoo API key or personal access token'
+                  }
                   onChange={(e) =>
-                    setForm({ ...form, apiKey: e.target.value })
+                    updateOdooForm({ ...form, apiKey: e.target.value })
                   }
                   className={`w-full pl-8 pr-8 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
@@ -597,7 +635,7 @@ export function SettingsDrawer({
                   value={unifiForm.baseUrl}
                   placeholder="https://192.168.1.1"
                   onChange={(e) =>
-                    setUnifiForm({ ...unifiForm, baseUrl: e.target.value })
+                    updateUnifiForm({ ...unifiForm, baseUrl: e.target.value })
                   }
                   className={`w-full pl-8 pr-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
@@ -605,19 +643,30 @@ export function SettingsDrawer({
             </div>
 
             <div>
-              <label
-                className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}
-              >
-                UniFi OS API Key
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label
+                  className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
+                >
+                  UniFi OS API Key
+                </label>
+                {envConfigured?.unifi && (
+                  <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    ✓ Loaded from Vercel Env
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <Key className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                 <input
                   type={showUnifiApiKey ? 'text' : 'password'}
                   value={unifiForm.apiKey}
-                  placeholder="Paste UniFi OS API Key"
+                  placeholder={
+                    envConfigured?.unifi
+                      ? 'Configured via Vercel UNIFI_API_KEY'
+                      : 'Paste UniFi OS API Key'
+                  }
                   onChange={(e) =>
-                    setUnifiForm({ ...unifiForm, apiKey: e.target.value })
+                    updateUnifiForm({ ...unifiForm, apiKey: e.target.value })
                   }
                   className={`w-full pl-8 pr-8 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
                 />
@@ -642,7 +691,7 @@ export function SettingsDrawer({
                 type="checkbox"
                 checked={unifiForm.allowSelfSigned}
                 onChange={(e) =>
-                  setUnifiForm({
+                  updateUnifiForm({
                     ...unifiForm,
                     allowSelfSigned: e.target.checked,
                   })
@@ -675,7 +724,7 @@ export function SettingsDrawer({
                       value={unifiForm.username || ''}
                       placeholder="admin"
                       onChange={(e) =>
-                        setUnifiForm({ ...unifiForm, username: e.target.value })
+                        updateUnifiForm({ ...unifiForm, username: e.target.value })
                       }
                       className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium border ${inputClass}`}
                     />
@@ -690,7 +739,7 @@ export function SettingsDrawer({
                         value={unifiForm.password || ''}
                         placeholder="••••••••"
                         onChange={(e) =>
-                          setUnifiForm({ ...unifiForm, password: e.target.value })
+                          updateUnifiForm({ ...unifiForm, password: e.target.value })
                         }
                         className={`w-full px-2.5 pr-7 py-1.5 rounded-xl text-xs font-medium border ${inputClass}`}
                       />
