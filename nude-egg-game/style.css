@@ -1,0 +1,422 @@
+:root {
+  --bg-main: #c7d9e2;
+  --bg-modal: #d8ecf4;
+  --line-color: #1b262c;
+  --font-pixel: 'Silkscreen', 'VT323', 'Courier New', monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0e1417;
+  font-family: var(--font-pixel);
+  color: var(--line-color);
+  overflow: hidden;
+}
+
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-main);
+  transition: background-color 0.25s ease;
+}
+
+/* 16:9 Retro Monitor Stage */
+#stage {
+  position: relative;
+  width: min(100vw, 177.78vh);
+  height: min(56.25vw, 100vh);
+  background: var(--bg-main);
+  padding: 3.2% 3.8%;
+  cursor: none;
+  overflow: hidden;
+  transition: background-color 0.25s ease;
+}
+
+/* Main Retro Window Frame */
+.window-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 2.5px solid var(--line-color);
+  border-radius: 0 0 18px 18px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-main);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.title-bar,
+.modal-title-bar {
+  height: 22px;
+  border-bottom: 2.5px solid var(--line-color);
+  padding: 3px 4px;
+  background: var(--bg-modal);
+  display: flex;
+  align-items: center;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.stripes {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--line-color) 0px,
+    var(--line-color) 1.5px,
+    transparent 1.5px,
+    transparent 3.5px
+  );
+}
+
+.window-body {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.game-title {
+  margin: 2.8% 0 0 0;
+  text-align: center;
+  font-size: clamp(18px, 2.35vw, 34px);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--line-color);
+}
+
+/* Egg Character & Cross-Dissolve Sprites */
+.egg-character {
+  position: absolute;
+  left: 7%;
+  bottom: 8.5%;
+  width: 21%;
+  aspect-ratio: 220 / 260;
+  transition: left 0.45s ease, bottom 0.45s ease, width 0.45s ease;
+}
+
+/* Centered position for Pants Drop & Mooning (Steps 7-9) */
+.egg-character.centered {
+  left: 38.5%;
+  bottom: 5.5%;
+  width: 23%;
+}
+
+.sprite {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.28s ease-in-out;
+  pointer-events: none;
+}
+
+.sprite.active {
+  opacity: 1;
+}
+
+.mouth-target {
+  position: absolute;
+  left: 24%;
+  top: 36%;
+  width: 52%;
+  height: 44%;
+  border-radius: 50%;
+}
+
+/* Basket & Egg Counter */
+.basket-area {
+  position: absolute;
+  right: 7.5%;
+  bottom: 10.5%;
+  width: 14.5%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.basket-hitbox {
+  width: 100%;
+  aspect-ratio: 160 / 130;
+  position: relative;
+}
+
+.basket-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.egg-counter {
+  margin-top: 6%;
+  font-size: clamp(12px, 1.45vw, 22px);
+  letter-spacing: 0.08em;
+  color: var(--line-color);
+  text-align: center;
+}
+
+/* Dragged Egg & Motion Trail */
+.drag-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.drag-egg {
+  position: absolute;
+  width: 4.5%;
+  aspect-ratio: 60 / 76;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.15s ease;
+}
+
+.drag-egg.ghost-1 {
+  opacity: 0.25;
+}
+
+.drag-egg.ghost-2 {
+  opacity: 0.1;
+}
+
+/* Retro Modal Windows */
+.retro-modal {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-modal);
+  border: 2.5px solid var(--line-color);
+  box-shadow: inset 0 0 0 2px var(--bg-main);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.25s ease, background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.popup-small {
+  width: 34%;
+  min-height: 27%;
+}
+
+/* Positioned higher during final Nude Egg scene so butt is visible */
+.popup-small.top-pos {
+  top: 26%;
+  width: 44%;
+  min-height: 28%;
+}
+
+/* Alert Warning Window (Step 3) */
+.popup-small.alert-size {
+  width: 22%;
+  min-height: 27%;
+}
+
+.popup-large {
+  width: 78%;
+  height: 76%;
+  top: 50%;
+}
+
+.popup-restart {
+  width: 36%;
+  min-height: 28%;
+  top: 26%;
+}
+
+.modal-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5% 6%;
+  text-align: center;
+}
+
+.popup-text {
+  font-size: clamp(13px, 1.4vw, 21px);
+  line-height: 1.45;
+  letter-spacing: 0.06em;
+  color: var(--line-color);
+}
+
+.popup-warning {
+  width: 44%;
+  max-width: 96px;
+  height: auto;
+}
+
+/* Purchase Dialog (Step 4) */
+.purchase-content {
+  justify-content: space-evenly;
+  padding: 6% 8%;
+}
+
+.purchase-text {
+  margin: 0;
+  font-size: clamp(16px, 2.5vw, 38px);
+  line-height: 1.42;
+  letter-spacing: 0.05em;
+  color: var(--line-color);
+}
+
+#purchase-form {
+  width: 68%;
+}
+
+.purchase-input {
+  width: 100%;
+  padding: 2.2% 3.5%;
+  font-family: var(--font-pixel);
+  font-size: clamp(16px, 2.3vw, 34px);
+  letter-spacing: 0.08em;
+  color: var(--line-color);
+  background: transparent;
+  border: 2.5px solid var(--line-color);
+  outline: none;
+  text-transform: uppercase;
+  cursor: none;
+}
+
+/* Restart Button */
+.restart-content {
+  gap: 14px;
+}
+
+.retro-btn {
+  font-family: var(--font-pixel);
+  font-size: clamp(12px, 1.35vw, 20px);
+  padding: 8px 18px;
+  color: var(--line-color);
+  background: var(--bg-main);
+  border: 2.5px solid var(--line-color);
+  cursor: none;
+  letter-spacing: 0.08em;
+}
+
+.retro-btn:hover,
+.retro-btn:focus-visible {
+  background: var(--line-color);
+  color: var(--bg-modal);
+  outline: none;
+}
+
+/* Custom Hand Cursor */
+.hand-cursor {
+  position: absolute;
+  width: 3.1%;
+  min-width: 24px;
+  aspect-ratio: 1 / 1;
+  transform: translate(-45%, -35%);
+  pointer-events: none;
+  z-index: 100;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Auth Gate Loading & Access Denied Overlay */
+.auth-gate-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-main);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-gate-card {
+  background: var(--bg-modal);
+  border: 2.5px solid var(--line-color);
+  padding: 32px 28px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-pixel);
+}
+
+.auth-gate-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--line-color);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: egg-spin 0.7s linear infinite;
+}
+
+@keyframes egg-spin {
+  to { transform: rotate(360deg); }
+}
+
+.auth-gate-title {
+  font-size: clamp(16px, 2vw, 22px);
+  margin: 0;
+  color: var(--line-color);
+  letter-spacing: 0.08em;
+}
+
+.auth-gate-desc {
+  font-size: clamp(12px, 1.4vw, 15px);
+  margin: 0;
+  color: var(--line-color);
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+}
+
+.auth-gate-link {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 10px 20px;
+  background: var(--line-color);
+  color: var(--bg-modal);
+  text-decoration: none;
+  font-size: clamp(12px, 1.4vw, 16px);
+  letter-spacing: 0.08em;
+  border: 2.5px solid var(--line-color);
+  cursor: pointer;
+}
+
+.auth-gate-link:hover {
+  background: transparent;
+  color: var(--line-color);
+}
+
+/* Step 3: Red / Cyan Alert Theme */
+body.alert-theme {
+  --bg-main: #6ad7e8;
+  --bg-modal: #7be3f2;
+  --line-color: #a82016;
+}
+
+body.alert-theme .sprite,
+body.alert-theme .basket-img,
+body.alert-theme .drag-egg,
+body.alert-theme .hand-cursor {
+  filter: sepia(1) saturate(7) hue-rotate(-38deg) brightness(0.88) contrast(1.25);
+}

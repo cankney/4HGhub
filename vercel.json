@@ -2,6 +2,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/nude-egg-game",
+      "destination": "/nude-egg-game/index.html"
+    },
+    {
       "source": "/3d-warehouse",
       "destination": "https://3d-warehouse-five.vercel.app/3d-warehouse"
     },

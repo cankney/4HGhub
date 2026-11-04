@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
+  <g stroke="#1b262c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="#d4e6ee">
+    <!-- Left foot -->
+    <path d="M 65 210 L 65 245 L 25 245 C 25 232 45 230 55 238 L 55 210 Z"/>
+    <!-- Right foot -->
+    <path d="M 155 210 L 155 245 L 195 245 C 195 232 175 230 165 238 L 165 210 Z"/>
+    <!-- Egg body -->
+    <path d="M 110 25 C 62 25 46 80 46 135 C 46 188 72 225 110 225 C 148 225 174 188 174 135 C 174 80 158 25 110 25 Z"/>
+    <!-- Bush / Pubic area -->
+    <path d="M 92 204 L 110 176 L 128 204" fill="none"/>
+    <path d="M 102 174 L 118 174 M 104 170 L 116 178 M 116 170 L 104 178 M 110 167 L 110 181 M 106 168 L 114 180 M 114 168 L 106 180" stroke-width="2.2"/>
+    <!-- Lowered pants shell -->
+    <path d="M 48 182 Q 110 218 172 182 L 166 214 Q 110 236 54 214 Z"/>
+    <!-- Left arm pulling down -->
+    <path d="M 52 98 L 28 136 L 44 182 C 42 192 50 198 58 190 L 58 178 L 38 136 L 50 110 Z"/>
+    <!-- Right arm pulling down -->
+    <path d="M 168 98 L 192 136 L 176 182 C 178 192 170 198 162 190 L 162 178 L 182 136 L 170 110 Z"/>
+    <!-- Eyes -->
+    <circle cx="92" cy="70" r="11" fill="#d4e6ee"/>
+    <circle cx="92" cy="70" r="1.8" fill="#1b262c" stroke="none"/>
+    <circle cx="128" cy="70" r="11" fill="#d4e6ee"/>
+    <circle cx="128" cy="70" r="1.8" fill="#1b262c" stroke="none"/>
+    <!-- Flat mouth -->
+    <line x1="96" y1="106" x2="124" y2="106"/>
+  </g>
+</svg>

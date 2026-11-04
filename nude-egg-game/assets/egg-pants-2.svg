@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
+  <g stroke="#1b262c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="#d4e6ee">
+    <!-- Left arm -->
+    <path d="M 52 102 L 24 132 L 32 162 L 26 170 C 24 176 28 182 34 180 L 38 176 L 42 180 L 46 175 L 44 166 L 38 164 L 34 136 L 50 118 Z"/>
+    <!-- Right arm -->
+    <path d="M 168 102 L 196 132 L 188 162 L 194 170 C 196 176 192 182 186 180 L 182 176 L 178 180 L 174 175 L 176 166 L 182 164 L 186 136 L 170 118 Z"/>
+    <!-- Left foot -->
+    <path d="M 65 210 L 65 245 L 25 245 C 25 232 45 230 55 238 L 55 210 Z"/>
+    <!-- Right foot -->
+    <path d="M 155 210 L 155 245 L 195 245 C 195 232 175 230 165 238 L 165 210 Z"/>
+    <!-- Egg body -->
+    <path d="M 110 25 C 62 25 46 80 46 135 C 46 188 72 225 110 225 C 148 225 174 188 174 135 C 174 80 158 25 110 25 Z"/>
+    <!-- Eyes -->
+    <circle cx="92" cy="70" r="11" fill="#d4e6ee"/>
+    <circle cx="92" cy="70" r="1.8" fill="#1b262c" stroke="none"/>
+    <circle cx="128" cy="70" r="11" fill="#d4e6ee"/>
+    <circle cx="128" cy="70" r="1.8" fill="#1b262c" stroke="none"/>
+    <!-- Flat mouth -->
+    <line x1="96" y1="106" x2="124" y2="106"/>
+  </g>
+</svg>

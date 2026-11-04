@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
+  <g stroke="#1b262c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="#d4e6ee">
+    <!-- Left foot -->
+    <path d="M 65 210 L 65 245 L 25 245 C 25 232 45 230 55 238 L 55 210 Z"/>
+    <!-- Right foot -->
+    <path d="M 155 210 L 155 245 L 195 245 C 195 232 175 230 165 238 L 165 210 Z"/>
+    <!-- Egg body -->
+    <path d="M 110 25 C 62 25 46 80 46 135 C 46 188 72 225 110 225 C 148 225 174 188 174 135 C 174 80 158 25 110 25 Z"/>
+    <!-- Chewing Eyes (> <) -->
+    <path d="M 78 64 L 94 71 L 78 75" fill="none"/>
+    <path d="M 142 64 L 126 71 L 142 75" fill="none"/>
+    <!-- Chewing Mouth -->
+    <path d="M 80 100 L 140 100" fill="none"/>
+    <path d="M 75 93 C 82 96 82 104 75 107" fill="none"/>
+    <path d="M 145 93 C 138 96 138 104 145 107" fill="none"/>
+  </g>
+</svg>

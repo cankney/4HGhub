@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
+  <g stroke="#1b262c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="#d4e6ee">
+    <!-- Left arm reaching down -->
+    <path d="M 44 138 L 32 182 L 18 196 L 24 202 L 18 210 L 28 210 L 30 216 L 36 208 L 40 212 L 44 202 L 40 182 L 50 152 Z"/>
+    <!-- Right arm reaching down -->
+    <path d="M 176 138 L 188 182 L 202 196 L 196 202 L 202 210 L 192 210 L 190 216 L 184 208 L 180 212 L 176 202 L 180 182 L 170 152 Z"/>
+    <!-- Left foot -->
+    <path d="M 65 210 L 65 245 L 25 245 C 25 232 45 230 55 238 L 55 210 Z"/>
+    <!-- Right foot -->
+    <path d="M 155 210 L 155 245 L 195 245 C 195 232 175 230 165 238 L 165 210 Z"/>
+    <!-- Bent over body -->
+    <path d="M 110 56 C 48 56 36 108 42 152 C 46 184 62 204 76 214 L 88 196 L 132 196 L 144 214 C 158 204 174 184 178 152 C 184 108 172 56 110 56 Z"/>
+    <!-- Crease in middle -->
+    <path d="M 102 114 L 110 132 L 118 114 M 110 132 L 110 156 M 110 156 L 92 188 M 110 156 L 128 188" fill="none"/>
+    <!-- Dropped pants around ankles -->
+    <path d="M 48 212 Q 110 218 172 212 L 164 242 Q 110 248 56 242 Z"/>
+  </g>
+</svg>
