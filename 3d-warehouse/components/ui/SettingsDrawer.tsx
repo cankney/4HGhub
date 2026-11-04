@@ -141,26 +141,19 @@ export function SettingsDrawer({
   const isDark = theme === 'dark';
 
   const [form, setForm] = useState<OdooSettingsConfig>(odooConfig);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [testStatus, setTestStatus] = useState<
     'idle' | 'testing' | 'success' | 'error'
   >('idle');
   const [testMessage, setTestMessage] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmLockBaseline, setConfirmLockBaseline] = useState(false);
 
   // UniFi State
   const [unifiForm, setUnifiForm] = useState<UnifiSettingsConfig>(unifiConfig);
-  const [showUnifiApiKey, setShowUnifiApiKey] = useState(false);
-  const [showUnifiPassword, setShowUnifiPassword] = useState(false);
-  const [showUnifiHelp, setShowUnifiHelp] = useState(false);
-  const [showAdvancedAuth, setShowAdvancedAuth] = useState(false);
   const [unifiTestStatus, setUnifiTestStatus] = useState<
     'idle' | 'testing' | 'success' | 'error'
   >('idle');
   const [unifiTestMessage, setUnifiTestMessage] = useState<string | null>(null);
-  const [unifiSaveSuccess, setUnifiSaveSuccess] = useState(false);
 
   const odooAutoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const unifiAutoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -240,17 +233,7 @@ export function SettingsDrawer({
     }
   };
 
-  const handleSaveUnifi = () => {
-    onSaveUnifiConfig(unifiForm);
-    setUnifiSaveSuccess(true);
-    setTimeout(() => setUnifiSaveSuccess(false), 2000);
-  };
 
-  const handleSave = () => {
-    onSaveOdooConfig(form);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
-  };
 
   const panelBg = isDark
     ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-2xl'
@@ -319,201 +302,105 @@ export function SettingsDrawer({
           </div>
 
           <p className="text-[11px] text-slate-500 leading-tight">
-            Connect to Odoo to map warehouse rack coordinates to Odoo Stock Locations. Saved credentials automatically sync across all your devices and can also be defined via Vercel Environment Variables.
+            Connects to Odoo to map warehouse rack coordinates to Odoo Stock Locations. Environment variables in Vercel securely supply credentials.
           </p>
 
           <div className="space-y-2.5">
-            <div>
-              <label
-                className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}
-              >
-                Odoo Instance URL
-              </label>
-              <div className="relative">
-                <Globe className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                <input
-                  type="url"
-                  value={form.baseUrl}
-                  placeholder="https://my-company.odoo.com"
-                  onChange={(e) =>
-                    updateOdooForm({ ...form, baseUrl: e.target.value })
-                  }
-                  className={`w-full pl-8 pr-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
-                />
+            {/* Read-Only Vercel Environment Configuration Summary */}
+            <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Managed via Vercel Environment
+                </span>
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                  ACTIVE
+                </span>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label
-                  className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}
-                >
-                  Database
-                </label>
-                <input
-                  type="text"
-                  value={form.database}
-                  placeholder="e.g. production"
-                  onChange={(e) =>
-                    updateOdooForm({ ...form, database: e.target.value })
-                  }
-                  className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
-                />
-              </div>
-              <div className="space-y-1">
-                <label
-                  className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
-                >
-                  Root Stock &amp; Parent Locations
-                </label>
-                <input
-                  type="text"
-                  value={form.stockLocationPrefix}
-                  placeholder="WH/Stock, WH/Packing Zone"
-                  onChange={(e) =>
-                    updateOdooForm({ ...form, stockLocationPrefix: e.target.value })
-                  }
-                  className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
-                />
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  {['WH/Stock', 'WH/Packing Zone', 'WH/Pre-Production'].map((loc) => {
-                    const currentParts = (form.stockLocationPrefix || '')
-                      .split(',')
-                      .map((s) => s.trim())
-                      .filter(Boolean);
-                    const isSelected = currentParts.includes(loc);
-                    return (
-                      <button
-                        key={loc}
-                        type="button"
-                        onClick={() => {
-                          let nextParts: string[];
-                          if (isSelected) {
-                            nextParts = currentParts.filter((p) => p !== loc);
-                            if (nextParts.length === 0) nextParts = [loc];
-                          } else {
-                            nextParts = [...currentParts, loc];
-                          }
-                          const combined = nextParts.join(', ');
-                          updateOdooForm({
-                            ...form,
-                            stockLocationPrefix: combined,
-                            parentLocations: nextParts,
-                          });
-                        }}
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold transition cursor-pointer border ${
-                          isSelected
-                            ? 'bg-[#8DDB05] text-slate-950 border-transparent'
-                            : isDark
-                            ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-xs'
-                        }`}
-                      >
-                        {isSelected ? `✓ ${loc}` : `+ ${loc}`}
-                      </button>
-                    );
-                  })}
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">Instance URL</span>
+                  <span className="truncate block font-semibold text-slate-200">{form.baseUrl || 'https://4hg.odoo.com'}</span>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-tight pt-0.5">
-                  Comma-separated parent locations (e.g. WH/Stock, WH/Packing Zone) to sync from Odoo.
-                </p>
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">Database</span>
+                  <span className="truncate block font-semibold text-slate-200">{form.database || '4hg-live'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">Username</span>
+                  <span className="truncate block font-semibold text-slate-200">{form.username || 'admin@4hg.com'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">API Key</span>
+                  <span className="truncate block font-semibold text-emerald-400">•••••••• (Secured)</span>
+                </div>
               </div>
             </div>
 
-            <div>
+            <div className="space-y-1">
               <label
-                className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}
+                className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
               >
-                Username / Email
+                Stock Location Filter
               </label>
-              <input
-                type="text"
-                value={form.username}
-                placeholder="warehouse-admin@domain.com"
-                onChange={(e) =>
-                  updateOdooForm({ ...form, username: e.target.value })
-                }
-                className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium border ${inputClass}`}
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label
-                  className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
-                >
-                  API Key / Access Token
-                </label>
-                {envConfigured?.odoo && (
-                  <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    ✓ Loaded from Vercel Env
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <Key className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                <input
-                  type={showApiKey ? 'text' : 'password'}
-                  value={form.apiKey}
-                  placeholder={
-                    envConfigured?.odoo
-                      ? 'Configured via Vercel ODOO_API_KEY'
-                      : 'Enter Odoo API key or personal access token'
-                  }
-                  onChange={(e) =>
-                    updateOdooForm({ ...form, apiKey: e.target.value })
-                  }
-                  className={`w-full pl-8 pr-8 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200 cursor-pointer"
-                  title={showApiKey ? 'Hide API key' : 'Show API key'}
-                >
-                  {showApiKey ? (
-                    <EyeOff className="w-3.5 h-3.5" />
-                  ) : (
-                    <Eye className="w-3.5 h-3.5" />
-                  )}
-                </button>
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                {['WH/Stock', 'WH/Packing Zone', 'WH/Pre-Production'].map((loc) => {
+                  const currentParts = (form.stockLocationPrefix || '')
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  const isSelected = currentParts.includes(loc);
+                  return (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => {
+                        let nextParts: string[];
+                        if (isSelected) {
+                          nextParts = currentParts.filter((p) => p !== loc);
+                          if (nextParts.length === 0) nextParts = [loc];
+                        } else {
+                          nextParts = [...currentParts, loc];
+                        }
+                        const combined = nextParts.join(', ');
+                        updateOdooForm({
+                          ...form,
+                          stockLocationPrefix: combined,
+                          parentLocations: nextParts,
+                        });
+                      }}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold transition cursor-pointer border ${
+                        isSelected
+                          ? 'bg-[#8DDB05] text-slate-950 border-transparent shadow-xs'
+                          : isDark
+                          ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-xs'
+                      }`}
+                    >
+                      {isSelected ? `✓ ${loc}` : `+ ${loc}`}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Test Connection & Save Action */}
-            <div className="flex items-center gap-2 pt-1">
+            {/* Test Connection Action */}
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleTestConnection}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                className={`w-full py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
                   isDark
                     ? 'border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700'
                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-xs'
                 }`}
               >
                 {testStatus === 'testing'
-                  ? 'Testing...'
+                  ? 'Testing Odoo Connection...'
                   : testStatus === 'success'
-                  ? '✓ Connected'
+                  ? '✓ Odoo Connected'
                   : testStatus === 'error'
-                  ? '⚠ Failed'
-                  : 'Test Endpoint'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSave}
-                className="flex-1 py-1.5 rounded-xl text-xs font-bold bg-[#8DDB05] text-slate-950 hover:opacity-90 transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
-              >
-                {saveSuccess ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" /> Saved!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3.5 h-3.5" /> Save API Key
-                  </>
-                )}
+                  ? '⚠ Connection Failed'
+                  : 'Test Odoo Connection'}
               </button>
             </div>
 
@@ -586,102 +473,29 @@ export function SettingsDrawer({
           </div>
 
           <p className="text-[11px] text-slate-500 leading-tight">
-            Connect your UniFi Console (UDM-Pro/SE/NVR) to automatically import security cameras, stream live feeds, and map camera positions.
+            Connects to your UniFi Console (UDM-Pro/SE/NVR) to automatically import security cameras and map camera streams. Credentials are provided securely via Vercel Environment Variables.
           </p>
 
-          {/* Collapsible Quick Help Accordion */}
-          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowUnifiHelp(!showUnifiHelp)}
-              className="w-full px-3 py-2 text-left flex items-center justify-between text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 transition cursor-pointer"
-            >
-              <span className="flex items-center gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5" /> How to find your UniFi info
-              </span>
-              {showUnifiHelp ? (
-                <ChevronUp className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
-              )}
-            </button>
-            {showUnifiHelp && (
-              <div className="p-3 border-t border-cyan-500/20 space-y-2 text-[10.5px] text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
-                <p>
-                  <strong className="text-slate-900 dark:text-slate-100">1. Console Host:</strong> Enter your local UniFi gateway IP (e.g.{' '}
-                  <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono text-[10px]">https://192.168.1.1</code>).
-                </p>
-                <p>
-                  <strong className="text-slate-900 dark:text-slate-100">2. API Key:</strong> In UniFi OS, click <strong>System Settings (gear icon)</strong> &gt; <strong>Admins & Users</strong> &gt; <strong>API Keys</strong> tab &gt; <strong>Create API Key</strong> with <em>UniFi Protect</em> permissions.
-                </p>
-                <p>
-                  <strong className="text-slate-900 dark:text-slate-100">3. RTSP Streams:</strong> In UniFi Protect, navigate to <strong>UniFi Devices</strong> &gt; Select Camera &gt; <strong>Settings</strong> &gt; <strong>Advanced</strong> &gt; Toggle on <strong>RTSP Stream</strong> (High / Medium / Low).
-                </p>
-              </div>
-            )}
-          </div>
-
           <div className="space-y-2.5">
-            <div>
-              <label
-                className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}
-              >
-                UniFi Console Host / URL
-              </label>
-              <div className="relative">
-                <Globe className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                <input
-                  type="url"
-                  value={unifiForm.baseUrl}
-                  placeholder="https://192.168.1.1"
-                  onChange={(e) =>
-                    updateUnifiForm({ ...unifiForm, baseUrl: e.target.value })
-                  }
-                  className={`w-full pl-8 pr-2.5 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
-                />
+            {/* Read-Only Vercel Environment Configuration Summary */}
+            <div className="p-3 rounded-xl border border-cyan-500/20 bg-cyan-500/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Managed via Vercel Environment
+                </span>
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                  ACTIVE
+                </span>
               </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label
-                  className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}
-                >
-                  UniFi OS API Key
-                </label>
-                {envConfigured?.unifi && (
-                  <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    ✓ Loaded from Vercel Env
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <Key className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                <input
-                  type={showUnifiApiKey ? 'text' : 'password'}
-                  value={unifiForm.apiKey}
-                  placeholder={
-                    envConfigured?.unifi
-                      ? 'Configured via Vercel UNIFI_API_KEY'
-                      : 'Paste UniFi OS API Key'
-                  }
-                  onChange={(e) =>
-                    updateUnifiForm({ ...unifiForm, apiKey: e.target.value })
-                  }
-                  className={`w-full pl-8 pr-8 py-1.5 rounded-xl text-xs font-mono font-medium border ${inputClass}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowUnifiApiKey(!showUnifiApiKey)}
-                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200 cursor-pointer"
-                  title={showUnifiApiKey ? 'Hide API key' : 'Show API key'}
-                >
-                  {showUnifiApiKey ? (
-                    <EyeOff className="w-3.5 h-3.5" />
-                  ) : (
-                    <Eye className="w-3.5 h-3.5" />
-                  )}
-                </button>
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">Console Host</span>
+                  <span className="truncate block font-semibold text-slate-200">{unifiForm.baseUrl || 'https://192.168.1.1'}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">API Key</span>
+                  <span className="truncate block font-semibold text-cyan-400">•••••••• (Secured)</span>
+                </div>
               </div>
             </div>
 
@@ -696,104 +510,31 @@ export function SettingsDrawer({
                     allowSelfSigned: e.target.checked,
                   })
                 }
-                className="w-3.5 h-3.5 accent-[#8DDB05] rounded"
+                className="w-3.5 h-3.5 accent-cyan-500 rounded"
               />
-              <span className="text-[11px] text-slate-500 font-medium">
+              <span className="text-[11px] text-slate-400 font-medium">
                 Allow self-signed SSL certificate (local gateway)
               </span>
             </label>
 
-            {/* Advanced fallback: Local username/password */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowAdvancedAuth(!showAdvancedAuth)}
-                className="text-[10.5px] text-slate-400 hover:text-slate-200 flex items-center gap-1 cursor-pointer pt-1"
-              >
-                {showAdvancedAuth ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                <span>Legacy local admin login fallback</span>
-              </button>
-              {showAdvancedAuth && (
-                <div className="pt-2 grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={`text-[9px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}>
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      value={unifiForm.username || ''}
-                      placeholder="admin"
-                      onChange={(e) =>
-                        updateUnifiForm({ ...unifiForm, username: e.target.value })
-                      }
-                      className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium border ${inputClass}`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`text-[9px] font-bold uppercase tracking-wider block mb-1 ${labelClass}`}>
-                      Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showUnifiPassword ? 'text' : 'password'}
-                        value={unifiForm.password || ''}
-                        placeholder="••••••••"
-                        onChange={(e) =>
-                          updateUnifiForm({ ...unifiForm, password: e.target.value })
-                        }
-                        className={`w-full px-2.5 pr-7 py-1.5 rounded-xl text-xs font-medium border ${inputClass}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowUnifiPassword(!showUnifiPassword)}
-                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-200 cursor-pointer"
-                      >
-                        {showUnifiPassword ? (
-                          <EyeOff className="w-3 h-3" />
-                        ) : (
-                          <Eye className="w-3 h-3" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Test Connection & Save Action */}
-            <div className="flex items-center gap-2 pt-1">
+            {/* Test Connection Action */}
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleTestUnifiConnection}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                className={`w-full py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
                   isDark
                     ? 'border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700'
                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-xs'
                 }`}
               >
                 {unifiTestStatus === 'testing'
-                  ? 'Testing...'
+                  ? 'Testing UniFi Connection...'
                   : unifiTestStatus === 'success'
-                  ? '✓ Connected'
+                  ? '✓ UniFi Connected'
                   : unifiTestStatus === 'error'
-                  ? '⚠ Failed'
-                  : 'Test Endpoint'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveUnifi}
-                className="flex-1 py-1.5 rounded-xl text-xs font-bold bg-cyan-500 text-white hover:opacity-90 transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
-              >
-                {unifiSaveSuccess ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" /> Saved!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3.5 h-3.5" /> Save API Key
-                  </>
-                )}
+                  ? '⚠ UniFi Connection Failed'
+                  : 'Test UniFi Connection'}
               </button>
             </div>
 
