@@ -1214,19 +1214,27 @@ function getFaviconUrl(url) {
   return `${protocol}//${domain}/favicon.ico`;
 }
 
+function getActiveUser() {
+  if (!state.activeUserId) return null;
+  return state.users.find(u => u.id === state.activeUserId) || null;
+}
+
+function isCurrentUserAdmin() {
+  const activeUser = getActiveUser();
+  const isCole = (auth.currentUser && auth.currentUser.email === 'cole@4hgs.com') || (activeUser && activeUser.email === 'cole@4hgs.com');
+  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
+  const isPrivileged = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
+  return Boolean(isCole || isPrivileged);
+}
+
 // User Permission evaluator
 function activeUserHasAccess(appId) {
   if (!state.activeUserId) return false;
-  if (isAdmin) return true;
+  if (isCurrentUserAdmin()) return true;
   const app = state.apps.find(a => a.id === appId);
   if (app && app.allUsers) return true;
   const permitted = state.permissions[state.activeUserId] || [];
   return permitted.includes(appId);
-}
-
-function getActiveUser() {
-  if (!state.activeUserId) return null;
-  return state.users.find(u => u.id === state.activeUserId) || null;
 }
 
 // --- Device Detection & Target Visibility Helpers ---
@@ -1610,6 +1618,7 @@ function renderAppGrid() {
   }
 
   // Restore Display Styles
+  const isAdmin = isCurrentUserAdmin();
   const adminPanel = document.getElementById('admin-panel-inline');
   const isSettingsOpen = adminPanel && adminPanel.style.display === 'flex';
   const benefitsPanel = document.getElementById('benefits-page-inline');
@@ -7776,9 +7785,7 @@ function checkReceiptVaultRoute() {
 
 // Navigation Open/Close
 function openReceiptVaultPage(initialView = null) {
-  const activeUser = getActiveUser();
-  const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
-  if (!isAdmin && !isAdminUser && !activeUserHasAccess('receipt-vault')) {
+  if (!isCurrentUserAdmin() && !activeUserHasAccess('receipt-vault')) {
     showToast('Access denied: You do not have permission to Receipt Vault.', false);
     return;
   }
@@ -8703,10 +8710,7 @@ function renderCapturedReceiptsView() {
     receiptsList.push(r);
   }
 
-  // Ownership filtering: non-admins only see their own receipts
-  if (!isAdminUser && auth.currentUser) {
-    receiptsList = receiptsList.filter(r => r.userId === auth.currentUser.uid);
-  }
+  // All matrix-permitted users see the single shared pool of company receipts
 
   // Detect unique years present in receipts
   const years = Array.from(new Set(receiptsList.map(r => (r.receiptDate || '').substring(0, 4)).filter(Boolean))).sort().reverse();
@@ -8858,7 +8862,7 @@ function renderCapturedReceiptsView() {
                     <th style="width: 50px;">File</th>
                     <th>Date</th>
                     <th>Notes</th>
-                    ${isAdminUser ? `<th>Captured By</th>` : ''}
+                    <th>Captured By</th>
                     <th>Size</th>
                   </tr>
                 </thead>
@@ -8886,7 +8890,7 @@ function renderCapturedReceiptsView() {
                         </td>
                         <td class="receipts-table-date">${escapeHTML(dateDisplay)}</td>
                         <td class="receipts-table-notes">${escapeHTML(receipt.notes || '—')}</td>
-                        ${isAdminUser ? `<td class="receipts-table-user">${escapeHTML(receipt.userName || '')}</td>` : ''}
+                        <td class="receipts-table-user">${escapeHTML(receipt.userName || '')}</td>
                         <td class="receipts-table-size">${escapeHTML(sizeKB)}</td>
                       </tr>
                     `;
@@ -9053,12 +9057,10 @@ function renderInspectorHTML(receipt, isAdminUser) {
             <span class="detail-key">File Size</span>
             <span class="detail-val">${sizeKB}</span>
           </div>
-          ${isAdminUser ? `
-            <div class="detail-row">
-              <span class="detail-key">Captured By</span>
-              <span class="detail-val">${escapeHTML(receipt.userName || receipt.userEmail || 'Unknown')}</span>
-            </div>
-          ` : ''}
+          <div class="detail-row">
+            <span class="detail-key">Captured By</span>
+            <span class="detail-val">${escapeHTML(receipt.userName || receipt.userEmail || 'Unknown')}</span>
+          </div>
           <div class="detail-row">
             <span class="detail-key">Uploaded At</span>
             <span class="detail-val">${new Date(receipt.createdAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
@@ -9172,12 +9174,10 @@ function openMobileReceiptDetailModal(receipt, isAdminUser) {
                 <span class="detail-key">File Size</span>
                 <span class="detail-val">${sizeKB}</span>
               </div>
-              ${isAdminUser ? `
-                <div class="detail-row">
-                  <span class="detail-key">Captured By</span>
-                  <span class="detail-val">${escapeHTML(receipt.userName || receipt.userEmail || 'Unknown')}</span>
-                </div>
-              ` : ''}
+              <div class="detail-row">
+                <span class="detail-key">Captured By</span>
+                <span class="detail-val">${escapeHTML(receipt.userName || receipt.userEmail || 'Unknown')}</span>
+              </div>
               <div class="detail-row">
                 <span class="detail-key">Uploaded At</span>
                 <span class="detail-val">${new Date(receipt.createdAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
