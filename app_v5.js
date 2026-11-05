@@ -1495,9 +1495,7 @@ function renderAppGrid() {
   }
 
   const activeUser = getActiveUser();
-  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
-  const isPrivileged = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
-  const isAdmin = activeUser && isPrivileged;
+  const isAdmin = isCurrentUserAdmin();
   
   // Show / Hide Settings trigger in header
   const btnAdmin = document.getElementById('btn-admin-portal');
@@ -1618,7 +1616,6 @@ function renderAppGrid() {
   }
 
   // Restore Display Styles
-  const isAdmin = isCurrentUserAdmin();
   const adminPanel = document.getElementById('admin-panel-inline');
   const isSettingsOpen = adminPanel && adminPanel.style.display === 'flex';
   const benefitsPanel = document.getElementById('benefits-page-inline');
@@ -2445,9 +2442,7 @@ function openAdminPortal() {
 
   // Render tab controls based on role (Admin gets all tabs, non-Admin only gets 'My Account')
   const activeUser = getActiveUser();
-  const r = activeUser ? (activeUser.role || '').toLowerCase() : '';
-  const isPrivileged = r.includes('admin') || r.includes('president') || r.includes('boss') || r.includes('executive') || r.includes('chief');
-  const isAdmin = activeUser && isPrivileged;
+  const isAdmin = isCurrentUserAdmin();
   
   const adminTabs = ['tab-btn-apps', 'tab-btn-sections', 'tab-btn-permissions', 'tab-btn-users', 'tab-btn-broadcasts', 'tab-btn-forklift', 'tab-btn-suggestions'];
   adminTabs.forEach(tabId => {
