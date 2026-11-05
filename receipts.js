@@ -1,7 +1,7 @@
 // 4HGS Receipt Vault - Dedicated Standalone Web App
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, updateDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // Firebase Configuration
@@ -38,7 +38,8 @@ const state = {
   filterMonth: 'all',
   searchQuery: '',
   isUploading: false,
-  unsubscribeReceipts: null
+  unsubscribeReceipts: null,
+  hasAccess: null
 };
 
 // Check if a receipt record or captured item is a PDF
@@ -189,11 +190,51 @@ function formatReceiptDate(isoStr) {
 }
 
 // --- Auth Observers ---
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   state.user = user;
   if (user) {
-    subscribeToReceipts();
+    const isCole = user.email === 'cole@4hgs.com';
+    let permitted = isCole;
+
+    if (!permitted) {
+      try {
+        const [permSnap, userSnap] = await Promise.all([
+          getDoc(doc(db, "permissions", user.uid)),
+          getDoc(doc(db, "users", user.uid))
+        ]);
+
+        const role = userSnap.exists() ? (userSnap.data().role || '') : '';
+        const isPrivileged = /(admin|president|boss|executive|chief)/i.test(role);
+        const appIds = permSnap.exists() ? (permSnap.data().appIds || []) : [];
+
+        let emailAppIds = [];
+        if (!isPrivileged && !appIds.includes('receipt-vault') && user.email) {
+          try {
+            const emailPermSnap = await getDoc(doc(db, "permissions", "email_" + user.email));
+            if (emailPermSnap.exists()) {
+              emailAppIds = emailPermSnap.data().appIds || [];
+            }
+          } catch (e) {}
+        }
+
+        permitted = isPrivileged || appIds.includes('receipt-vault') || emailAppIds.includes('receipt-vault');
+      } catch (err) {
+        console.warn('Could not verify permissions:', err);
+      }
+    }
+
+    state.hasAccess = permitted;
+    if (permitted) {
+      subscribeToReceipts();
+    } else {
+      if (state.unsubscribeReceipts) {
+        state.unsubscribeReceipts();
+        state.unsubscribeReceipts = null;
+      }
+      state.receipts = [];
+    }
   } else {
+    state.hasAccess = null;
     if (state.unsubscribeReceipts) {
       state.unsubscribeReceipts();
       state.unsubscribeReceipts = null;
@@ -205,7 +246,7 @@ onAuthStateChanged(auth, (user) => {
 
 // Realtime Firestore Listener
 function subscribeToReceipts() {
-  if (state.unsubscribeReceipts || !state.user) return;
+  if (state.unsubscribeReceipts || !state.user || state.hasAccess !== true) return;
 
   try {
     const cached = localStorage.getItem('HGS_RECEIPTS_LOCAL');
@@ -217,7 +258,8 @@ function subscribeToReceipts() {
   } catch (e) {}
 
   const receiptsCol = collection(db, "receipts");
-  const q = query(receiptsCol, where("userId", "==", state.user.uid));
+  // Single shared pool of company receipts for matrix-permitted users
+  const q = receiptsCol;
 
   state.unsubscribeReceipts = onSnapshot(q, (snapshot) => {
     const seen = new Set();
@@ -249,6 +291,42 @@ function renderApp() {
 
   if (!state.user) {
     renderLoginView(root);
+    return;
+  }
+
+  if (state.hasAccess === null) {
+    root.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 60vh;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+          <div class="spinner-small" style="width: 28px; height: 28px; border: 3px solid var(--accent-green); border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite;"></div>
+          <span style="font-size: 0.9rem; color: var(--text-secondary);">Verifying permissions...</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (state.hasAccess === false) {
+    root.innerHTML = `
+      <div class="receipt-mobile-capture-shell" style="padding-top: 3rem;">
+        <div class="receipt-mobile-card" style="max-width: 440px; text-align: center;">
+          <div class="receipt-mobile-icon-circle" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; margin: 0 auto 1rem auto; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 28px; height: 28px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          </div>
+          <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Access Restricted</h3>
+          <p style="color: var(--text-secondary, #a1a1aa); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem;">
+            You do not currently have permission to access the Receipt Vault. An administrator can grant you access through the 4HGS Permissions Matrix.
+          </p>
+          <div style="display: flex; gap: 0.75rem; justify-content: center;">
+            <a href="/" class="btn-ios" style="text-decoration: none;">Return to Hub</a>
+            <button type="button" class="btn-ios" id="btn-denied-logout">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('btn-denied-logout')?.addEventListener('click', () => {
+      signOut(auth).then(() => showToast('Signed out.'));
+    });
     return;
   }
 

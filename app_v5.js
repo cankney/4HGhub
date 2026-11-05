@@ -89,7 +89,7 @@ const DEFAULT_APPS = [
   { id: 'folder-ops', name: 'Operations', icon: 'folder', order: 7, type: 'folder', appIds: ['inventory', 'repairs', 'orders'], sectionId: 'default' },
   { id: 'gif-screenshot-maker', name: 'GIF Screenshot Maker', link: 'apps/gif-screenshot-maker/', icon: 'apps/gif-screenshot-maker/app_icon.png', order: 8, type: 'app', sectionId: 'default' },
   { id: 'warehouse-3d', name: '3D Warehouse', link: '/3d-warehouse', icon: 'box', order: 9, type: 'app', sectionId: 'default' },
-  { id: 'receipt-vault', name: 'Receipt Vault', icon: 'receipt', order: 10, type: 'app', sectionId: 'default', allUsers: true },
+  { id: 'receipt-vault', name: 'Receipt Vault', icon: 'receipt', order: 10, type: 'app', sectionId: 'default' },
   // Useful Links Section Apps (Visible to All Users)
   { id: 'health-benefits', name: 'Health Benefits', icon: 'shield', order: 0, type: 'app', sectionId: 'useful-links', allUsers: true },
   { id: 'benefits-docs', name: 'Benefits Documents', icon: 'file-text', order: 1, type: 'app', sectionId: 'useful-links', allUsers: true },
@@ -195,8 +195,8 @@ const DEFAULT_USERS = [
 
 const DEFAULT_PERMISSIONS = {
   'XSGpEYIjdaTjxxAuuTZ6chMbe1I2': ['inventory', 'repairs', 'orders', 'crm', 'catalog', 'invoicing', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'],
-  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'], 
-  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'receipt-vault', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist']
+  'user-sales': ['orders', 'crm', 'catalog', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist'], 
+  'user-shipping': ['inventory', 'repairs', 'catalog', 'ai-troubleshoot', 'folder-ops', 'gif-screenshot-maker', 'warehouse-3d', 'health-benefits', 'benefits-docs', 'forklift-safety', 'forklift-checklist']
 };
 
 const DEFAULT_BROADCASTS = [
@@ -434,11 +434,10 @@ function ensureDefaultSectionsAndApps() {
       icon: 'receipt',
       order: 9,
       type: 'app',
-      sectionId: 'default',
-      allUsers: true
+      sectionId: 'default'
     });
   } else {
-    receiptVaultApp.allUsers = true;
+    delete receiptVaultApp.allUsers;
     if (!receiptVaultApp.sectionId || !state.sections.some(s => s.id === receiptVaultApp.sectionId)) {
       receiptVaultApp.sectionId = defaultSectionId;
     }
@@ -1218,9 +1217,9 @@ function getFaviconUrl(url) {
 // User Permission evaluator
 function activeUserHasAccess(appId) {
   if (!state.activeUserId) return false;
+  if (isAdmin) return true;
   const app = state.apps.find(a => a.id === appId);
   if (app && app.allUsers) return true;
-  if (appId === 'receipt-vault') return true;
   const permitted = state.permissions[state.activeUserId] || [];
   return permitted.includes(appId);
 }
@@ -7777,6 +7776,13 @@ function checkReceiptVaultRoute() {
 
 // Navigation Open/Close
 function openReceiptVaultPage(initialView = null) {
+  const activeUser = getActiveUser();
+  const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
+  if (!isAdmin && !isAdminUser && !activeUserHasAccess('receipt-vault')) {
+    showToast('Access denied: You do not have permission to Receipt Vault.', false);
+    return;
+  }
+
   if (state.isEditing) toggleEditMode(false);
   const adminPanel = document.getElementById('admin-panel-inline');
   if (adminPanel) adminPanel.style.display = 'none';
@@ -9307,14 +9313,8 @@ function subscribeToReceipts() {
   } catch (e) {}
 
   const receiptsCol = collection(db, "receipts");
-  const activeUser = getActiveUser();
-  const isAdminUser = activeUser && (activeUser.role === 'Admin' || activeUser.role === 'Boss' || activeUser.role === 'Executive');
-
-  // Firestore security rule: non-admins can only query their own receipts
-  let q = receiptsCol;
-  if (!isAdminUser && auth.currentUser) {
-    q = query(receiptsCol, where("userId", "==", auth.currentUser.uid));
-  }
+  // All permitted users access the single shared pool of company receipts
+  const q = receiptsCol;
   
   receiptVaultState.unsubscribeReceipts = onSnapshot(q, (snapshot) => {
     const seen = new Set();
