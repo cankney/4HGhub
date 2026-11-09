@@ -832,24 +832,59 @@ export function DetailDrawer({
       });
     };
 
+    const syncRackNameForZoneRow = (currentName: string, z: string, r: string) => {
+      if (/^Zone\s+[A-Z0-9]+\s*-\s*(Rack|Row)\s+\d+/i.test(currentName)) {
+        return currentName.replace(
+          /^Zone\s+[A-Z0-9]+\s*-\s*(Rack|Row)\s+\d+/i,
+          (_, kindWord) => `Zone ${z} - ${kindWord} ${r}`
+        );
+      }
+      return currentName;
+    };
+
     const handleUpdateZone = (newZone: string) => {
       const z = newZone.trim().toUpperCase() || 'A';
+      const nextLocations = generateAllShelfLocations(
+        z,
+        curRowNumber,
+        curBays,
+        curLevels,
+        curRows,
+        shelfLocations,
+        parentLoc,
+        true
+      );
       onUpdateBlueprintItem({
         ...selectedBlueprintItem,
         zone: z,
         rowNumber: curRowNumber,
         rackNumber: curRowNumber,
         locationPrefix: `${z}-${curRowNumber}`,
+        name: syncRackNameForZoneRow(selectedBlueprintItem.name, z, curRowNumber),
+        shelfLocations: nextLocations,
       });
     };
 
     const handleUpdateRowNumber = (newRow: number | string) => {
       const r = String(newRow).padStart(2, '0');
+      const nextLocations = generateAllShelfLocations(
+        curZone,
+        r,
+        curBays,
+        curLevels,
+        curRows,
+        shelfLocations,
+        parentLoc,
+        true
+      );
       onUpdateBlueprintItem({
         ...selectedBlueprintItem,
+        zone: curZone,
         rowNumber: r,
         rackNumber: r,
         locationPrefix: `${curZone}-${r}`,
+        name: syncRackNameForZoneRow(selectedBlueprintItem.name, curZone, r),
+        shelfLocations: nextLocations,
       });
     };
 
@@ -912,7 +947,8 @@ export function DetailDrawer({
         curLevels,
         curRows,
         shelfLocations,
-        parentLoc
+        parentLoc,
+        true
       );
       onUpdateBlueprintItem({
         ...selectedBlueprintItem,
@@ -923,7 +959,29 @@ export function DetailDrawer({
         name:
           isPacking && selectedBlueprintItem.name.includes('Zone')
             ? `Packing Zone Rack ${curRowNumber}`
-            : selectedBlueprintItem.name,
+            : syncRackNameForZoneRow(selectedBlueprintItem.name, curZone, curRowNumber),
+        shelfLocations: nextLocations,
+      });
+    };
+
+    const handleUpdateRackDimensions = (nextRows: number, nextBays: number, nextLevels: number) => {
+      const nextLocations = isNonInventory || isPacking
+        ? selectedBlueprintItem.shelfLocations
+        : generateAllShelfLocations(
+            curZone,
+            curRowNumber,
+            nextBays,
+            nextLevels,
+            nextRows,
+            shelfLocations,
+            parentLoc,
+            true
+          );
+      onUpdateBlueprintItem({
+        ...selectedBlueprintItem,
+        rows: nextRows,
+        bays: nextBays,
+        levels: nextLevels,
         shelfLocations: nextLocations,
       });
     };
@@ -931,9 +989,17 @@ export function DetailDrawer({
     const isNonInventory = Boolean(selectedBlueprintItem.isNonInventory);
     const mappedCount = isNonInventory
       ? 0
-      : Object.values(shelfLocations).filter(
-          (s) => s.locationCode || s.odooLocationId || s.shortCode
-        ).length;
+      : Object.entries(shelfLocations).filter(([k, s]) => {
+          const coords = parseSlotKey(k);
+          const inBounds =
+            coords.row >= 1 &&
+            coords.row <= curRows &&
+            coords.bay >= 1 &&
+            coords.bay <= curBays &&
+            coords.level >= 1 &&
+            coords.level <= curLevels;
+          return inBounds && Boolean(s.locationCode || s.odooLocationId || s.shortCode);
+        }).length;
     const totalSlots = curRows * curBays * curLevels;
 
     return (
@@ -1505,7 +1571,7 @@ export function DetailDrawer({
                       Zone
                     </label>
                     <div className="flex items-center gap-1">
-                      {['A', 'B', 'C'].map((z) => (
+                      {['A', 'B', 'C', 'D'].map((z) => (
                         <button
                           key={z}
                           type="button"
@@ -1521,17 +1587,6 @@ export function DetailDrawer({
                           {z}
                         </button>
                       ))}
-                      <input
-                        type="text"
-                        maxLength={2}
-                        value={curZone}
-                        onChange={(e) =>
-                          handleUpdateZone(e.target.value.toUpperCase())
-                        }
-                        title="Custom Zone Letter"
-                        placeholder="Z"
-                        className={`w-9 py-1 text-center rounded-lg text-xs font-bold font-mono uppercase ${inputClass}`}
-                      />
                     </div>
                   </div>
 
@@ -2083,10 +2138,7 @@ export function DetailDrawer({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() =>
-                      onUpdateBlueprintItem({
-                        ...selectedBlueprintItem,
-                        rows: Math.max(1, curRows - 1),
-                      })
+                      handleUpdateRackDimensions(Math.max(1, curRows - 1), curBays, curLevels)
                     }
                     className={`w-7 h-7 rounded-lg font-extrabold text-sm flex items-center justify-center cursor-pointer transition ${btnSecClass}`}
                   >
@@ -2097,10 +2149,7 @@ export function DetailDrawer({
                   </span>
                   <button
                     onClick={() =>
-                      onUpdateBlueprintItem({
-                        ...selectedBlueprintItem,
-                        rows: Math.min(4, curRows + 1),
-                      })
+                      handleUpdateRackDimensions(Math.min(4, curRows + 1), curBays, curLevels)
                     }
                     className="w-7 h-7 rounded-lg bg-[#8DDB05] text-slate-950 font-extrabold text-sm hover:opacity-90 cursor-pointer shadow-sm flex items-center justify-center"
                   >
@@ -2122,10 +2171,7 @@ export function DetailDrawer({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() =>
-                      onUpdateBlueprintItem({
-                        ...selectedBlueprintItem,
-                        bays: Math.max(1, curBays - 1),
-                      })
+                      handleUpdateRackDimensions(curRows, Math.max(1, curBays - 1), curLevels)
                     }
                     className={`w-7 h-7 rounded-lg font-extrabold text-sm flex items-center justify-center cursor-pointer transition ${btnSecClass}`}
                   >
@@ -2136,10 +2182,7 @@ export function DetailDrawer({
                   </span>
                   <button
                     onClick={() =>
-                      onUpdateBlueprintItem({
-                        ...selectedBlueprintItem,
-                        bays: Math.min(10, curBays + 1),
-                      })
+                      handleUpdateRackDimensions(curRows, Math.min(10, curBays + 1), curLevels)
                     }
                     className="w-7 h-7 rounded-lg bg-[#8DDB05] text-slate-950 font-extrabold text-sm hover:opacity-90 cursor-pointer shadow-sm flex items-center justify-center"
                   >
@@ -2161,10 +2204,7 @@ export function DetailDrawer({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() =>
-                      onUpdateBlueprintItem({
-                        ...selectedBlueprintItem,
-                        levels: Math.max(1, curLevels - 1),
-                      })
+                      handleUpdateRackDimensions(curRows, curBays, Math.max(1, curLevels - 1))
                     }
                     className={`w-7 h-7 rounded-lg font-extrabold text-sm flex items-center justify-center cursor-pointer transition ${btnSecClass}`}
                   >
@@ -2175,10 +2215,7 @@ export function DetailDrawer({
                   </span>
                   <button
                     onClick={() =>
-                      onUpdateBlueprintItem({
-                        ...selectedBlueprintItem,
-                        levels: Math.min(8, curLevels + 1),
-                      })
+                      handleUpdateRackDimensions(curRows, curBays, Math.min(8, curLevels + 1))
                     }
                     className="w-7 h-7 rounded-lg bg-[#8DDB05] text-slate-950 font-extrabold text-sm hover:opacity-90 cursor-pointer shadow-sm flex items-center justify-center"
                   >

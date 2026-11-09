@@ -465,33 +465,7 @@ export default function WarehouseDigitalTwinPage() {
 
           let cleanedLocations = item.shelfLocations;
           if (isShelf && !isZoneTracked) {
-            if (cleanedLocations) {
-              const nextLocs: Record<string, any> = {};
-              let hasChanges = false;
-              for (const [key, slot] of Object.entries(cleanedLocations)) {
-                if (slot.shortCode && /-R(\d+)-/.test(slot.shortCode)) {
-                  hasChanges = true;
-                  const match = slot.shortCode.match(/^([A-Z])-(\d+)-R(\d+)-(\d+)-(\d+)$/);
-                  if (match) {
-                    const zone = match[1];
-                    const baseRow = parseInt(match[2], 10);
-                    const rowOffset = parseInt(match[3], 10) - 1;
-                    const finalRow = baseRow + rowOffset;
-                    const bay = match[4];
-                    const shelf = match[5];
-                    const fixedCode = `${zone}-${String(finalRow).padStart(2, '0')}-${bay}-${shelf}`;
-                    nextLocs[key] = {
-                      ...slot,
-                      shortCode: fixedCode,
-                      locationCode: fixedCode,
-                    };
-                    continue;
-                  }
-                }
-                nextLocs[key] = slot;
-              }
-              if (hasChanges) cleanedLocations = nextLocs;
-            } else if (!item.isNonInventory) {
+            if (!item.isNonInventory) {
               const baseRowInt = parseInt(String(r), 10) || 1;
               cleanedLocations = generateAllShelfLocations(
                 z || 'A',
@@ -499,8 +473,9 @@ export default function WarehouseDigitalTwinPage() {
                 item.bays ?? (item.kind === 'rack' ? 3 : 2),
                 item.levels ?? 3,
                 item.rows ?? 1,
-                undefined,
-                item.odooWarehouseCode
+                item.shelfLocations,
+                item.odooWarehouseCode,
+                true
               );
             }
           } else {
@@ -1630,6 +1605,42 @@ export default function WarehouseDigitalTwinPage() {
         const inventoryByCode = new Map<string, OdooProductQuant[]>();
         const locationIdByCode = new Map<string, number>();
 
+        const isRootOrContainerCode = (norm: string) =>
+          norm === 'WH/STOCK' ||
+          norm === 'STOCK' ||
+          norm === 'WH/PACKING ZONE' ||
+          norm === 'PACKING ZONE' ||
+          norm === '8' ||
+          /^WH\/STOCK\/ZONE\s+[A-Z0-9]+$/i.test(norm) ||
+          /^WH\/STOCK\/ZONE\s+[A-Z0-9]+\/ROW\s+\d+$/i.test(norm) ||
+          /^WH\/STOCK\/ZONE\s+[A-Z0-9]+\/ROW\s+\d+\/RACK\s+\d+$/i.test(norm);
+
+        // First register all shelf locations from data.locations so even empty shelves get their real Odoo locationId
+        const rawLocations: Array<{
+          id: number;
+          name: string;
+          completeName: string;
+          barcode: string;
+          shortCode: string;
+          aliases: string[];
+        }> = data.locations || [];
+
+        for (const loc of rawLocations) {
+          if (!loc.id || loc.id === 8) continue;
+          const keys = [
+            loc.shortCode,
+            loc.barcode,
+            loc.completeName,
+            ...(Array.isArray(loc.aliases) ? loc.aliases : []),
+          ];
+          for (const k of keys) {
+            if (!k) continue;
+            const norm = String(k).toUpperCase().trim();
+            if (!norm || isRootOrContainerCode(norm)) continue;
+            locationIdByCode.set(norm, loc.id);
+          }
+        }
+
         const registerQuant = (
           code: string | undefined,
           quant: OdooProductQuant,
@@ -1637,7 +1648,7 @@ export default function WarehouseDigitalTwinPage() {
         ) => {
           if (!code) return;
           const normalized = code.toUpperCase().trim();
-          if (!normalized) return;
+          if (!normalized || isRootOrContainerCode(normalized)) return;
 
           if (!inventoryByCode.has(normalized)) {
             inventoryByCode.set(normalized, []);
@@ -1647,7 +1658,7 @@ export default function WarehouseDigitalTwinPage() {
             list.push(quant);
           }
 
-          if (locId) {
+          if (locId && locId !== 8) {
             locationIdByCode.set(normalized, locId);
           }
         };
@@ -1671,7 +1682,7 @@ export default function WarehouseDigitalTwinPage() {
           registerQuant(item.shortCode, quant, item.locationId);
           registerQuant(item.barcode, quant, item.locationId);
           registerQuant(item.locationName, quant, item.locationId);
-          if (item.locationId) {
+          if (item.locationId && item.locationId !== 8) {
             registerQuant(String(item.locationId), quant, item.locationId);
           }
           if (Array.isArray(item.aliases)) {
@@ -1775,29 +1786,16 @@ export default function WarehouseDigitalTwinPage() {
             const levels = bp.levels ?? 3;
             const rows = bp.rows ?? 1;
 
-            // Ensure shelfLocations exists with all slot keys
-            const currentLocations =
-              bp.shelfLocations && Object.keys(bp.shelfLocations).length > 0
-                ? { ...bp.shelfLocations }
-                : generateAllShelfLocations(
-                    zone,
-                    baseRowInt,
-                    bays,
-                    levels,
-                    rows,
-                    undefined,
-                    parentLoc
-                  );
-
-            const updatedLocations = { ...currentLocations };
-            let changed = false;
+            // Rebuild shelfLocations strictly within 1..rows, 1..bays, 1..levels
+            const currentLocations = bp.shelfLocations || {};
+            const updatedLocations: Record<string, any> = {};
 
             for (let r = 1; r <= rows; r++) {
               const slotRow = baseRowInt + (r - 1);
               for (let b = 1; b <= bays; b++) {
                 for (let l = 1; l <= levels; l++) {
                   const slotKey = `R${r}-B${b}-L${l}`;
-                  const slot = updatedLocations[slotKey] || {
+                  const slot = currentLocations[slotKey] || {
                     row: r,
                     bay: b,
                     level: l,
@@ -1806,15 +1804,18 @@ export default function WarehouseDigitalTwinPage() {
                   };
 
                   let stdCode = '';
+                  let stdLocationCode = '';
                   let stdHierarchical = '';
                   let stdHierarchicalShort = '';
 
                   if (isPacking) {
                     stdCode = `PACK-${String(b).padStart(2, '0')}-${String(l).padStart(2, '0')}`;
-                    stdHierarchical = `${parentLoc}/Rack ${String(b).padStart(2, '0')}/Shelf ${String(l).padStart(2, '0')}`;
+                    stdLocationCode = `${parentLoc}/Rack ${String(b).padStart(2, '0')}/Shelf ${String(l).padStart(2, '0')}`;
+                    stdHierarchical = stdLocationCode;
                     stdHierarchicalShort = `Rack ${String(b).padStart(2, '0')}/Shelf ${String(l).padStart(2, '0')}`;
                   } else {
-                    stdCode = buildOdooShortCode(zone, slotRow, b, l); // e.g. "A-01-01-01"
+                    stdCode = buildOdooShortCode(zone, slotRow, b, l); // e.g. "B-01-01-01"
+                    stdLocationCode = parentLoc ? `${parentLoc}/${stdCode}` : stdCode;
                     stdHierarchical = `${parentLoc}/Zone ${zone}/Row ${String(
                       slotRow
                     ).padStart(2, '0')}/Rack ${String(b).padStart(
@@ -1829,24 +1830,12 @@ export default function WarehouseDigitalTwinPage() {
                     )}/Shelf ${String(l).padStart(2, '0')}`;
                   }
 
-                  // All candidate search keys for this slot
+                  // Strict candidate search keys for this slot based on the rack's Zone & Row
                   const candidates = [
-                    slot.shortCode,
-                    slot.locationCode,
-                    slot.odooLocationId,
                     stdCode,
+                    stdLocationCode,
                     stdHierarchical,
                     stdHierarchicalShort,
-                    ...(isPacking
-                      ? [
-                          `Rack ${String(b).padStart(2, '0')}/Shelf ${String(l).padStart(2, '0')}`,
-                          `Rack ${b}/Shelf ${l}`,
-                          `Shelf ${String(l).padStart(2, '0')}`,
-                          `Shelf ${l}`,
-                          `P-${String(b).padStart(2, '0')}-${String(l).padStart(2, '0')}`,
-                          `${parentLoc}/Shelf ${String(l).padStart(2, '0')}`,
-                        ]
-                      : []),
                   ]
                     .filter(Boolean)
                     .map((k) => String(k).toUpperCase().trim());
@@ -1855,24 +1844,13 @@ export default function WarehouseDigitalTwinPage() {
                   let matchedLocId: number | undefined;
 
                   for (const cand of candidates) {
+                    if ( matchedLocId === undefined && locationIdByCode.has(cand)) {
+                      matchedLocId = locationIdByCode.get(cand);
+                    }
                     if (inventoryByCode.has(cand)) {
                       matchedProds = inventoryByCode.get(cand);
-                      matchedLocId = locationIdByCode.get(cand);
+                      matchedLocId = locationIdByCode.get(cand) ?? matchedLocId;
                       break;
-                    }
-                  }
-
-                  // Also check fuzzy partial match if exact didn't hit
-                  if (!matchedProds) {
-                    for (const [invCode, prods] of inventoryByCode.entries()) {
-                      for (const cand of candidates) {
-                        if (invCode.includes(cand) || cand.includes(invCode)) {
-                          matchedProds = prods;
-                          matchedLocId = locationIdByCode.get(invCode);
-                          break;
-                        }
-                      }
-                      if (matchedProds) break;
                     }
                   }
 
@@ -1882,38 +1860,47 @@ export default function WarehouseDigitalTwinPage() {
                       0
                     );
                     updatedLocations[slotKey] = {
-                      ...slot,
-                      row: r,
-                      bay: b,
-                      level: l,
-                      shortCode: slot.shortCode || stdCode,
-                      locationCode: slot.locationCode || stdCode,
-                      products: matchedProds,
-                      totalQuantity: totalQty,
-                      odooLocationId: matchedLocId
-                        ? String(matchedLocId)
-                        : slot.odooLocationId,
-                      notes: `Synced from Odoo (${matchedProds.length} products, ${totalQty} units)`,
-                    };
-                    matchedSlotCount++;
-                    matchedProductCount += matchedProds.length;
-                    changed = true;
-                  } else if (!slot.shortCode) {
-                    updatedLocations[slotKey] = {
-                      ...slot,
                       row: r,
                       bay: b,
                       level: l,
                       shortCode: stdCode,
-                      locationCode: stdCode,
+                      locationCode: stdLocationCode,
+                      products: matchedProds,
+                      totalQuantity: totalQty,
+                      odooLocationId: matchedLocId ? String(matchedLocId) : '',
+                      notes: `Synced from Odoo (${matchedProds.length} products, ${totalQty} units)`,
                     };
-                    changed = true;
+                    matchedSlotCount++;
+                    matchedProductCount += matchedProds.length;
+                  } else {
+                    const prevCustomNote =
+                      slot.notes && !slot.notes.startsWith('Synced from Odoo')
+                        ? slot.notes
+                        : '';
+                    updatedLocations[slotKey] = {
+                      row: r,
+                      bay: b,
+                      level: l,
+                      shortCode: stdCode,
+                      locationCode: stdLocationCode,
+                      products: [],
+                      totalQuantity: 0,
+                      odooLocationId: matchedLocId ? String(matchedLocId) : '',
+                      notes: prevCustomNote,
+                    };
                   }
                 }
               }
             }
 
-            return changed ? { ...bp, shelfLocations: updatedLocations } : bp;
+            return {
+              ...bp,
+              zone,
+              rowNumber: String(baseRowInt).padStart(2, '0'),
+              rackNumber: String(baseRowInt).padStart(2, '0'),
+              locationPrefix: `${zone}-${String(baseRowInt).padStart(2, '0')}`,
+              shelfLocations: updatedLocations,
+            };
           });
           updatedBlueprintItems = next;
           return next;

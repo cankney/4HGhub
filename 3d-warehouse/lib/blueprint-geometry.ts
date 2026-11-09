@@ -184,9 +184,10 @@ export function generateAllShelfLocations(
   levels: number,
   rows: number = 1,
   existingLocations?: Record<string, ShelfLocationAssignment>,
-  parentLocation?: string
+  parentLocation?: string,
+  overwriteCodes: boolean = true
 ): Record<string, ShelfLocationAssignment> {
-  const next: Record<string, ShelfLocationAssignment> = { ...existingLocations };
+  const next: Record<string, ShelfLocationAssignment> = {};
   const z = (zone || 'A').trim().toUpperCase();
   const startRowInt = parseInt(String(baseRow), 10) || 1;
   const isPacking = parentLocation && /pack/i.test(parentLocation);
@@ -207,14 +208,21 @@ export function generateAllShelfLocations(
           locationCode = parentLocation ? `${parentLocation}/${shortCode}` : shortCode;
         }
 
+        const prev = existingLocations?.[slotKey];
+        const finalShortCode = overwriteCodes ? shortCode : (prev?.shortCode || shortCode);
+        const finalLocationCode = overwriteCodes ? locationCode : (prev?.locationCode || locationCode);
+        const sameCode = prev?.shortCode === finalShortCode && prev?.odooLocationId !== '8';
+
         next[slotKey] = {
           row: rIdx,
           bay: bIdx,
           level: lIdx,
-          shortCode: next[slotKey]?.shortCode || shortCode,
-          locationCode: next[slotKey]?.locationCode || locationCode,
-          odooLocationId: next[slotKey]?.odooLocationId || '',
-          notes: next[slotKey]?.notes || '',
+          shortCode: finalShortCode,
+          locationCode: finalLocationCode,
+          odooLocationId: sameCode ? (prev?.odooLocationId || '') : '',
+          notes: sameCode ? (prev?.notes || '') : '',
+          products: sameCode ? prev?.products : undefined,
+          totalQuantity: sameCode ? prev?.totalQuantity : undefined,
         };
       }
     }

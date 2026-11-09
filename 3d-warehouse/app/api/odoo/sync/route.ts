@@ -443,6 +443,7 @@ export async function POST(req: NextRequest) {
       authenticatedAs: username,
       totalQuants: quants.length,
       totalLocations: locations.length,
+      locations: Array.from(locationMap.values()),
       inventory,
     });
   } catch (err: any) {

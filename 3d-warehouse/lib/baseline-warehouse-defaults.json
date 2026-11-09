@@ -26,8 +26,10 @@
           "bay": 1,
           "level": 1,
           "shortCode": "A-01-01-01",
-          "locationCode": "A-01-01-01",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-01-01",
+          "odooLocationId": "860",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L2": {
@@ -35,8 +37,10 @@
           "bay": 1,
           "level": 2,
           "shortCode": "A-01-01-02",
-          "locationCode": "A-01-01-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-01-02",
+          "odooLocationId": "861",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L3": {
@@ -44,8 +48,10 @@
           "bay": 1,
           "level": 3,
           "shortCode": "A-01-01-03",
-          "locationCode": "A-01-01-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-01-03",
+          "odooLocationId": "862",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L1": {
@@ -53,8 +59,10 @@
           "bay": 2,
           "level": 1,
           "shortCode": "A-01-02-01",
-          "locationCode": "A-01-02-01",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-02-01",
+          "odooLocationId": "868",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L2": {
@@ -62,8 +70,10 @@
           "bay": 2,
           "level": 2,
           "shortCode": "A-01-02-02",
-          "locationCode": "A-01-02-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-02-02",
+          "odooLocationId": "869",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L3": {
@@ -71,8 +81,10 @@
           "bay": 2,
           "level": 3,
           "shortCode": "A-01-02-03",
-          "locationCode": "A-01-02-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-02-03",
+          "odooLocationId": "870",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L1": {
@@ -80,8 +92,10 @@
           "bay": 3,
           "level": 1,
           "shortCode": "A-01-03-01",
-          "locationCode": "A-01-03-01",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-03-01",
+          "odooLocationId": "876",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L2": {
@@ -89,8 +103,10 @@
           "bay": 3,
           "level": 2,
           "shortCode": "A-01-03-02",
-          "locationCode": "A-01-03-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-03-02",
+          "odooLocationId": "877",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L3": {
@@ -98,12 +114,15 @@
           "bay": 3,
           "level": 3,
           "shortCode": "A-01-03-03",
-          "locationCode": "A-01-03-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-01-03-03",
+          "odooLocationId": "878",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         }
       },
-      "visible": true
+      "visible": true,
+      "rowNumber": "01"
     },
     {
       "id": "RACK-EAST-01-ENDCAP",
@@ -123,8 +142,55 @@
       "levels": 4,
       "zone": "A",
       "rackNumber": "01",
-      "locationPrefix": "A-01-EC",
-      "visible": true
+      "locationPrefix": "A-01",
+      "visible": true,
+      "rowNumber": "01",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "A-01-01-01",
+          "locationCode": "WH/Stock/A-01-01-01",
+          "odooLocationId": "860",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "A-01-01-02",
+          "locationCode": "WH/Stock/A-01-01-02",
+          "odooLocationId": "861",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "A-01-01-03",
+          "locationCode": "WH/Stock/A-01-01-03",
+          "odooLocationId": "862",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L4": {
+          "row": 1,
+          "bay": 1,
+          "level": 4,
+          "shortCode": "A-01-01-04",
+          "locationCode": "WH/Stock/A-01-01-04",
+          "odooLocationId": "863",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        }
+      }
     },
     {
       "id": "RACK-EAST-02",
@@ -151,8 +217,10 @@
           "bay": 1,
           "level": 1,
           "shortCode": "A-02-01-01",
-          "locationCode": "A-02-01-01",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-02-01-01",
+          "odooLocationId": "893",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L2": {
@@ -160,8 +228,10 @@
           "bay": 1,
           "level": 2,
           "shortCode": "A-02-01-02",
-          "locationCode": "A-02-01-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-02-01-02",
+          "odooLocationId": "894",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L3": {
@@ -169,8 +239,10 @@
           "bay": 1,
           "level": 3,
           "shortCode": "A-02-01-03",
-          "locationCode": "A-02-01-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-02-01-03",
+          "odooLocationId": "895",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L1": {
@@ -178,8 +250,10 @@
           "bay": 2,
           "level": 1,
           "shortCode": "A-02-02-01",
-          "locationCode": "A-02-02-01",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-02-02-01",
+          "odooLocationId": "901",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L2": {
@@ -187,8 +261,10 @@
           "bay": 2,
           "level": 2,
           "shortCode": "A-02-02-02",
-          "locationCode": "A-02-02-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-02-02-02",
+          "odooLocationId": "902",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L3": {
@@ -196,8 +272,10 @@
           "bay": 2,
           "level": 3,
           "shortCode": "A-02-02-03",
-          "locationCode": "A-02-02-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-02-02-03",
+          "odooLocationId": "903",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L1": {
@@ -205,30 +283,268 @@
           "bay": 3,
           "level": 1,
           "shortCode": "A-02-03-01",
-          "locationCode": "A-02-03-01",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-02-03-01",
+          "odooLocationId": "909",
+          "products": [
+            {
+              "id": 13425,
+              "productId": 3337,
+              "sku": "R913009671",
+              "name": " STRAIGHT PIN ISO8734-10X20-B-ST END CAP",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13426,
+              "productId": 1686,
+              "sku": "R909076233",
+              "name": "L WIRE (SWASH) SERIES 31/32",
+              "quantity": 4,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13427,
+              "productId": 3336,
+              "sku": "R909083417",
+              "name": "SAFETY RING CIRCLIP COVER",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13428,
+              "productId": 3335,
+              "sku": "R909151259",
+              "name": "RETAINING RING 42X1.75 SHAFT & BEARING ASSY.",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13429,
+              "productId": 3334,
+              "sku": "R909449078",
+              "name": "THREADED PIN M10X68 MIN-MAX INCLUDES SEALING NUT ",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13430,
+              "productId": 3333,
+              "sku": "R909607435",
+              "name": "CONTROL HYD- (RETURN)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13431,
+              "productId": 3332,
+              "sku": "R909607434",
+              "name": "CONTROL HYD- (POSITIONING)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13432,
+              "productId": 3331,
+              "sku": "R909448297T",
+              "name": "BELL HOUSING K02,M,22,ABST TAKEOUT",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13433,
+              "productId": 3330,
+              "sku": "R909443289T",
+              "name": "REGULATOR DRS METRIC TAKEOUT",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13434,
+              "productId": 3338,
+              "sku": "R909443672",
+              "name": "\"Z\" SHAFT (A11VO95)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            },
+            {
+              "id": 13435,
+              "productId": 2803,
+              "sku": "R902022014T",
+              "name": " DRIVE SHAFT 'T' TAKEOUT",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 909,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 01",
+              "shortCode": "A-02-03-01",
+              "barcode": "A-02-03-01"
+            }
+          ],
+          "totalQuantity": 17,
+          "notes": "Synced from Odoo (11 products, 17 units)"
         },
         "R1-B3-L2": {
           "row": 1,
           "bay": 3,
           "level": 2,
           "shortCode": "A-02-03-02",
-          "locationCode": "A-02-03-02",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-02-03-02",
+          "odooLocationId": "910",
+          "products": [
+            {
+              "id": 13422,
+              "productId": 772,
+              "sku": "R910906871",
+              "name": "HYD SECTION A10V100/31R",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 910,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 02",
+              "shortCode": "A-02-03-02",
+              "barcode": "A-02-03-02"
+            },
+            {
+              "id": 13423,
+              "productId": 579,
+              "sku": "R902439601",
+              "name": "HYD SECTION (NO LENS PLATE) (A10V28/31/52)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 910,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 02",
+              "shortCode": "A-02-03-02",
+              "barcode": "A-02-03-02"
+            },
+            {
+              "id": 13424,
+              "productId": 1403,
+              "sku": "R902483660",
+              "name": "HYD SECTION A10V140/31R (OLD# 948617, R902402366)",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 910,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 02",
+              "shortCode": "A-02-03-02",
+              "barcode": "A-02-03-02"
+            }
+          ],
+          "totalQuantity": 5,
+          "notes": "Synced from Odoo (3 products, 5 units)"
         },
         "R1-B3-L3": {
           "row": 1,
           "bay": 3,
           "level": 3,
           "shortCode": "A-02-03-03",
-          "locationCode": "A-02-03-03",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-02-03-03",
+          "odooLocationId": "911",
+          "products": [
+            {
+              "id": 13417,
+              "productId": 576,
+              "sku": "R910948615",
+              "name": "BEARING KIT A10VSO140/31,32",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 911,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 03",
+              "shortCode": "A-02-03-03",
+              "barcode": "A-02-03-03"
+            },
+            {
+              "id": 13418,
+              "productId": 1088,
+              "sku": "R910948602",
+              "name": "BEARING KIT A10VSO100/31,32",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 911,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 03",
+              "shortCode": "A-02-03-03",
+              "barcode": "A-02-03-03"
+            },
+            {
+              "id": 13419,
+              "productId": 2353,
+              "sku": "R910942250",
+              "name": "BEARING KIT A10VSO71/31,32",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 911,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 03",
+              "shortCode": "A-02-03-03",
+              "barcode": "A-02-03-03"
+            },
+            {
+              "id": 13420,
+              "productId": 3033,
+              "sku": "R910942248",
+              "name": "BEARING KIT A10VSO45/31,32",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 911,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 03",
+              "shortCode": "A-02-03-03",
+              "barcode": "A-02-03-03"
+            },
+            {
+              "id": 13421,
+              "productId": 580,
+              "sku": "R910942158",
+              "name": "BEARING KIT A10V28",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 911,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 03/Shelf 03",
+              "shortCode": "A-02-03-03",
+              "barcode": "A-02-03-03"
+            }
+          ],
+          "totalQuantity": 9,
+          "notes": "Synced from Odoo (5 products, 9 units)"
         }
       },
-      "visible": true
+      "visible": true,
+      "rowNumber": "02"
     },
     {
       "id": "RACK-EAST-02-ENDCAP",
@@ -248,8 +564,116 @@
       "levels": 4,
       "zone": "A",
       "rackNumber": "02",
-      "locationPrefix": "A-02-EC",
-      "visible": true
+      "locationPrefix": "A-02",
+      "visible": true,
+      "rowNumber": "02",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "A-02-01-01",
+          "locationCode": "WH/Stock/A-02-01-01",
+          "odooLocationId": "893",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "A-02-01-02",
+          "locationCode": "WH/Stock/A-02-01-02",
+          "odooLocationId": "894",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "A-02-01-03",
+          "locationCode": "WH/Stock/A-02-01-03",
+          "odooLocationId": "895",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L4": {
+          "row": 1,
+          "bay": 1,
+          "level": 4,
+          "shortCode": "A-02-01-04",
+          "locationCode": "WH/Stock/A-02-01-04",
+          "odooLocationId": "896",
+          "products": [
+            {
+              "id": 13356,
+              "productId": 2498,
+              "sku": "R902550057T",
+              "name": "VALVE BLOCK NACHLAUFVENTIL NG20-& TAKEOUT",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 896,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 01/Shelf 04",
+              "shortCode": "A-02-01-04",
+              "barcode": "A-02-01-04"
+            },
+            {
+              "id": 13357,
+              "productId": 4506,
+              "sku": "R910998134",
+              "name": "CONTROL LENS 63R W/O ORIFICES",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 896,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 01/Shelf 04",
+              "shortCode": "A-02-01-04",
+              "barcode": "A-02-01-04"
+            },
+            {
+              "id": 13358,
+              "productId": 4475,
+              "sku": "R902028594T",
+              "name": "SHAFT & BEARING ASSY, \"U\" 1-1/2-23T SAE, A2FM107/125",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 896,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 01/Shelf 04",
+              "shortCode": "A-02-01-04",
+              "barcode": "A-02-01-04"
+            },
+            {
+              "id": 13359,
+              "productId": 4474,
+              "sku": "R902028722T",
+              "name": "SHAFT & BEARING ASSY 'S' 1 3/4\" 13T  A2FM107/125 (OLD# R90270901) (TO)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 896,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 01/Shelf 04",
+              "shortCode": "A-02-01-04",
+              "barcode": "A-02-01-04"
+            },
+            {
+              "id": 13360,
+              "productId": 4467,
+              "sku": "R909421310T",
+              "name": "CYLINDER BARREL A2FO/M125 6.1  (TO)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 896,
+              "locationName": "WH/Stock/Zone A/Row 02/Rack 01/Shelf 04",
+              "shortCode": "A-02-01-04",
+              "barcode": "A-02-01-04"
+            }
+          ],
+          "totalQuantity": 6,
+          "notes": "Synced from Odoo (5 products, 6 units)"
+        }
+      }
     },
     {
       "id": "RACK-EAST-03",
@@ -276,71 +700,490 @@
           "bay": 1,
           "level": 1,
           "shortCode": "A-03-01-01",
-          "locationCode": "A-03-01-01",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-03-01-01",
+          "odooLocationId": "926",
+          "products": [
+            {
+              "id": 12494,
+              "productId": 778,
+              "sku": "R901108958",
+              "name": "4WEH22E7X/6HG24N9ETK4/B10",
+              "quantity": 6,
+              "reservedQuantity": 0,
+              "locationId": 926,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 01",
+              "shortCode": "A-03-01-01",
+              "barcode": "A-03-01-01"
+            }
+          ],
+          "totalQuantity": 6,
+          "notes": "Synced from Odoo (1 products, 6 units)"
         },
         "R1-B1-L2": {
           "row": 1,
           "bay": 1,
           "level": 2,
           "shortCode": "A-03-01-02",
-          "locationCode": "A-03-01-02",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-03-01-02",
+          "odooLocationId": "927",
+          "products": [
+            {
+              "id": 12498,
+              "productId": 146,
+              "sku": "R900551704",
+              "name": "4WE6D6X/EW110N9K4",
+              "quantity": 3,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12502,
+              "productId": 3742,
+              "sku": "R900905662",
+              "name": "3WE6A6X/EW110N9K4 ",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12504,
+              "productId": 4338,
+              "sku": "R901108808",
+              "name": "4WEH16J7X/6HG24N9ETK4/B10",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12505,
+              "productId": 4337,
+              "sku": "R901108754",
+              "name": "4WEH16E7X/6HG24N9ETK4/B10",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12506,
+              "productId": 3647,
+              "sku": "R900208649",
+              "name": "M-3SEW10C1X/420MG24N9K4/V ",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12507,
+              "productId": 3351,
+              "sku": "R900571286",
+              "name": "M-4SEW6D3X/420MG24N9K4/PV",
+              "quantity": 6,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 13119,
+              "productId": 958,
+              "sku": "R900906672",
+              "name": "4WE6H6X/EW110N9K4",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 13332,
+              "productId": 4549,
+              "sku": "R901123644",
+              "name": "4WE6Y6X/EG24N9C4/V",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 13333,
+              "productId": 2133,
+              "sku": "R900568233",
+              "name": "4WE6W6X/EG24N9K4",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            }
+          ],
+          "totalQuantity": 19,
+          "notes": "Synced from Odoo (9 products, 19 units)"
         },
         "R1-B1-L3": {
           "row": 1,
           "bay": 1,
           "level": 3,
           "shortCode": "A-03-01-03",
-          "locationCode": "A-03-01-03",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-03-01-03",
+          "odooLocationId": "928",
+          "products": [
+            {
+              "id": 12514,
+              "productId": 78,
+              "sku": "R900561278",
+              "name": "4WE6E6X/EG24N9K4",
+              "quantity": 13,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 12517,
+              "productId": 81,
+              "sku": "R900561282",
+              "name": "4WE6G6X/EG24N9K4",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 12521,
+              "productId": 2577,
+              "sku": "R978017870",
+              "name": "4WE6E6X/EG24N9DAL/62",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 12523,
+              "productId": 3599,
+              "sku": "R978021642",
+              "name": "4WE6J6X/EG24N9DK24L2SO43A-1791",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13110,
+              "productId": 210,
+              "sku": "R900558641",
+              "name": "4WE6E6X/EW110N9K4",
+              "quantity": 5,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13120,
+              "productId": 209,
+              "sku": "R900551703",
+              "name": "4WE6J6X/EW110N9K4",
+              "quantity": 4,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13335,
+              "productId": 79,
+              "sku": "R900561288",
+              "name": "4WE6J6X/EG24N9K4",
+              "quantity": 13,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13669,
+              "productId": 3475,
+              "sku": "R900548271",
+              "name": "4WE6J6X/EG24N9K4/B10",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            }
+          ],
+          "totalQuantity": 39,
+          "notes": "Synced from Odoo (8 products, 39 units)"
         },
         "R1-B2-L1": {
           "row": 1,
           "bay": 2,
           "level": 1,
           "shortCode": "A-03-02-01",
-          "locationCode": "A-03-02-01",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-03-02-01",
+          "odooLocationId": "934",
+          "products": [
+            {
+              "id": 12495,
+              "productId": 1091,
+              "sku": "R901108960",
+              "name": "4WEH22J7X/6HG24N9ETK4/B10",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 934,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 01",
+              "shortCode": "A-03-02-01",
+              "barcode": "A-03-02-01"
+            },
+            {
+              "id": 12496,
+              "productId": 2484,
+              "sku": "R900927835",
+              "name": " 4WEH16L7X/6EG24N9K4",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 934,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 01",
+              "shortCode": "A-03-02-01",
+              "barcode": "A-03-02-01"
+            },
+            {
+              "id": 12497,
+              "productId": 3643,
+              "sku": "R901162646R",
+              "name": "4WRLE16EZ180SJ-3X/G24ETK0/F1MR-REMAN",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 934,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 01",
+              "shortCode": "A-03-02-01",
+              "barcode": "A-03-02-01"
+            },
+            {
+              "id": 12832,
+              "productId": 4450,
+              "sku": "R900712200R",
+              "name": "VT-DFPE-A-2X/G24K0/0A1V/V (REMAN)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 934,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 01",
+              "shortCode": "A-03-02-01",
+              "barcode": "A-03-02-01"
+            }
+          ],
+          "totalQuantity": 5,
+          "notes": "Synced from Odoo (4 products, 5 units)"
         },
         "R1-B2-L2": {
           "row": 1,
           "bay": 2,
           "level": 2,
           "shortCode": "A-03-02-02",
-          "locationCode": "A-03-02-02",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-03-02-02",
+          "odooLocationId": "935",
+          "products": [
+            {
+              "id": 12509,
+              "productId": 3646,
+              "sku": "R900948924",
+              "name": "4WEH10J4X/6EG24N9ETK4/B10",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 935,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 02",
+              "shortCode": "A-03-02-02",
+              "barcode": "A-03-02-02"
+            },
+            {
+              "id": 12510,
+              "productId": 1225,
+              "sku": "R901316035",
+              "name": "4WE10W5X/EG24N9K4/M=KM",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 935,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 02",
+              "shortCode": "A-03-02-02",
+              "barcode": "A-03-02-02"
+            },
+            {
+              "id": 12511,
+              "productId": 1695,
+              "sku": "R901339894",
+              "name": "5-4WE10Y5X/EG24N9K4/M",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 935,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 02",
+              "shortCode": "A-03-02-02",
+              "barcode": "A-03-02-02"
+            },
+            {
+              "id": 12512,
+              "productId": 1316,
+              "sku": "R901278796",
+              "name": "4WE10G5X/EG12N9K4/M",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 935,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 02",
+              "shortCode": "A-03-02-02",
+              "barcode": "A-03-02-02"
+            },
+            {
+              "id": 12513,
+              "productId": 4183,
+              "sku": "R901278794",
+              "name": "4WE10J5X/EG12N9K4/M",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 935,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 02",
+              "shortCode": "A-03-02-02",
+              "barcode": "A-03-02-02"
+            },
+            {
+              "id": 12913,
+              "productId": 879,
+              "sku": "R901278762",
+              "name": "4WE10H5X/EG24N9K4/M",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 935,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 02",
+              "shortCode": "A-03-02-02",
+              "barcode": "A-03-02-02"
+            }
+          ],
+          "totalQuantity": 8,
+          "notes": "Synced from Odoo (6 products, 8 units)"
         },
         "R1-B2-L3": {
           "row": 1,
           "bay": 2,
           "level": 3,
           "shortCode": "A-03-02-03",
-          "locationCode": "A-03-02-03",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-03-02-03",
+          "odooLocationId": "936",
+          "products": [
+            {
+              "id": 12524,
+              "productId": 878,
+              "sku": "R901278768",
+              "name": "4WE10G5X/EG24N9K4/M",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 936,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 03",
+              "shortCode": "A-03-02-03",
+              "barcode": "A-03-02-03"
+            },
+            {
+              "id": 12525,
+              "productId": 876,
+              "sku": "R901278744",
+              "name": "4WE10J5X/EG24N9K4/M",
+              "quantity": 6,
+              "reservedQuantity": 0,
+              "locationId": 936,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 03",
+              "shortCode": "A-03-02-03",
+              "barcode": "A-03-02-03"
+            },
+            {
+              "id": 12526,
+              "productId": 823,
+              "sku": "R901278760",
+              "name": "4WE10D5X/EG24N9K4/M",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 936,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 03",
+              "shortCode": "A-03-02-03",
+              "barcode": "A-03-02-03"
+            },
+            {
+              "id": 12527,
+              "productId": 877,
+              "sku": "R901278761",
+              "name": "4WE10E5X/EG24N9K4/M",
+              "quantity": 7,
+              "reservedQuantity": 0,
+              "locationId": 936,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 02/Shelf 03",
+              "shortCode": "A-03-02-03",
+              "barcode": "A-03-02-03"
+            }
+          ],
+          "totalQuantity": 16,
+          "notes": "Synced from Odoo (4 products, 16 units)"
         },
         "R1-B3-L1": {
           "row": 1,
           "bay": 3,
           "level": 1,
           "shortCode": "A-03-03-01",
-          "locationCode": "A-03-03-01",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/A-03-03-01",
+          "odooLocationId": "942",
+          "products": [
+            {
+              "id": 12582,
+              "productId": 3217,
+              "sku": "R901403751",
+              "name": "4WRLE16V1-120L-3X/G24ETK0/A1V",
+              "quantity": 4,
+              "reservedQuantity": 0,
+              "locationId": 942,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 03/Shelf 01",
+              "shortCode": "A-03-03-01",
+              "barcode": "A-03-03-01"
+            }
+          ],
+          "totalQuantity": 4,
+          "notes": "Synced from Odoo (1 products, 4 units)"
         },
         "R1-B3-L2": {
           "row": 1,
           "bay": 3,
           "level": 2,
           "shortCode": "A-03-03-02",
-          "locationCode": "A-03-03-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-03-03-02",
+          "odooLocationId": "943",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L3": {
@@ -348,12 +1191,15 @@
           "bay": 3,
           "level": 3,
           "shortCode": "A-03-03-03",
-          "locationCode": "A-03-03-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-03-03-03",
+          "odooLocationId": "944",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         }
       },
-      "visible": true
+      "visible": true,
+      "rowNumber": "03"
     },
     {
       "id": "RACK-EAST-03-ENDCAP",
@@ -373,8 +1219,443 @@
       "levels": 4,
       "zone": "A",
       "rackNumber": "03",
-      "locationPrefix": "A-03-EC",
-      "visible": true
+      "locationPrefix": "A-03",
+      "visible": true,
+      "rowNumber": "03",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "A-03-01-01",
+          "locationCode": "WH/Stock/A-03-01-01",
+          "odooLocationId": "926",
+          "products": [
+            {
+              "id": 12494,
+              "productId": 778,
+              "sku": "R901108958",
+              "name": "4WEH22E7X/6HG24N9ETK4/B10",
+              "quantity": 6,
+              "reservedQuantity": 0,
+              "locationId": 926,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 01",
+              "shortCode": "A-03-01-01",
+              "barcode": "A-03-01-01"
+            }
+          ],
+          "totalQuantity": 6,
+          "notes": "Synced from Odoo (1 products, 6 units)"
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "A-03-01-02",
+          "locationCode": "WH/Stock/A-03-01-02",
+          "odooLocationId": "927",
+          "products": [
+            {
+              "id": 12498,
+              "productId": 146,
+              "sku": "R900551704",
+              "name": "4WE6D6X/EW110N9K4",
+              "quantity": 3,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12502,
+              "productId": 3742,
+              "sku": "R900905662",
+              "name": "3WE6A6X/EW110N9K4 ",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12504,
+              "productId": 4338,
+              "sku": "R901108808",
+              "name": "4WEH16J7X/6HG24N9ETK4/B10",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12505,
+              "productId": 4337,
+              "sku": "R901108754",
+              "name": "4WEH16E7X/6HG24N9ETK4/B10",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12506,
+              "productId": 3647,
+              "sku": "R900208649",
+              "name": "M-3SEW10C1X/420MG24N9K4/V ",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 12507,
+              "productId": 3351,
+              "sku": "R900571286",
+              "name": "M-4SEW6D3X/420MG24N9K4/PV",
+              "quantity": 6,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 13119,
+              "productId": 958,
+              "sku": "R900906672",
+              "name": "4WE6H6X/EW110N9K4",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 13332,
+              "productId": 4549,
+              "sku": "R901123644",
+              "name": "4WE6Y6X/EG24N9C4/V",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            },
+            {
+              "id": 13333,
+              "productId": 2133,
+              "sku": "R900568233",
+              "name": "4WE6W6X/EG24N9K4",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 927,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 02",
+              "shortCode": "A-03-01-02",
+              "barcode": "A-03-01-02"
+            }
+          ],
+          "totalQuantity": 19,
+          "notes": "Synced from Odoo (9 products, 19 units)"
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "A-03-01-03",
+          "locationCode": "WH/Stock/A-03-01-03",
+          "odooLocationId": "928",
+          "products": [
+            {
+              "id": 12514,
+              "productId": 78,
+              "sku": "R900561278",
+              "name": "4WE6E6X/EG24N9K4",
+              "quantity": 13,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 12517,
+              "productId": 81,
+              "sku": "R900561282",
+              "name": "4WE6G6X/EG24N9K4",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 12521,
+              "productId": 2577,
+              "sku": "R978017870",
+              "name": "4WE6E6X/EG24N9DAL/62",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 12523,
+              "productId": 3599,
+              "sku": "R978021642",
+              "name": "4WE6J6X/EG24N9DK24L2SO43A-1791",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13110,
+              "productId": 210,
+              "sku": "R900558641",
+              "name": "4WE6E6X/EW110N9K4",
+              "quantity": 5,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13120,
+              "productId": 209,
+              "sku": "R900551703",
+              "name": "4WE6J6X/EW110N9K4",
+              "quantity": 4,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13335,
+              "productId": 79,
+              "sku": "R900561288",
+              "name": "4WE6J6X/EG24N9K4",
+              "quantity": 13,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            },
+            {
+              "id": 13669,
+              "productId": 3475,
+              "sku": "R900548271",
+              "name": "4WE6J6X/EG24N9K4/B10",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 928,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 03",
+              "shortCode": "A-03-01-03",
+              "barcode": "A-03-01-03"
+            }
+          ],
+          "totalQuantity": 39,
+          "notes": "Synced from Odoo (8 products, 39 units)"
+        },
+        "R1-B1-L4": {
+          "row": 1,
+          "bay": 1,
+          "level": 4,
+          "shortCode": "A-03-01-04",
+          "locationCode": "WH/Stock/A-03-01-04",
+          "odooLocationId": "929",
+          "products": [
+            {
+              "id": 12528,
+              "productId": 2148,
+              "sku": "R901123780",
+              "name": "4WE6GB6X/EG24K4/MT",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12530,
+              "productId": 80,
+              "sku": "R900561272",
+              "name": "4WE6C6X/EG24N9K4",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12531,
+              "productId": 1359,
+              "sku": "R900566283",
+              "name": "M-3SEW6U3X/420MG24N9K4",
+              "quantity": 4,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12532,
+              "productId": 504,
+              "sku": "R900566273",
+              "name": "M-3SEW6C3X/420MG24N9K4",
+              "quantity": 4,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12533,
+              "productId": 1031,
+              "sku": "R901000176",
+              "name": "4WE6W6X/EG12N9K4",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12534,
+              "productId": 1979,
+              "sku": "R901087087",
+              "name": "4WE6E7X/HG24N9K4",
+              "quantity": 3,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12535,
+              "productId": 2309,
+              "sku": "R900561180",
+              "name": "3WE6A6X/EG24N9K4",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12536,
+              "productId": 3344,
+              "sku": "R900902760",
+              "name": "3WE6A9-6X/EG24N9K4",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12537,
+              "productId": 1982,
+              "sku": "R900052392",
+              "name": "M-3SED6CK1X/350CG24N9K4",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12538,
+              "productId": 3342,
+              "sku": "R900561270",
+              "name": "3WE6B6X/EG24N9K4",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12539,
+              "productId": 960,
+              "sku": "R978910549",
+              "name": "4WE10GA4X/CW110N9DA",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12540,
+              "productId": 961,
+              "sku": "R900247813",
+              "name": "4WE10Q4X/CW110N9DK25L/V ",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12922,
+              "productId": 4523,
+              "sku": "R901186400",
+              "name": "4WE6W6X/EG24N9DK24L/ZV/62=AN",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            },
+            {
+              "id": 12925,
+              "productId": 4524,
+              "sku": "R901158486",
+              "name": "4WE6D6X/OFEG12N9K4/ZV",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 929,
+              "locationName": "WH/Stock/Zone A/Row 03/Rack 01/Shelf 04",
+              "shortCode": "A-03-01-04",
+              "barcode": "A-03-01-04"
+            }
+          ],
+          "totalQuantity": 26,
+          "notes": "Synced from Odoo (14 products, 26 units)"
+        }
+      }
     },
     {
       "id": "RACK-EAST-04",
@@ -401,8 +1682,10 @@
           "bay": 1,
           "level": 1,
           "shortCode": "A-04-01-01",
-          "locationCode": "A-04-01-01",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-04-01-01",
+          "odooLocationId": "959",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L2": {
@@ -410,8 +1693,10 @@
           "bay": 1,
           "level": 2,
           "shortCode": "A-04-01-02",
-          "locationCode": "A-04-01-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-04-01-02",
+          "odooLocationId": "960",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L3": {
@@ -419,8 +1704,10 @@
           "bay": 1,
           "level": 3,
           "shortCode": "A-04-01-03",
-          "locationCode": "A-04-01-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-04-01-03",
+          "odooLocationId": "961",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L1": {
@@ -428,8 +1715,10 @@
           "bay": 2,
           "level": 1,
           "shortCode": "A-04-02-01",
-          "locationCode": "A-04-02-01",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-04-02-01",
+          "odooLocationId": "967",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L2": {
@@ -437,8 +1726,10 @@
           "bay": 2,
           "level": 2,
           "shortCode": "A-04-02-02",
-          "locationCode": "A-04-02-02",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-04-02-02",
+          "odooLocationId": "968",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L3": {
@@ -446,12 +1737,15 @@
           "bay": 2,
           "level": 3,
           "shortCode": "A-04-02-03",
-          "locationCode": "A-04-02-03",
-          "odooLocationId": "",
+          "locationCode": "WH/Stock/A-04-02-03",
+          "odooLocationId": "969",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         }
       },
-      "visible": true
+      "visible": true,
+      "rowNumber": "04"
     },
     {
       "id": "RACK-NORTH-BACK",
@@ -472,7 +1766,98 @@
       "zone": "A",
       "rackNumber": "05",
       "locationPrefix": "A-05",
-      "visible": true
+      "visible": true,
+      "rowNumber": "05",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "A-05-01-01",
+          "locationCode": "WH/Stock/A-05-01-01",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "A-05-01-02",
+          "locationCode": "WH/Stock/A-05-01-02",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "A-05-01-03",
+          "locationCode": "WH/Stock/A-05-01-03",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L4": {
+          "row": 1,
+          "bay": 1,
+          "level": 4,
+          "shortCode": "A-05-01-04",
+          "locationCode": "WH/Stock/A-05-01-04",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L1": {
+          "row": 1,
+          "bay": 2,
+          "level": 1,
+          "shortCode": "A-05-02-01",
+          "locationCode": "WH/Stock/A-05-02-01",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L2": {
+          "row": 1,
+          "bay": 2,
+          "level": 2,
+          "shortCode": "A-05-02-02",
+          "locationCode": "WH/Stock/A-05-02-02",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L3": {
+          "row": 1,
+          "bay": 2,
+          "level": 3,
+          "shortCode": "A-05-02-03",
+          "locationCode": "WH/Stock/A-05-02-03",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L4": {
+          "row": 1,
+          "bay": 2,
+          "level": 4,
+          "shortCode": "A-05-02-04",
+          "locationCode": "WH/Stock/A-05-02-04",
+          "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        }
+      }
     },
     {
       "id": "RACK-ISLAND-CENTER",
@@ -500,35 +1885,430 @@
           "bay": 1,
           "level": 1,
           "shortCode": "B-01-01-01",
-          "locationCode": "B-01-01-01",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-01-01-01",
+          "odooLocationId": "993",
+          "products": [
+            {
+              "id": 13997,
+              "productId": 4645,
+              "sku": "R902429619",
+              "name": "AHA10VO100 DFR1/31L-PUC62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            },
+            {
+              "id": 13998,
+              "productId": 3506,
+              "sku": "PROD-3506",
+              "name": "AA4VG56DGD1/32R-NSC52F003D",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            },
+            {
+              "id": 13999,
+              "productId": 4040,
+              "sku": "R902569402R",
+              "name": "A10VO140DFR1/31R-VSD62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            },
+            {
+              "id": 14000,
+              "productId": 2276,
+              "sku": "R902111476",
+              "name": "A4VG56EP4D1/32L-NSC02F013LH-S",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            },
+            {
+              "id": 14001,
+              "productId": 2275,
+              "sku": "R902193808",
+              "name": "A11VLO130LG2H2/10L-NZD12K07",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            },
+            {
+              "id": 14002,
+              "productId": 1022,
+              "sku": "R902089867",
+              "name": "A11VLO130LG2H2/10L-NZD12K04",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            },
+            {
+              "id": 14003,
+              "productId": 685,
+              "sku": "R902248396",
+              "name": "A6VM107HA1000004C/65AWV0D4T11C0-Y",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            },
+            {
+              "id": 14004,
+              "productId": 24,
+              "sku": "R902100057",
+              "name": "A6VE107HA3T/63W-VZU222B-S",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 993,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 01",
+              "shortCode": "B-01-01-01",
+              "barcode": "B-01-01-01"
+            }
+          ],
+          "totalQuantity": 10,
+          "notes": "Synced from Odoo (8 products, 10 units)"
         },
         "R1-B1-L2": {
           "row": 1,
           "bay": 1,
           "level": 2,
           "shortCode": "B-01-01-02",
-          "locationCode": "B-01-01-02",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-01-01-02",
+          "odooLocationId": "994",
+          "products": [
+            {
+              "id": 14005,
+              "productId": 1093,
+              "sku": "810257",
+              "name": "45V50A1A22L",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14007,
+              "productId": 4424,
+              "sku": "R902232998",
+              "name": "AA10VG45DGD1/10L-NSC60F005D-S",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14008,
+              "productId": 3178,
+              "sku": "R902134911",
+              "name": "AA6VM80HZ3/63W-VXC51XFB-ESK",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14010,
+              "productId": 3852,
+              "sku": "R902219877",
+              "name": "A10VG28EP41/10L-NSC13F043SH-S",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14011,
+              "productId": 3556,
+              "sku": "R902462035",
+              "name": "A10VO63EP1D/53R-VRD62K04P (SURPLUS UNITS)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14014,
+              "productId": 3853,
+              "sku": "R902052362",
+              "name": "A6VM55EZ4/63W-VZB020B",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14015,
+              "productId": 3400,
+              "sku": "R902092138",
+              "name": "AA6VM80HZ3/63W-VSC52000B",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14016,
+              "productId": 4065,
+              "sku": "R902257584",
+              "name": "A2FE125/61W-VAL100",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14017,
+              "productId": 2489,
+              "sku": "R902137696R",
+              "name": "AA2FM125/61W-VSD510 REMAN",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14018,
+              "productId": 4144,
+              "sku": "R902138117",
+              "name": "AA2FM107/61W-VSD510",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            },
+            {
+              "id": 14019,
+              "productId": 4290,
+              "sku": "R902137578",
+              "name": "AA2FM80/61W-VUDN520 (966005980)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 994,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 02",
+              "shortCode": "B-01-01-02",
+              "barcode": "B-01-01-02"
+            }
+          ],
+          "totalQuantity": 12,
+          "notes": "Synced from Odoo (11 products, 12 units)"
         },
         "R1-B1-L3": {
           "row": 1,
           "bay": 1,
           "level": 3,
           "shortCode": "B-01-01-03",
-          "locationCode": "B-01-01-03",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-01-01-03",
+          "odooLocationId": "995",
+          "products": [
+            {
+              "id": 14020,
+              "productId": 2475,
+              "sku": "R902437462",
+              "name": "AA10VO45DFR1/52L-VUC61N00E",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14021,
+              "productId": 3854,
+              "sku": "R902401158",
+              "name": "ALA10VM45DG/52W1-VUC95N000-S1207",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14022,
+              "productId": 709,
+              "sku": "R910990501",
+              "name": "ALA10VSO18DRG/31R-PSC12N00 (43035373)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14023,
+              "productId": 1717,
+              "sku": "R910912013",
+              "name": "A10VO28DR/31R-PSC61N00",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14024,
+              "productId": 710,
+              "sku": "R910999138",
+              "name": "ALA10VSO18DR/31R-VSC12N00-SO981 (R986100430)(9011707966)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14026,
+              "productId": 3223,
+              "sku": "R902400102",
+              "name": "AA10VO45DR/52L-PUC62K68",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14028,
+              "productId": 3640,
+              "sku": "R902485215",
+              "name": "A10VO28DRG/31R-VSC12K01E",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14029,
+              "productId": 2474,
+              "sku": "R902401232",
+              "name": "ALA10VO60DR/52R-VUC62N00 (F121749)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14030,
+              "productId": 3638,
+              "sku": "R902505942",
+              "name": "ALA10VO28DFR1/31L-VSC62K01",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14031,
+              "productId": 3639,
+              "sku": "R910966448",
+              "name": "ALA10VO28DRG/31L-PSC12N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14032,
+              "productId": 3676,
+              "sku": "R902278281T",
+              "name": "MOUNTABLE FILTER ASSY. A4VG180 T/O",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14033,
+              "productId": 2335,
+              "sku": "R902278281",
+              "name": "MOUNTABLE FILTER ASSY.",
+              "quantity": 3,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            },
+            {
+              "id": 14034,
+              "productId": 3630,
+              "sku": "R902278268",
+              "name": "MOUNTABLE FILTER 125NF H20 MZ",
+              "quantity": 11,
+              "reservedQuantity": 0,
+              "locationId": 995,
+              "locationName": "WH/Stock/Zone B/Row 01/Rack 01/Shelf 03",
+              "shortCode": "B-01-01-03",
+              "barcode": "B-01-01-03"
+            }
+          ],
+          "totalQuantity": 27,
+          "notes": "Synced from Odoo (13 products, 27 units)"
         },
         "R1-B2-L1": {
           "row": 1,
           "bay": 2,
           "level": 1,
           "shortCode": "B-01-02-01",
-          "locationCode": "B-01-02-01",
+          "locationCode": "WH/Stock/B-01-02-01",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L2": {
@@ -536,8 +2316,10 @@
           "bay": 2,
           "level": 2,
           "shortCode": "B-01-02-02",
-          "locationCode": "B-01-02-02",
+          "locationCode": "WH/Stock/B-01-02-02",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L3": {
@@ -545,8 +2327,10 @@
           "bay": 2,
           "level": 3,
           "shortCode": "B-01-02-03",
-          "locationCode": "B-01-02-03",
+          "locationCode": "WH/Stock/B-01-02-03",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R2-B1-L1": {
@@ -554,35 +2338,310 @@
           "bay": 1,
           "level": 1,
           "shortCode": "B-02-01-01",
-          "locationCode": "B-02-01-01",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-02-01-01",
+          "odooLocationId": "999",
+          "products": [
+            {
+              "id": 14038,
+              "productId": 3634,
+              "sku": "R909603288",
+              "name": "A6VM80HA1/60W-PZB380A-K",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14039,
+              "productId": 2246,
+              "sku": "R902061056",
+              "name": "A4VG71EP2D1/32R-NSF02F001LH-S (TEREX 41108012)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14040,
+              "productId": 1452,
+              "sku": "R902507487",
+              "name": "ALA10VO71DRG/31R-VSC92K01-S2021 (72158486)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14041,
+              "productId": 638,
+              "sku": "R902400449",
+              "name": "A10VO71DFR1/31R-PKC92K68",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14042,
+              "productId": 2753,
+              "sku": "R902508049",
+              "name": "A10VO100DFR/31L-VKC62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14043,
+              "productId": 639,
+              "sku": "R910939992",
+              "name": "A10VO100DFR1/31L-PUC62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14044,
+              "productId": 4689,
+              "sku": "R986PTO383",
+              "name": "APA10VO100DFR1/31L-VWD62N00-SO413",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14046,
+              "productId": 2880,
+              "sku": "R902406922",
+              "name": "A10VO100DFR1/31R-PWC62K68",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14047,
+              "productId": 1687,
+              "sku": "R901147115",
+              "name": "PGH5-3X/063RE11VU2",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            }
+          ],
+          "totalQuantity": 9,
+          "notes": "Synced from Odoo (9 products, 9 units)"
         },
         "R2-B1-L2": {
           "row": 2,
           "bay": 1,
           "level": 2,
           "shortCode": "B-02-01-02",
-          "locationCode": "B-02-01-02",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-02-01-02",
+          "odooLocationId": "1000",
+          "products": [
+            {
+              "id": 14009,
+              "productId": 3178,
+              "sku": "R902134911",
+              "name": "AA6VM80HZ3/63W-VXC51XFB-ESK",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14013,
+              "productId": 3556,
+              "sku": "R902462035",
+              "name": "A10VO63EP1D/53R-VRD62K04P (SURPLUS UNITS)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14048,
+              "productId": 3218,
+              "sku": "R902148344",
+              "name": "AA10VG45HWD1/10R-NSC60F003D",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14049,
+              "productId": 4687,
+              "sku": "R902405520",
+              "name": "ALA10VO60DFR1/52R-VSC12K04",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14051,
+              "productId": 1023,
+              "sku": "R902434292",
+              "name": "A10VO45DRG/31L-PSC12K68 E",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14052,
+              "productId": 1712,
+              "sku": "R902438652",
+              "name": "APA10VO71DFR1/31L-PSC92N00E SO13 REMAN",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            }
+          ],
+          "totalQuantity": 6,
+          "notes": "Synced from Odoo (6 products, 6 units)"
         },
         "R2-B1-L3": {
           "row": 2,
           "bay": 1,
           "level": 3,
           "shortCode": "B-02-01-03",
-          "locationCode": "B-02-01-03",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-02-01-03",
+          "odooLocationId": "1001",
+          "products": [
+            {
+              "id": 14027,
+              "productId": 3223,
+              "sku": "R902400102",
+              "name": "AA10VO45DR/52L-PUC62K68",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14053,
+              "productId": 4688,
+              "sku": "R986PTO382",
+              "name": "ALA10VO60ED72/52R-VUC62K01P-SO834",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14055,
+              "productId": 3649,
+              "sku": "3707308",
+              "name": "F11-005-HU-CH-K-000",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14056,
+              "productId": 4269,
+              "sku": "PROD-4269",
+              "name": "MHV20-1P13P-1C-20-F3",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14057,
+              "productId": 4686,
+              "sku": "R902232713",
+              "name": "AA2FM63/61W-VBD510",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14059,
+              "productId": 1957,
+              "sku": "R902502487R",
+              "name": "A10VO45DFR1/31L-VUC62K01 REMAN",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14061,
+              "productId": 1737,
+              "sku": "R902433244",
+              "name": "ALA10VO45DFR1/31R-VSC12N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            }
+          ],
+          "totalQuantity": 9,
+          "notes": "Synced from Odoo (7 products, 9 units)"
         },
         "R2-B2-L1": {
           "row": 2,
           "bay": 2,
           "level": 1,
           "shortCode": "B-02-02-01",
-          "locationCode": "B-02-02-01",
+          "locationCode": "WH/Stock/B-02-02-01",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R2-B2-L2": {
@@ -590,8 +2649,10 @@
           "bay": 2,
           "level": 2,
           "shortCode": "B-02-02-02",
-          "locationCode": "B-02-02-02",
+          "locationCode": "WH/Stock/B-02-02-02",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R2-B2-L3": {
@@ -599,12 +2660,15 @@
           "bay": 2,
           "level": 3,
           "shortCode": "B-02-02-03",
-          "locationCode": "B-02-02-03",
+          "locationCode": "WH/Stock/B-02-02-03",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         }
       },
-      "visible": true
+      "visible": true,
+      "rowNumber": "01"
     },
     {
       "id": "RACK-SW-VERTICAL-LEG",
@@ -631,35 +2695,310 @@
           "bay": 1,
           "level": 1,
           "shortCode": "B-02-01-01",
-          "locationCode": "B-02-01-01",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-02-01-01",
+          "odooLocationId": "999",
+          "products": [
+            {
+              "id": 14038,
+              "productId": 3634,
+              "sku": "R909603288",
+              "name": "A6VM80HA1/60W-PZB380A-K",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14039,
+              "productId": 2246,
+              "sku": "R902061056",
+              "name": "A4VG71EP2D1/32R-NSF02F001LH-S (TEREX 41108012)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14040,
+              "productId": 1452,
+              "sku": "R902507487",
+              "name": "ALA10VO71DRG/31R-VSC92K01-S2021 (72158486)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14041,
+              "productId": 638,
+              "sku": "R902400449",
+              "name": "A10VO71DFR1/31R-PKC92K68",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14042,
+              "productId": 2753,
+              "sku": "R902508049",
+              "name": "A10VO100DFR/31L-VKC62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14043,
+              "productId": 639,
+              "sku": "R910939992",
+              "name": "A10VO100DFR1/31L-PUC62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14044,
+              "productId": 4689,
+              "sku": "R986PTO383",
+              "name": "APA10VO100DFR1/31L-VWD62N00-SO413",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14046,
+              "productId": 2880,
+              "sku": "R902406922",
+              "name": "A10VO100DFR1/31R-PWC62K68",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14047,
+              "productId": 1687,
+              "sku": "R901147115",
+              "name": "PGH5-3X/063RE11VU2",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            }
+          ],
+          "totalQuantity": 9,
+          "notes": "Synced from Odoo (9 products, 9 units)"
         },
         "R1-B1-L2": {
           "row": 1,
           "bay": 1,
           "level": 2,
           "shortCode": "B-02-01-02",
-          "locationCode": "B-02-01-02",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-02-01-02",
+          "odooLocationId": "1000",
+          "products": [
+            {
+              "id": 14009,
+              "productId": 3178,
+              "sku": "R902134911",
+              "name": "AA6VM80HZ3/63W-VXC51XFB-ESK",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14013,
+              "productId": 3556,
+              "sku": "R902462035",
+              "name": "A10VO63EP1D/53R-VRD62K04P (SURPLUS UNITS)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14048,
+              "productId": 3218,
+              "sku": "R902148344",
+              "name": "AA10VG45HWD1/10R-NSC60F003D",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14049,
+              "productId": 4687,
+              "sku": "R902405520",
+              "name": "ALA10VO60DFR1/52R-VSC12K04",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14051,
+              "productId": 1023,
+              "sku": "R902434292",
+              "name": "A10VO45DRG/31L-PSC12K68 E",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14052,
+              "productId": 1712,
+              "sku": "R902438652",
+              "name": "APA10VO71DFR1/31L-PSC92N00E SO13 REMAN",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            }
+          ],
+          "totalQuantity": 6,
+          "notes": "Synced from Odoo (6 products, 6 units)"
         },
         "R1-B1-L3": {
           "row": 1,
           "bay": 1,
           "level": 3,
           "shortCode": "B-02-01-03",
-          "locationCode": "B-02-01-03",
-          "odooLocationId": "",
-          "notes": ""
+          "locationCode": "WH/Stock/B-02-01-03",
+          "odooLocationId": "1001",
+          "products": [
+            {
+              "id": 14027,
+              "productId": 3223,
+              "sku": "R902400102",
+              "name": "AA10VO45DR/52L-PUC62K68",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14053,
+              "productId": 4688,
+              "sku": "R986PTO382",
+              "name": "ALA10VO60ED72/52R-VUC62K01P-SO834",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14055,
+              "productId": 3649,
+              "sku": "3707308",
+              "name": "F11-005-HU-CH-K-000",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14056,
+              "productId": 4269,
+              "sku": "PROD-4269",
+              "name": "MHV20-1P13P-1C-20-F3",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14057,
+              "productId": 4686,
+              "sku": "R902232713",
+              "name": "AA2FM63/61W-VBD510",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14059,
+              "productId": 1957,
+              "sku": "R902502487R",
+              "name": "A10VO45DFR1/31L-VUC62K01 REMAN",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14061,
+              "productId": 1737,
+              "sku": "R902433244",
+              "name": "ALA10VO45DFR1/31R-VSC12N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            }
+          ],
+          "totalQuantity": 9,
+          "notes": "Synced from Odoo (7 products, 9 units)"
         },
         "R1-B2-L1": {
           "row": 1,
           "bay": 2,
           "level": 1,
           "shortCode": "B-02-02-01",
-          "locationCode": "B-02-02-01",
+          "locationCode": "WH/Stock/B-02-02-01",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L2": {
@@ -667,8 +3006,10 @@
           "bay": 2,
           "level": 2,
           "shortCode": "B-02-02-02",
-          "locationCode": "B-02-02-02",
+          "locationCode": "WH/Stock/B-02-02-02",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L3": {
@@ -676,12 +3017,15 @@
           "bay": 2,
           "level": 3,
           "shortCode": "B-02-02-03",
-          "locationCode": "B-02-02-03",
+          "locationCode": "WH/Stock/B-02-02-03",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         }
       },
-      "visible": true
+      "visible": true,
+      "rowNumber": "02"
     },
     {
       "id": "RACK-SW-ENDCAP",
@@ -701,8 +3045,322 @@
       "levels": 4,
       "zone": "B",
       "rackNumber": "02",
-      "locationPrefix": "B-02-EC",
-      "visible": true
+      "locationPrefix": "B-02",
+      "visible": true,
+      "rowNumber": "02",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "B-02-01-01",
+          "locationCode": "WH/Stock/B-02-01-01",
+          "odooLocationId": "999",
+          "products": [
+            {
+              "id": 14038,
+              "productId": 3634,
+              "sku": "R909603288",
+              "name": "A6VM80HA1/60W-PZB380A-K",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14039,
+              "productId": 2246,
+              "sku": "R902061056",
+              "name": "A4VG71EP2D1/32R-NSF02F001LH-S (TEREX 41108012)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14040,
+              "productId": 1452,
+              "sku": "R902507487",
+              "name": "ALA10VO71DRG/31R-VSC92K01-S2021 (72158486)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14041,
+              "productId": 638,
+              "sku": "R902400449",
+              "name": "A10VO71DFR1/31R-PKC92K68",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14042,
+              "productId": 2753,
+              "sku": "R902508049",
+              "name": "A10VO100DFR/31L-VKC62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14043,
+              "productId": 639,
+              "sku": "R910939992",
+              "name": "A10VO100DFR1/31L-PUC62N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14044,
+              "productId": 4689,
+              "sku": "R986PTO383",
+              "name": "APA10VO100DFR1/31L-VWD62N00-SO413",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14046,
+              "productId": 2880,
+              "sku": "R902406922",
+              "name": "A10VO100DFR1/31R-PWC62K68",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            },
+            {
+              "id": 14047,
+              "productId": 1687,
+              "sku": "R901147115",
+              "name": "PGH5-3X/063RE11VU2",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 999,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 01",
+              "shortCode": "B-02-01-01",
+              "barcode": "B-02-01-01"
+            }
+          ],
+          "totalQuantity": 9,
+          "notes": "Synced from Odoo (9 products, 9 units)"
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "B-02-01-02",
+          "locationCode": "WH/Stock/B-02-01-02",
+          "odooLocationId": "1000",
+          "products": [
+            {
+              "id": 14009,
+              "productId": 3178,
+              "sku": "R902134911",
+              "name": "AA6VM80HZ3/63W-VXC51XFB-ESK",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14013,
+              "productId": 3556,
+              "sku": "R902462035",
+              "name": "A10VO63EP1D/53R-VRD62K04P (SURPLUS UNITS)",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14048,
+              "productId": 3218,
+              "sku": "R902148344",
+              "name": "AA10VG45HWD1/10R-NSC60F003D",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14049,
+              "productId": 4687,
+              "sku": "R902405520",
+              "name": "ALA10VO60DFR1/52R-VSC12K04",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14051,
+              "productId": 1023,
+              "sku": "R902434292",
+              "name": "A10VO45DRG/31L-PSC12K68 E",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            },
+            {
+              "id": 14052,
+              "productId": 1712,
+              "sku": "R902438652",
+              "name": "APA10VO71DFR1/31L-PSC92N00E SO13 REMAN",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1000,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 02",
+              "shortCode": "B-02-01-02",
+              "barcode": "B-02-01-02"
+            }
+          ],
+          "totalQuantity": 6,
+          "notes": "Synced from Odoo (6 products, 6 units)"
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "B-02-01-03",
+          "locationCode": "WH/Stock/B-02-01-03",
+          "odooLocationId": "1001",
+          "products": [
+            {
+              "id": 14027,
+              "productId": 3223,
+              "sku": "R902400102",
+              "name": "AA10VO45DR/52L-PUC62K68",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14053,
+              "productId": 4688,
+              "sku": "R986PTO382",
+              "name": "ALA10VO60ED72/52R-VUC62K01P-SO834",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14055,
+              "productId": 3649,
+              "sku": "3707308",
+              "name": "F11-005-HU-CH-K-000",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14056,
+              "productId": 4269,
+              "sku": "PROD-4269",
+              "name": "MHV20-1P13P-1C-20-F3",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14057,
+              "productId": 4686,
+              "sku": "R902232713",
+              "name": "AA2FM63/61W-VBD510",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14059,
+              "productId": 1957,
+              "sku": "R902502487R",
+              "name": "A10VO45DFR1/31L-VUC62K01 REMAN",
+              "quantity": 2,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            },
+            {
+              "id": 14061,
+              "productId": 1737,
+              "sku": "R902433244",
+              "name": "ALA10VO45DFR1/31R-VSC12N00",
+              "quantity": 1,
+              "reservedQuantity": 0,
+              "locationId": 1001,
+              "locationName": "WH/Stock/Zone B/Row 02/Rack 01/Shelf 03",
+              "shortCode": "B-02-01-03",
+              "barcode": "B-02-01-03"
+            }
+          ],
+          "totalQuantity": 9,
+          "notes": "Synced from Odoo (7 products, 9 units)"
+        },
+        "R1-B1-L4": {
+          "row": 1,
+          "bay": 1,
+          "level": 4,
+          "shortCode": "B-02-01-04",
+          "locationCode": "WH/Stock/B-02-01-04",
+          "odooLocationId": "1002",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        }
+      }
     },
     {
       "id": "RACK-SW-HORIZONTAL",
@@ -729,8 +3387,10 @@
           "bay": 1,
           "level": 1,
           "shortCode": "B-03-01-01",
-          "locationCode": "B-03-01-01",
+          "locationCode": "WH/Stock/B-03-01-01",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L2": {
@@ -738,8 +3398,10 @@
           "bay": 1,
           "level": 2,
           "shortCode": "B-03-01-02",
-          "locationCode": "B-03-01-02",
+          "locationCode": "WH/Stock/B-03-01-02",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B1-L3": {
@@ -747,8 +3409,10 @@
           "bay": 1,
           "level": 3,
           "shortCode": "B-03-01-03",
-          "locationCode": "B-03-01-03",
+          "locationCode": "WH/Stock/B-03-01-03",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L1": {
@@ -756,8 +3420,10 @@
           "bay": 2,
           "level": 1,
           "shortCode": "B-03-02-01",
-          "locationCode": "B-03-02-01",
+          "locationCode": "WH/Stock/B-03-02-01",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L2": {
@@ -765,8 +3431,10 @@
           "bay": 2,
           "level": 2,
           "shortCode": "B-03-02-02",
-          "locationCode": "B-03-02-02",
+          "locationCode": "WH/Stock/B-03-02-02",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B2-L3": {
@@ -774,8 +3442,10 @@
           "bay": 2,
           "level": 3,
           "shortCode": "B-03-02-03",
-          "locationCode": "B-03-02-03",
+          "locationCode": "WH/Stock/B-03-02-03",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L1": {
@@ -783,8 +3453,10 @@
           "bay": 3,
           "level": 1,
           "shortCode": "B-03-03-01",
-          "locationCode": "B-03-03-01",
+          "locationCode": "WH/Stock/B-03-03-01",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L2": {
@@ -792,8 +3464,10 @@
           "bay": 3,
           "level": 2,
           "shortCode": "B-03-03-02",
-          "locationCode": "B-03-03-02",
+          "locationCode": "WH/Stock/B-03-03-02",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         },
         "R1-B3-L3": {
@@ -801,12 +3475,15 @@
           "bay": 3,
           "level": 3,
           "shortCode": "B-03-03-03",
-          "locationCode": "B-03-03-03",
+          "locationCode": "WH/Stock/B-03-03-03",
           "odooLocationId": "",
+          "products": [],
+          "totalQuantity": 0,
           "notes": ""
         }
       },
-      "visible": true
+      "visible": true,
+      "rowNumber": "03"
     },
     {
       "id": "BENCH-WEST-WALL",
@@ -824,7 +3501,101 @@
       ],
       "bays": 2,
       "levels": 4,
-      "visible": true
+      "visible": true,
+      "zone": "A",
+      "rowNumber": "01",
+      "rackNumber": "01",
+      "locationPrefix": "A-01",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "A-01-01-01",
+          "locationCode": "WH/Stock/A-01-01-01",
+          "odooLocationId": "860",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "A-01-01-02",
+          "locationCode": "WH/Stock/A-01-01-02",
+          "odooLocationId": "861",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "A-01-01-03",
+          "locationCode": "WH/Stock/A-01-01-03",
+          "odooLocationId": "862",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L4": {
+          "row": 1,
+          "bay": 1,
+          "level": 4,
+          "shortCode": "A-01-01-04",
+          "locationCode": "WH/Stock/A-01-01-04",
+          "odooLocationId": "863",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L1": {
+          "row": 1,
+          "bay": 2,
+          "level": 1,
+          "shortCode": "A-01-02-01",
+          "locationCode": "WH/Stock/A-01-02-01",
+          "odooLocationId": "868",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L2": {
+          "row": 1,
+          "bay": 2,
+          "level": 2,
+          "shortCode": "A-01-02-02",
+          "locationCode": "WH/Stock/A-01-02-02",
+          "odooLocationId": "869",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L3": {
+          "row": 1,
+          "bay": 2,
+          "level": 3,
+          "shortCode": "A-01-02-03",
+          "locationCode": "WH/Stock/A-01-02-03",
+          "odooLocationId": "870",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L4": {
+          "row": 1,
+          "bay": 2,
+          "level": 4,
+          "shortCode": "A-01-02-04",
+          "locationCode": "WH/Stock/A-01-02-04",
+          "odooLocationId": "871",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        }
+      }
     },
     {
       "id": "BENCH-OFFICE-EXT",
@@ -842,7 +3613,101 @@
       ],
       "bays": 2,
       "levels": 4,
-      "visible": true
+      "visible": true,
+      "zone": "A",
+      "rowNumber": "01",
+      "rackNumber": "01",
+      "locationPrefix": "A-01",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "A-01-01-01",
+          "locationCode": "WH/Stock/A-01-01-01",
+          "odooLocationId": "860",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "A-01-01-02",
+          "locationCode": "WH/Stock/A-01-01-02",
+          "odooLocationId": "861",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "A-01-01-03",
+          "locationCode": "WH/Stock/A-01-01-03",
+          "odooLocationId": "862",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L4": {
+          "row": 1,
+          "bay": 1,
+          "level": 4,
+          "shortCode": "A-01-01-04",
+          "locationCode": "WH/Stock/A-01-01-04",
+          "odooLocationId": "863",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L1": {
+          "row": 1,
+          "bay": 2,
+          "level": 1,
+          "shortCode": "A-01-02-01",
+          "locationCode": "WH/Stock/A-01-02-01",
+          "odooLocationId": "868",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L2": {
+          "row": 1,
+          "bay": 2,
+          "level": 2,
+          "shortCode": "A-01-02-02",
+          "locationCode": "WH/Stock/A-01-02-02",
+          "odooLocationId": "869",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L3": {
+          "row": 1,
+          "bay": 2,
+          "level": 3,
+          "shortCode": "A-01-02-03",
+          "locationCode": "WH/Stock/A-01-02-03",
+          "odooLocationId": "870",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B2-L4": {
+          "row": 1,
+          "bay": 2,
+          "level": 4,
+          "shortCode": "A-01-02-04",
+          "locationCode": "WH/Stock/A-01-02-04",
+          "odooLocationId": "871",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        }
+      }
     },
     {
       "id": "CART-HALL-01",
@@ -876,7 +3741,46 @@
       ],
       "bays": 1,
       "levels": 3,
-      "visible": true
+      "visible": true,
+      "zone": "A",
+      "rowNumber": "01",
+      "rackNumber": "01",
+      "locationPrefix": "A-01",
+      "shelfLocations": {
+        "R1-B1-L1": {
+          "row": 1,
+          "bay": 1,
+          "level": 1,
+          "shortCode": "A-01-01-01",
+          "locationCode": "WH/Stock/A-01-01-01",
+          "odooLocationId": "860",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L2": {
+          "row": 1,
+          "bay": 1,
+          "level": 2,
+          "shortCode": "A-01-01-02",
+          "locationCode": "WH/Stock/A-01-01-02",
+          "odooLocationId": "861",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        },
+        "R1-B1-L3": {
+          "row": 1,
+          "bay": 1,
+          "level": 3,
+          "shortCode": "A-01-01-03",
+          "locationCode": "WH/Stock/A-01-01-03",
+          "odooLocationId": "862",
+          "products": [],
+          "totalQuantity": 0,
+          "notes": ""
+        }
+      }
     },
     {
       "id": "DESK-OFFICE-01",
