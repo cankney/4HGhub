@@ -48,12 +48,12 @@ export interface OdooSettingsConfig {
 }
 
 export const DEFAULT_ODOO_CONFIG: OdooSettingsConfig = {
-  baseUrl: process.env.NEXT_PUBLIC_ODOO_BASE_URL || 'https://4hg.odoo.com',
-  database: process.env.NEXT_PUBLIC_ODOO_DB || '4hg-live',
+  baseUrl: process.env.NEXT_PUBLIC_ODOO_BASE_URL || 'https://4hg-source.odoo.com',
+  database: process.env.NEXT_PUBLIC_ODOO_DB || '4hg-source-live-18731883',
   username:
     process.env.NEXT_PUBLIC_ODOO_USERNAME ||
     process.env.NEXT_PUBLIC_ODOO_LOGIN ||
-    'admin@4hg.com',
+    'cole@4hgs.com',
   apiKey: process.env.NEXT_PUBLIC_ODOO_API_KEY || '',
   stockLocationPrefix: 'WH/Stock, WH/Packing Zone',
   parentLocations: ['WH/Stock', 'WH/Packing Zone'],
@@ -150,6 +150,7 @@ export function SettingsDrawer({
   const [testMessage, setTestMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmLockBaseline, setConfirmLockBaseline] = useState(false);
+  const [showOdooKey, setShowOdooKey] = useState(false);
 
   // UniFi State
   const [unifiForm, setUnifiForm] = useState<UnifiSettingsConfig>(unifiConfig);
@@ -309,33 +310,81 @@ export function SettingsDrawer({
           </p>
 
           <div className="space-y-2.5">
-            {/* Read-Only Vercel Environment Configuration Summary */}
-            <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Managed via Vercel Environment
+            {/* Vercel Environment Configuration Indicator */}
+            {envConfigured?.odoo && (
+              <div className="flex items-center justify-between p-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-[10px]">
+                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Vercel Environment Active
                 </span>
-                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                  ACTIVE
+                <span className="font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                  CONNECTED
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">Instance URL</span>
-                  <span className="truncate block font-semibold text-slate-200">{form.baseUrl || 'https://4hg.odoo.com'}</span>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="col-span-2 space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}>
+                  Instance URL
+                </label>
+                <input
+                  type="url"
+                  value={form.baseUrl || ''}
+                  onChange={(e) => updateOdooForm({ ...form, baseUrl: e.target.value })}
+                  placeholder="https://4hg-source.odoo.com"
+                  className={`w-full px-3 py-1.5 rounded-xl border text-xs font-mono transition outline-none ${inputClass}`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}>
+                  Database
+                </label>
+                <input
+                  type="text"
+                  value={form.database || ''}
+                  onChange={(e) => updateOdooForm({ ...form, database: e.target.value })}
+                  placeholder="4hg-source-live-18731883"
+                  className={`w-full px-3 py-1.5 rounded-xl border text-xs font-mono transition outline-none ${inputClass}`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}>
+                  Username / Email
+                </label>
+                <input
+                  type="text"
+                  value={form.username || ''}
+                  onChange={(e) => updateOdooForm({ ...form, username: e.target.value })}
+                  placeholder="cole@4hgs.com"
+                  className={`w-full px-3 py-1.5 rounded-xl border text-xs font-mono transition outline-none ${inputClass}`}
+                />
+              </div>
+
+              <div className="col-span-2 space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${labelClass}`}>
+                  API Key or Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showOdooKey ? 'text' : 'password'}
+                    value={form.apiKey || ''}
+                    onChange={(e) => updateOdooForm({ ...form, apiKey: e.target.value })}
+                    placeholder="Enter Odoo API Key or Password"
+                    className={`w-full pl-3 pr-9 py-1.5 rounded-xl border text-xs font-mono transition outline-none ${inputClass}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOdooKey(!showOdooKey)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+                  >
+                    {showOdooKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
-                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">Database</span>
-                  <span className="truncate block font-semibold text-slate-200">{form.database || '4hg-live'}</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">Username</span>
-                  <span className="truncate block font-semibold text-slate-200">{form.username || 'admin@4hg.com'}</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-sans">API Key</span>
-                  <span className="truncate block font-semibold text-emerald-400">•••••••• (Secured)</span>
-                </div>
+                <p className="text-[9.5px] text-slate-500 pt-0.5">
+                  Generate in Odoo 18: Click Avatar (top-right) → Preferences / My Profile → Account Security → API Keys → New API Key.
+                </p>
               </div>
             </div>
 

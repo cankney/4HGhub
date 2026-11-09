@@ -129,31 +129,31 @@ export async function POST(req: NextRequest) {
     const { baseUrl, database, username, apiKey, stockLocationPrefix = 'WH/Stock', testOnly } = payload;
 
     const cleanBaseUrl = cleanOdooUrl(
-      process.env.ODOO_BASE_URL ||
+      baseUrl ||
+        process.env.ODOO_BASE_URL ||
         process.env.ODOO_URL ||
         process.env.NEXT_PUBLIC_ODOO_BASE_URL ||
-        baseUrl ||
-        'https://4hg.odoo.com'
+        'https://4hg-source.odoo.com'
     );
     const cleanDb = (
+      database ||
       process.env.ODOO_DB ||
       process.env.ODOO_DATABASE ||
       process.env.NEXT_PUBLIC_ODOO_DB ||
-      database ||
-      '4hg-live'
+      '4hg-source-live-18731883'
     ).trim();
     const cleanUser = (
+      username ||
       process.env.ODOO_USERNAME ||
       process.env.ODOO_LOGIN ||
       process.env.NEXT_PUBLIC_ODOO_USERNAME ||
       process.env.NEXT_PUBLIC_ODOO_LOGIN ||
-      username ||
-      'admin@4hg.com'
+      'cole@4hgs.com'
     ).trim();
     const cleanApiKey = (
+      apiKey ||
       process.env.ODOO_API_KEY ||
       process.env.NEXT_PUBLIC_ODOO_API_KEY ||
-      apiKey ||
       ''
     ).trim();
 
@@ -164,36 +164,56 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Step 1: Authenticate with Odoo
+    // Step 1: Authenticate with Odoo (try primary username, then email variant if applicable)
     let uid: number | false = false;
-    try {
-      uid = await callOdooRpc(cleanBaseUrl, 'common', 'authenticate', [
-        cleanDb,
-        cleanUser,
-        cleanApiKey,
-        {},
-      ]);
-    } catch (authErr: any) {
-      console.error('[Odoo Sync] Auth connection error:', authErr.message);
-      return NextResponse.json({
-        success: false,
-        error: `Failed to connect to Odoo: ${authErr.message}`,
-      });
+    let authUser = cleanUser;
+
+    const candidateUsers = [cleanUser];
+    if (cleanUser.includes('@4hgs.com')) {
+      candidateUsers.push(cleanUser.replace('@4hgs.com', '@4hg.com'));
+    } else if (cleanUser.includes('@4hg.com') && !cleanUser.includes('@4hgs.com')) {
+      candidateUsers.push(cleanUser.replace('@4hg.com', '@4hgs.com'));
+    }
+
+    let lastAuthError: string | null = null;
+    for (const candUser of candidateUsers) {
+      try {
+        const res = await callOdooRpc(cleanBaseUrl, 'common', 'authenticate', [
+          cleanDb,
+          candUser,
+          cleanApiKey,
+          {},
+        ]);
+        if (res && typeof res === 'number') {
+          uid = res;
+          authUser = candUser;
+          break;
+        }
+      } catch (authErr: any) {
+        lastAuthError = authErr.message;
+        console.error(`[Odoo Sync] Auth connection error for user ${candUser}:`, authErr.message);
+      }
     }
 
     if (!uid || typeof uid !== 'number') {
+      if (lastAuthError) {
+        return NextResponse.json({
+          success: false,
+          error: `Failed to connect to Odoo: ${lastAuthError}`,
+        });
+      }
       return NextResponse.json({
         success: false,
-        error: `Authentication failed on database "${cleanDb}". Please verify your Database name, Username (${cleanUser}), and API Key / Password in Settings.`,
+        error: `Authentication failed on database "${cleanDb}". Odoo rejected the credentials for username "${cleanUser}". Please ensure your API Key was generated inside your Odoo database (User Profile -> Account Security -> API Keys) and that ODOO_API_KEY is configured in Vercel for Production.`,
       });
     }
 
     if (testOnly) {
       return NextResponse.json({
         success: true,
-        authenticatedAs: cleanUser,
+        authenticatedAs: authUser,
         uid,
-        message: `Connection successful! Authenticated as ${cleanUser} (UID ${uid}).`,
+        message: `Connection successful! Authenticated as ${authUser} (UID ${uid}).`,
       });
     }
 

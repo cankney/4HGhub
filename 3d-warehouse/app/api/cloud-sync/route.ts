@@ -96,9 +96,9 @@ export async function GET() {
 
     parsed.odooConfig = {
       ...parsed.odooConfig,
-      baseUrl: envOdoo.baseUrl || parsed.odooConfig?.baseUrl || 'https://4hg.odoo.com',
-      database: envOdoo.database || parsed.odooConfig?.database || '4hg-live',
-      username: envOdoo.username || parsed.odooConfig?.username || 'admin@4hg.com',
+      baseUrl: envOdoo.baseUrl || parsed.odooConfig?.baseUrl || 'https://4hg-source.odoo.com',
+      database: envOdoo.database || parsed.odooConfig?.database || '4hg-source-live-18731883',
+      username: envOdoo.username || parsed.odooConfig?.username || 'cole@4hgs.com',
       apiKey: envOdoo.apiKey || parsed.odooConfig?.apiKey || '',
       stockLocationPrefix:
         parsed.odooConfig?.stockLocationPrefix || 'WH/Stock, WH/Packing Zone',
