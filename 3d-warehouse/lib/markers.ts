@@ -496,93 +496,23 @@ const STATIC_MARKERS: FacilityMarker[] = [
       status: 'online',
     },
   },
-  {
-    id: 'BIN-101',
-    type: 'inventory_bin',
-    name: 'Rack Row 1 • Cardboard Stock',
-    position: [-2.42, -1.45, -7.91],
-    rotation: [0, 0, 0],
-    modelVariant: 'pin',
-    metadata: {
-      sku: 'SKU-CBX-440',
-      description: 'Far East Wall 3-Bay Storage Rack (5.3m × 1.3m)',
-      qty: 1906,
-      maxQty: 2200,
-      bay: 'Rack Row 1 (East)',
-      status: 'online',
-    },
-  },
-  {
-    id: 'BIN-102',
-    type: 'inventory_bin',
-    name: 'Rack Row 2 • Euro Containers',
-    position: [-2.09, -1.45, -5.48],
-    rotation: [0, 0, 0],
-    modelVariant: 'pin',
-    metadata: {
-      sku: 'SKU-PLC-297',
-      description: 'Inner East Aisle 3-Bay Storage Rack (4.6m × 1.0m)',
-      qty: 297,
-      maxQty: 400,
-      bay: 'Rack Row 2',
-      status: 'online',
-    },
-  },
-  {
-    id: 'BIN-103',
-    type: 'inventory_bin',
-    name: 'Rack Row 3 • Safety & PPE',
-    position: [-2.13, -1.45, -3.61],
-    rotation: [0, 0, 0],
-    modelVariant: 'pin',
-    metadata: {
-      sku: 'SKU-PPE-212',
-      description: 'Center-Right Aisle 3-Bay Storage Rack (4.8m × 1.0m)',
-      qty: 212,
-      maxQty: 600,
-      bay: 'Rack Row 3',
-      status: 'warning',
-    },
-  },
-  {
-    id: 'BIN-104',
-    type: 'inventory_bin',
-    name: 'Center Island • Bulk Inventory',
-    position: [3.43, -1.45, 0.38],
-    rotation: [0, 0, 0],
-    modelVariant: 'pin',
-    metadata: {
-      sku: 'SKU-PKT-880',
-      description: 'Double-Deep Square Center Rack Island (2.8m × 2.2m)',
-      qty: 4448,
-      maxQty: 5000,
-      bay: 'Center Island',
-      status: 'online',
-    },
-  },
-  {
-    id: 'BIN-105',
-    type: 'inventory_bin',
-    name: 'Front-Left L-Rack Assembly',
-    position: [4.45, -1.45, 5.05],
-    rotation: [0, 0, 0],
-    modelVariant: 'pin',
-    metadata: {
-      sku: 'SKU-LRK-510',
-      description: 'South-West L-Shaped Storage Rack System',
-      qty: 840,
-      maxQty: 1000,
-      bay: 'South-West Bay',
-      status: 'online',
-    },
-  },
 ];
 
-export const DEFAULT_MARKERS: FacilityMarker[] =
-  Array.isArray((baselineWarehouseDefaults as any)?.markers) &&
-  (baselineWarehouseDefaults as any).markers.length > 0
-    ? ((baselineWarehouseDefaults as any).markers as FacilityMarker[])
-    : STATIC_MARKERS;
+export const LEGACY_DEFAULT_BIN_IDS = new Set([
+  'BIN-101',
+  'BIN-102',
+  'BIN-103',
+  'BIN-104',
+  'BIN-105',
+]);
+
+export const DEFAULT_MARKERS: FacilityMarker[] = Array.isArray(
+  (baselineWarehouseDefaults as any)?.markers
+)
+  ? ((baselineWarehouseDefaults as any).markers as FacilityMarker[]).filter(
+      (m) => !LEGACY_DEFAULT_BIN_IDS.has(m.id)
+    )
+  : STATIC_MARKERS;
 
 const STATIC_MESH_OVERRIDES: MeshOverride[] = Array.from(
   { length: 11 },

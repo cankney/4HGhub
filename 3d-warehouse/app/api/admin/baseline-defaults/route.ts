@@ -34,6 +34,10 @@ export async function GET() {
             visible: b.visible !== false,
           }));
         }
+        if (Array.isArray(parsed.markers)) {
+          const legacyBinIds = new Set(['BIN-101', 'BIN-102', 'BIN-103', 'BIN-104', 'BIN-105']);
+          parsed.markers = parsed.markers.filter((m: any) => m && !legacyBinIds.has(m.id));
+        }
         return NextResponse.json({
           success: true,
           data: parsed,
@@ -90,7 +94,7 @@ export async function POST(req: NextRequest) {
       ...b,
       visible: b.visible !== false,
     }));
-    if (!Array.isArray(clean.markers) || clean.markers.length === 0) {
+    if (!Array.isArray(clean.markers)) {
       clean.markers = fallbackData.markers || [];
     }
 

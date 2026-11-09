@@ -31,6 +31,7 @@ interface WarehouseModelProps {
   searchQuery?: string;
   selectedSearchResult?: SearchResultItem | null;
   onClearSearchResult?: () => void;
+  showShelfTags?: boolean;
   onSelectMesh: (meshIndex: number) => void;
   onSelectBlueprintItem: (id: string) => void;
   onSelectSlot: (slotKey: string | null) => void;
@@ -548,6 +549,7 @@ function ArchitecturalRack3D({
   searchQuery,
   selectedSearchResult,
   onClearSearchResult,
+  showShelfTags = true,
   itemId,
   itemName,
   clippingPlanes,
@@ -570,6 +572,7 @@ function ArchitecturalRack3D({
   searchQuery?: string;
   selectedSearchResult?: SearchResultItem | null;
   onClearSearchResult?: () => void;
+  showShelfTags?: boolean;
   itemId?: string;
   itemName?: string;
   clippingPlanes: THREE.Plane[];
@@ -891,7 +894,7 @@ function ArchitecturalRack3D({
                                 <div className="w-2.5 h-2.5 rounded-full bg-[#8DDB05] shadow-[0_0_10px_#8DDB05] -mt-1 ring-2 ring-slate-950 animate-pulse" />
                               </div>
                             </Html>
-                          ) : !hasActiveSearchSelection && !isNonInventory && (isSearchHit || (isSelected && (isSlotSelected || hasMappedLoc))) ? (
+                          ) : !hasActiveSearchSelection && !isNonInventory && (isSearchHit || (showShelfTags && isSelected && (isSlotSelected || hasMappedLoc))) ? (
                             <Html
                               position={[bx, boxY + boxH * 0.35, bz]}
                               center
@@ -1042,7 +1045,7 @@ function ArchitecturalRack3D({
                 <div className="w-2.5 h-2.5 rounded-full bg-[#8DDB05] shadow-[0_0_10px_#8DDB05] -mt-1 ring-2 ring-slate-950 animate-pulse" />
               </div>
             </Html>
-          ) : !hasActiveSearchSelection && (isSelected || isHovered || Boolean(matchingZoneProduct)) ? (
+          ) : !hasActiveSearchSelection && (Boolean(matchingZoneProduct) || (showShelfTags && (isSelected || isHovered))) ? (
             <Html
               position={[0, sy * 0.5 + 0.15, 0]}
               center
@@ -2211,6 +2214,7 @@ function BlueprintInteractiveNode({
   searchQuery,
   selectedSearchResult,
   onClearSearchResult,
+  showShelfTags = true,
 }: {
   appMode: 'view' | 'edit';
   item: BlueprintItem;
@@ -2224,6 +2228,7 @@ function BlueprintInteractiveNode({
   searchQuery?: string;
   selectedSearchResult?: SearchResultItem | null;
   onClearSearchResult?: () => void;
+  showShelfTags?: boolean;
   onSelect: () => void;
   onHover: (hovered: boolean) => void;
   onUpdate: (updated: BlueprintItem) => void;
@@ -2369,6 +2374,7 @@ function BlueprintInteractiveNode({
             searchQuery={searchQuery}
             selectedSearchResult={selectedSearchResult}
             onClearSearchResult={onClearSearchResult}
+            showShelfTags={showShelfTags}
             itemId={item.id}
             itemName={item.name}
             clippingPlanes={clippingPlanes}
@@ -2390,7 +2396,8 @@ function BlueprintInteractiveNode({
           />
         )}
 
-        {(isHovered || (isSelected && (!selectedSearchResult || selectedSearchResult.type === 'rack'))) && (
+        {(showShelfTags || !isShelfModel(item.kind)) &&
+          (isHovered || (isSelected && (!selectedSearchResult || selectedSearchResult.type === 'rack'))) && (
           <Html
             position={[0, sy * 0.5 + 0.25, 0]}
             center
@@ -2478,6 +2485,7 @@ export function WarehouseModel({
   searchQuery,
   selectedSearchResult,
   onClearSearchResult,
+  showShelfTags = true,
   onSelectMesh,
   onSelectBlueprintItem,
   onSelectSlot,
@@ -2603,6 +2611,7 @@ export function WarehouseModel({
                 searchQuery={searchQuery}
                 selectedSearchResult={selectedSearchResult}
                 onClearSearchResult={onClearSearchResult}
+                showShelfTags={showShelfTags}
                 onSelect={() => onSelectBlueprintItem(item.id)}
                 onHover={(hov) =>
                   setHoveredBpId(hov ? item.id : hoveredBpId === item.id ? null : hoveredBpId)

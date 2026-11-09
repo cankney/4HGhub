@@ -103,29 +103,33 @@ export function sanitizeTwinStateForPersistence(rawState: Record<string, any>): 
   }
 
   // 2. Markers: preserve all marker IDs, types, positions, rotations, scales, model variants, camera/network config
-  if (Array.isArray(rawState.markers) && rawState.markers.length > 0) {
-    clean.markers = rawState.markers.map((m: any) => {
-      const cleanMarker: any = {
-        id: m.id,
-        name: m.name,
-        type: m.type,
-        position: m.position,
-      };
-      if (m.rotation) cleanMarker.rotation = m.rotation;
-      if (m.scale) cleanMarker.scale = m.scale;
-      if (m.modelVariant) cleanMarker.modelVariant = m.modelVariant;
-      if (m.status) cleanMarker.status = m.status;
+  // Strip legacy default Amber Beacon Boxes (BIN-101..BIN-105) and preserve empty marker arrays when user deletes markers
+  if (Array.isArray(rawState.markers)) {
+    const legacyBinIds = new Set(['BIN-101', 'BIN-102', 'BIN-103', 'BIN-104', 'BIN-105']);
+    clean.markers = rawState.markers
+      .filter((m: any) => m && !legacyBinIds.has(m.id))
+      .map((m: any) => {
+        const cleanMarker: any = {
+          id: m.id,
+          name: m.name,
+          type: m.type,
+          position: m.position,
+        };
+        if (m.rotation) cleanMarker.rotation = m.rotation;
+        if (m.scale) cleanMarker.scale = m.scale;
+        if (m.modelVariant) cleanMarker.modelVariant = m.modelVariant;
+        if (m.status) cleanMarker.status = m.status;
 
-      // Metadata: keep device IDs, IPs, RTSP config, but strip ephemeral live polling telemetry (networkStats)
-      if (m.metadata && typeof m.metadata === 'object') {
-        const { networkStats, ...persistentMeta } = m.metadata;
-        cleanMarker.metadata = persistentMeta;
-      } else {
-        cleanMarker.metadata = {};
-      }
+        // Metadata: keep device IDs, IPs, RTSP config, but strip ephemeral live polling telemetry (networkStats)
+        if (m.metadata && typeof m.metadata === 'object') {
+          const { networkStats, ...persistentMeta } = m.metadata;
+          cleanMarker.metadata = persistentMeta;
+        } else {
+          cleanMarker.metadata = {};
+        }
 
-      return cleanMarker;
-    });
+        return cleanMarker;
+      });
   }
 
   // 3. Mesh Overrides

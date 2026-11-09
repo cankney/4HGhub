@@ -581,7 +581,10 @@ export function DetailDrawer({
         : type === 'network_nas'
         ? 'NAS'
         : 'BIN';
-    const nextNum = markers.length + 101;
+    const existingNums = markers
+      .map((m) => parseInt(m.id.replace(/^\D+/g, ''), 10))
+      .filter((n) => !isNaN(n));
+    const nextNum = Math.max(200, ...existingNums) + 1;
     const newMarker: FacilityMarker = {
       id: `${idPrefix}-${nextNum}`,
       type,

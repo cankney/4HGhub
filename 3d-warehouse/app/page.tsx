@@ -12,6 +12,7 @@ import {
   FacilityMarker,
   FsdVisionSettingsConfig,
   getDefaultCameraVisionMapping,
+  LEGACY_DEFAULT_BIN_IDS,
   MarkerType,
   MeshOverride,
 } from '@/lib/markers';
@@ -380,59 +381,52 @@ export default function WarehouseDigitalTwinPage() {
         } catch {}
       }
 
-      if (Array.isArray(parsed.markers) && parsed.markers.length > 0) {
+      if (Array.isArray(parsed.markers)) {
         const defaultMarkerMap = new Map(DEFAULT_MARKERS.map((m) => [m.id, m]));
         const defaultCamMap = new Map(
           DEFAULT_MARKERS.filter((m) => m.type === 'camera').map((m) => [m.id, m])
         );
-        const existingIds = new Set<string>();
 
-        const hydratedMarkers = parsed.markers.map((m: FacilityMarker) => {
-          existingIds.add(m.id);
-          const fallback = defaultMarkerMap.get(m.id);
+        const hydratedMarkers = parsed.markers
+          .filter((m: FacilityMarker) => m && !LEGACY_DEFAULT_BIN_IDS.has(m.id))
+          .map((m: FacilityMarker) => {
+            const fallback = defaultMarkerMap.get(m.id);
 
-          if (m.type === 'camera') {
-            const fallbackCam = defaultCamMap.get(m.id);
-            const fallbackMapping = fallbackCam ? getDefaultCameraVisionMapping(fallbackCam) : undefined;
-            return {
-              ...m,
-              metadata: {
-                ...(fallbackCam?.metadata || {}),
-                ...m.metadata,
-                visionMapping: {
-                  ...(fallbackMapping || {}),
-                  ...(m.metadata?.visionMapping || {}),
+            if (m.type === 'camera') {
+              const fallbackCam = defaultCamMap.get(m.id);
+              const fallbackMapping = fallbackCam ? getDefaultCameraVisionMapping(fallbackCam) : undefined;
+              return {
+                ...m,
+                metadata: {
+                  ...(fallbackCam?.metadata || {}),
+                  ...m.metadata,
+                  visionMapping: {
+                    ...(fallbackMapping || {}),
+                    ...(m.metadata?.visionMapping || {}),
+                  },
+                  unifiId: m.metadata?.unifiId || fallbackCam?.metadata?.unifiId,
+                  unifiModel: m.metadata?.unifiModel || fallbackCam?.metadata?.unifiModel,
+                  unifiConsoleId:
+                    m.metadata?.unifiConsoleId || fallbackCam?.metadata?.unifiConsoleId,
+                  rtspHigh: m.metadata?.rtspHigh || fallbackCam?.metadata?.rtspHigh,
                 },
-                unifiId: m.metadata?.unifiId || fallbackCam?.metadata?.unifiId,
-                unifiModel: m.metadata?.unifiModel || fallbackCam?.metadata?.unifiModel,
-                unifiConsoleId:
-                  m.metadata?.unifiConsoleId || fallbackCam?.metadata?.unifiConsoleId,
-                rtspHigh: m.metadata?.rtspHigh || fallbackCam?.metadata?.rtspHigh,
-              },
-            };
-          }
+              };
+            }
 
-          if (m.type.startsWith('network_') || (fallback && fallback.type.startsWith('network_'))) {
-            return {
-              ...m,
-              type: fallback ? fallback.type : m.type,
-              metadata: {
-                ...(fallback?.metadata || {}),
-                ...m.metadata,
-                networkStats: m.metadata?.networkStats || fallback?.metadata?.networkStats,
-              },
-            };
-          }
+            if (m.type.startsWith('network_') || (fallback && fallback.type.startsWith('network_'))) {
+              return {
+                ...m,
+                type: fallback ? fallback.type : m.type,
+                metadata: {
+                  ...(fallback?.metadata || {}),
+                  ...m.metadata,
+                  networkStats: m.metadata?.networkStats || fallback?.metadata?.networkStats,
+                },
+              };
+            }
 
-          return m;
-        });
-
-        // Ensure all default markers (all inventory bins and network equipment) not yet in saved state are added
-        DEFAULT_MARKERS.forEach((defM) => {
-          if (!existingIds.has(defM.id)) {
-            hydratedMarkers.push(defM);
-          }
-        });
+            return m;
+          });
 
         setMarkers(hydratedMarkers);
         applied = true;
@@ -541,6 +535,8 @@ export default function WarehouseDigitalTwinPage() {
   );
 
   const autoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const inFlightPushCountRef = React.useRef(0);
+  const localMutationSeqRef = React.useRef(0);
 
   // Consolidated multi-device cloud persistence engine
   const saveStateToCloud = React.useCallback(
@@ -548,10 +544,12 @@ export default function WarehouseDigitalTwinPage() {
       partialOverride?: Record<string, any>,
       options?: { immediate?: boolean }
     ) => {
+      localMutationSeqRef.current += 1;
       const payload = {
         ...latestStateRef.current,
         ...(partialOverride || {}),
       };
+      latestStateRef.current = payload;
       const cleanPayload = sanitizeTwinStateForPersistence(payload);
 
       // 1. Instantly persist to localStorage so tab reload always has the latest state
@@ -563,6 +561,7 @@ export default function WarehouseDigitalTwinPage() {
 
       // 2. Transmit to Firestore Cloud
       const doPush = async () => {
+        inFlightPushCountRef.current += 1;
         setIsSyncingCloud(true);
         try {
           const res = await fetch('/3d-warehouse/api/cloud-sync', {
@@ -610,11 +609,15 @@ export default function WarehouseDigitalTwinPage() {
         } catch (err: any) {
           console.warn('Network error saving to 4HG Cloud:', err.message);
         } finally {
-          setIsSyncingCloud(false);
+          inFlightPushCountRef.current = Math.max(0, inFlightPushCountRef.current - 1);
+          if (inFlightPushCountRef.current === 0) {
+            setIsSyncingCloud(false);
+          }
         }
       };
 
       if (options?.immediate) {
+        isUserDirtyRef.current = false;
         if (autoSaveTimerRef.current) {
           clearTimeout(autoSaveTimerRef.current);
           autoSaveTimerRef.current = null;
@@ -626,6 +629,7 @@ export default function WarehouseDigitalTwinPage() {
         }
         autoSaveTimerRef.current = setTimeout(() => {
           autoSaveTimerRef.current = null;
+          isUserDirtyRef.current = false;
           doPush();
         }, 500);
       }
@@ -642,6 +646,7 @@ export default function WarehouseDigitalTwinPage() {
   // Pull customizations from 4HG Cloud
   const handlePullFromCloud = React.useCallback(
     async (silent = false) => {
+      const pullStartSeq = localMutationSeqRef.current;
       if (!silent) {
         setIsSyncingCloud(true);
         setCloudSyncMsg(null);
@@ -671,8 +676,13 @@ export default function WarehouseDigitalTwinPage() {
           }
 
           // If silent (background polling or auto-load on start):
-          // Only avoid overwriting if the user has active unsaved edits in this current session!
-          if (silent && isUserDirtyRef.current) {
+          // Never overwrite if the user has active unsaved edits or a cloud push in flight!
+          if (
+            silent &&
+            (isUserDirtyRef.current ||
+              inFlightPushCountRef.current > 0 ||
+              localMutationSeqRef.current !== pullStartSeq)
+          ) {
             if (json.data.odooConfig?.apiKey) {
               setOdooConfig((prev) => ({
                 ...prev,
@@ -1385,7 +1395,10 @@ export default function WarehouseDigitalTwinPage() {
         : type === 'network_nas'
         ? 'NAS'
         : 'BIN';
-    const num = markers.length + 101;
+    const existingNums = markers
+      .map((m) => parseInt(m.id.replace(/^\D+/g, ''), 10))
+      .filter((n) => !isNaN(n));
+    const num = Math.max(200, ...existingNums) + 1;
     const created: FacilityMarker = {
       id: `${prefix}-${num}`,
       type,
@@ -1509,10 +1522,9 @@ export default function WarehouseDigitalTwinPage() {
     isUserDirtyRef.current = true;
     const base = baselineDefaultsRef.current;
     const fallbackFacing = cardinalFacing || 'north';
-    const targetMarkers =
-      Array.isArray(base?.markers) && base.markers.length > 0
-        ? base.markers
-        : DEFAULT_MARKERS;
+    const targetMarkers = (
+      Array.isArray(base?.markers) ? base.markers : DEFAULT_MARKERS
+    ).filter((m: FacilityMarker) => m && !LEGACY_DEFAULT_BIN_IDS.has(m.id));
     const targetMeshes =
       Array.isArray(base?.meshOverrides) && base.meshOverrides.length > 0
         ? base.meshOverrides
@@ -2368,7 +2380,21 @@ export default function WarehouseDigitalTwinPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen]);
 
-  // Global Keyboard Shortcuts (Undo, Redo, Deselect)
+  const handleDeleteBlueprintItem = React.useCallback(
+    (id: string) => {
+      pushHistory();
+      isUserDirtyRef.current = true;
+      setBlueprintItems((prev) => {
+        const next = prev.filter((b) => b.id !== id);
+        saveStateToCloud({ blueprintItems: next }, { immediate: true });
+        return next;
+      });
+      setSelectedBlueprintId((prev) => (prev === id ? null : prev));
+    },
+    [pushHistory, saveStateToCloud]
+  );
+
+  // Global Keyboard Shortcuts (Undo, Redo, Deselect, Delete)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -2405,11 +2431,34 @@ export default function WarehouseDigitalTwinPage() {
         setSelectedMarkerId(null);
         setSelectedMeshIndex(null);
         setSelectedSearchResult(null);
+      } else if (
+        (e.key === 'Delete' || e.key === 'Backspace') &&
+        appMode === 'edit'
+      ) {
+        if (selectedMarkerId) {
+          e.preventDefault();
+          handleDeleteMarker(selectedMarkerId);
+          showToastNotification('info', 'Removed marker from model');
+        } else if (selectedBlueprintId) {
+          e.preventDefault();
+          handleDeleteBlueprintItem(selectedBlueprintId);
+          showToastNotification('info', 'Removed item from model');
+        }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [pastHistory, futureHistory, handleUndo, handleRedo, showToastNotification]);
+  }, [
+    pastHistory,
+    futureHistory,
+    handleUndo,
+    handleRedo,
+    showToastNotification,
+    appMode,
+    selectedMarkerId,
+    selectedBlueprintId,
+    handleDeleteBlueprintItem,
+  ]);
 
   const handleUpdateBlueprintItem = React.useCallback(
     (updated: BlueprintItem, immediate = true) => {
@@ -2433,20 +2482,6 @@ export default function WarehouseDigitalTwinPage() {
         saveStateToCloud({ blueprintItems: next }, { immediate: true });
         return next;
       });
-    },
-    [pushHistory, saveStateToCloud]
-  );
-
-  const handleDeleteBlueprintItem = React.useCallback(
-    (id: string) => {
-      pushHistory();
-      isUserDirtyRef.current = true;
-      setBlueprintItems((prev) => {
-        const next = prev.filter((b) => b.id !== id);
-        saveStateToCloud({ blueprintItems: next }, { immediate: true });
-        return next;
-      });
-      setSelectedBlueprintId((prev) => (prev === id ? null : prev));
     },
     [pushHistory, saveStateToCloud]
   );
@@ -2695,6 +2730,7 @@ export default function WarehouseDigitalTwinPage() {
         onClearSearchResult={() => setSelectedSearchResult(null)}
         showCameraFeeds3D={showCameraFeeds3D}
         showSpatialVision3D={showSpatialVision3D || isFsdSettingsOpen}
+        showShelfTags={showShelfTags}
         fsdConfig={fsdConfig}
         unifiConfig={unifiConfig}
         cardinalFacing={cardinalFacing}

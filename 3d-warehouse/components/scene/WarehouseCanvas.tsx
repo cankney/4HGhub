@@ -49,6 +49,7 @@ interface WarehouseCanvasProps {
   onClearSearchResult?: () => void;
   showCameraFeeds3D?: boolean;
   showSpatialVision3D?: boolean;
+  showShelfTags?: boolean;
   fsdConfig?: FsdVisionSettingsConfig;
   unifiConfig?: UnifiSettingsConfig;
   cardinalFacing?: CardinalFacing;
@@ -410,6 +411,7 @@ export function WarehouseCanvas({
   onClearSearchResult,
   showCameraFeeds3D,
   showSpatialVision3D,
+  showShelfTags,
   fsdConfig,
   unifiConfig,
   cardinalFacing,
@@ -508,6 +510,7 @@ export function WarehouseCanvas({
             searchQuery={searchQuery}
             selectedSearchResult={selectedSearchResult}
             onClearSearchResult={onClearSearchResult}
+            showShelfTags={showShelfTags}
             onSelectMesh={onSelectMesh}
             onSelectBlueprintItem={onSelectBlueprintItem}
             onSelectSlot={onSelectSlot}

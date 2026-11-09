@@ -51,9 +51,11 @@ export async function GET() {
         visible: item.visible !== false,
       }));
     }
-    if (!Array.isArray(parsed.markers) || parsed.markers.length === 0) {
+    if (!Array.isArray(parsed.markers)) {
       parsed.markers = (baselineDefaults as any)?.markers || [];
     }
+    const legacyBinIds = new Set(['BIN-101', 'BIN-102', 'BIN-103', 'BIN-104', 'BIN-105']);
+    parsed.markers = parsed.markers.filter((m: any) => m && !legacyBinIds.has(m.id));
 
     // Merge server-level Vercel environment variables if configured
     const envOdoo = {
